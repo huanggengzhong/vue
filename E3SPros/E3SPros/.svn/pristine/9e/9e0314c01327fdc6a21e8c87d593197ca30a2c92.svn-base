@@ -1,0 +1,530 @@
+// 单网格视图/弹窗模板混入对象
+// 使用场景：单网格模板使用（只适用于模板）
+export const oneTableTemplateMixins = {
+  props: {
+    // 动态按钮
+    dynamicButtons: { type: Array, default: function() { return [] } },
+    // 动态组件
+    dynamicComponents: { type: Array, default: function() { return [] } },
+    // 动态网格列
+    dynamicTableCols: { type: Array, default: function() { return [] } },
+    // 动态查询条件对象
+    dynamicFormFields: { type: Object, default: function() { return {} } },
+    // 动态排除查询条件对象
+    dynamicUnFormFields: { type: Object, default: function() { return {} } },
+    // 动态API配置
+    dynamicApiConfig: { type: Object, default: function() { return {} } },
+    // 是否显示网格选择列
+    dynamicIsShowSelect: { type: Boolean, default: true },
+    // 是否显示更多按钮
+    dynamicIsShowMoreBtn: { type: Boolean, default: true },
+    // 默认显示组件数量
+    dynamicDefalutCount: { type: Number, default: 0 },
+    // 是否初始化网格
+    dynamicIsInitTable: { type: Boolean, default: false },
+    // 行拖动/列拖动：只能二选一，列拖动优先
+    // 是否行拖动
+    dynamicIsRowDrop: { type: Boolean, default: false },
+    // 是否列拖动
+    dynamicIsColumnDrop: { type: Boolean, default: false },
+    // 导出Excel文件名称
+    dynamicExcelName: { type: String, default: '' },
+    // 导出Excel文件Sheet名称
+    dynamicExcelSheetName: { type: String, default: '' },
+    // 其它高度
+    dynamicTableOtherHeight: { type: Number, default: 0 },
+    // 是否进行列排序
+    dynamicSortable: { type: Boolean, default: false },
+    // 是否显示分页
+    isShowPagination: { type: Boolean, default: true },
+    // 更多条件是否使用浮层
+    isAbsolute: { type: Boolean, default: true },
+    // 分页组件最大页码按钮数（大于等于 5 且小于等于 21 的奇数）
+    pagerCount: { type: Number, default: 7 },
+    // 是否设置默认品牌
+    isSetDefaultBrand: { type: Boolean, default: true },
+    // 网格刷新标识
+    refreshTableKey: { type: String, default: '' },
+    // 网格显示条数
+    dynamicPageSize: { type: Number, default: 10 }
+  },
+  data() {
+    return {
+      // 是否table下的组件
+      isShowComponent: true,
+      // 数据列表
+      list: null,
+      // 加载中
+      listLoading: false,
+      // 设置网格总共的条数，查询完更改
+      pageTotal: 0,
+      // 下拉查询条件
+      listQuery: {
+        pageIndex: 1,
+        pageSize: this.dynamicPageSize
+      },
+      // API配置对象
+      apiConfig: this.dynamicApiConfig,
+      // 组件控件
+      tableComponents: this.dynamicComponents,
+      // 按钮控件
+      tableButtons: this.dynamicButtons,
+      // 网格动态生成列
+      tableCols: this.dynamicTableCols,
+      // 网格拖动列
+      dropTableCols: this.copyTableCols(this.dynamicTableCols),
+      // 表单查询数据
+      formField: this.dynamicFormFields,
+      // 表单排除查询数据
+      unFormField: this.dynamicUnFormFields,
+      // 是否显示网格选择列
+      isShowSelect: this.dynamicIsShowSelect,
+      // 是否显示更多按钮
+      isShowMoreBtn: this.dynamicIsShowMoreBtn,
+      // 默认显示组件数量
+      defalutCount: this.dynamicDefalutCount,
+      // 是否初始化网格数据
+      isInitTable: this.dynamicIsInitTable,
+      // 是否网格行拖动，列拖动优先
+      isRowDrop: this.dynamicIsRowDrop && !this.dynamicIsColumnDrop,
+      // 是否网格列拖动
+      isColumnDrop: this.dynamicIsColumnDrop,
+      // 导出Excel文件名称
+      excelName: this.dynamicExcelName !== '' ? this.dynamicExcelName : (this.dynamicApiConfig.ServiceCode || 'export_data'),
+      excelSheetName: this.dynamicExcelSheetName !== '' ? this.dynamicExcelSheetName : (this.dynamicApiConfig.ServiceCode || 'export_data'),
+      // 表单查询数据备份对象（用于重置
+      backFormField: {},
+      // 需要中台返回网格的字段
+      apiQueryRow: [],
+      // 网格当前选中行
+      currentRow: null,
+      // 网格高度
+      tableHeight: 310,
+      // 高度margin-top/bottom值
+      tableMarginHeight: 21,
+      // 其它高度
+      tableOtherHeight: this.dynamicTableOtherHeight,
+      // 更多按钮图标
+      moreBtnIcon: 'el-icon-plus',
+      // 是否显示更多查询条件
+      toggleParam: false,
+      // 是否进行列排序
+      sortable: this.dynamicSortable,
+      // 是否已经执行过updated
+      isUpdated: false,
+      // 网格Key
+      oneTableKey: 'oneTableKey'
+    }
+  },
+  created() {
+    // 设置品牌默认值
+    if (this.formField.carBrandCode === '' && this.isSetDefaultBrand === true) {
+      this.formField.carBrandCode = this.$store.getters.orgInfo.BRAND_CODE
+    }
+    this.backFormField = JSON.parse(JSON.stringify(this.formField))
+    // 根据动态列获取字段
+    if (this.tableCols.length > 0) {
+      this.apiQueryRow = this.$utils.getArrayFromJsonArray(this.tableCols.filter(o => o.prop !== 'controlBtn'), 'prop')
+    }
+    // 初始化数据
+    if (this.isInitTable === true) {
+      this.queryTable(1)
+    }
+  },
+  watch: {
+    // 监听网格刷新KEY标识
+    refreshTableKey(newVal, oldVal) {
+      if (newVal !== '' && newVal !== null && newVal !== oldVal) {
+        var that = this
+        if (that.tableCols.length > 0) {
+          that.dropTableCols = that.copyTableCols(that.dynamicTableCols)
+          that.oneTableKey = 'oneTableKey' + this.$utils.generateId()
+        }
+      }
+    }
+  },
+  mounted() {
+    // 网格拖动-行拖动，列拖动优先
+    if (this.isRowDrop === true) {
+      this.rowDrop()
+    }
+    // 网格拖动-列拖动
+    if (this.isColumnDrop === true) {
+      this.columnDrop()
+    }
+    // 设置网格高度自适应
+    window.addEventListener('resize', () => {
+      this.setTableHeight(true)
+    })
+    // 隐藏更多按钮
+    this.hideMoreBtn()
+  },
+  // 更新后操作
+  updated() {
+    if (this.isUpdated === false) {
+      this.$nextTick(() => {
+        this.setTableHeight()
+      })
+      if (!this.$refs.conHeight || this.$refs.conHeight.offsetHeight > 20) {
+        this.isUpdated = true
+      }
+    }
+  },
+  methods: {
+    // 查询方法（apiConfig:api配置对象，apiQueryRow:表格中台返回网格的字段）
+    // dataType：查询类型（null/空：默认为返回json格式，excel：导出excel）（注：由于mock没有模拟文件流返回，所以mock请求方式下导出excel文件内容还是json）
+    // size：导出excel时设置size
+    // filterObj：过滤对象
+    // cb：回调函数
+    // dto:传输对象，默认为：null，用于数据的传输，如：dto.formField...
+    queryTable(page, dataType, size, filterObj, cb, dto) {
+      this.currentRow = null
+      this.listLoading = true
+      var curFormField = null
+      if (dto === undefined || dto.formField === undefined || dto.formField === null) {
+        curFormField = JSON.parse(JSON.stringify(this.formField))
+      } else {
+        curFormField = JSON.parse(JSON.stringify(dto.formField))
+      }
+      // 排除不需要作为查询条件的formField字段
+      if (this.unFormField && this.unFormField !== null) {
+        for (var key in this.unFormField) {
+          if (curFormField[key]) {
+            delete curFormField[key]
+          }
+        }
+      }
+      const queryObj = {
+        // api配置
+        apiConfig: this.apiConfig,
+        // 需要调用的API服务配置
+        apiServices: [{
+          // 表格中台返回网格的字段
+          apiQueryRow: this.apiQueryRow
+        }],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: size || this.listQuery.pageSize,
+          pageIndex: page || this.listQuery.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: curFormField
+        }
+      }
+      // 转换了中台请求格式数据
+      var paramD = this.$getParams(queryObj)
+      // 构建导出Excel参数
+      if (dataType === 'excel') {
+        this.buildExportParam(queryObj, paramD)
+      }
+      // 调用中台API方法（可复用）
+      this.$requestGraphQL(paramD).then(response => {
+        if (response.result === '0') {
+          this.listLoading = false
+          return
+        }
+        if (dataType === 'excel') {
+          // 下载Excel
+          this.downloadExcel(response)
+        } else {
+          // 返回json
+          if (response.data[queryObj.apiConfig.ServiceCode].result === '1' && response.data[queryObj.apiConfig.ServiceCode].rows) {
+            if (page) {
+              // 查询完返回指定的page页数
+              this.listQuery.pageIndex = page
+            }
+            this.pageTotal = response.data[queryObj.apiConfig.ServiceCode].records
+            var tmpLst = this.$utils.changeToOneDeepArray(response.data[queryObj.apiConfig.ServiceCode].rows)
+            if (filterObj && filterObj.key && filterObj.val) {
+              tmpLst = tmpLst.filter(o => o[filterObj.key] === filterObj.val)
+            }
+            for (var i = 0; i < tmpLst.length; i++) {
+              if (!tmpLst[i].index) {
+                tmpLst[i].index = i
+              }
+            }
+            this.list = tmpLst
+          }
+        }
+        if (typeof cb === 'function') {
+          cb.call(this, response)
+        }
+
+        this.listLoading = false
+      })
+    },
+    // 同步（syncFields：同步字段（多个以“,”隔开））
+    synchrony(syncFields) {
+      if (this.$refs.multipleTable && this.$refs.multipleTable.selection) {
+        // 获取选择行的值 this.$refs.multipleTable获取网格  需要在网格添加ref="multipleTable"
+        const selectData = this.$refs.multipleTable.selection
+        if (selectData.length > 0) {
+          var selectIndexSort = []
+          for (var k in selectData) {
+            selectIndexSort.push(selectData[k].index)
+          }
+          // 选择行重新排序
+          selectIndexSort.sort(function(a, b) {
+            return a > b ? 1 : -1
+          })
+          for (var i = 1; i < selectIndexSort.length; i++) {
+            // 将选择第一行的某个字段数据赋给其他选择行, 可以多个，以“,”隔开
+            if (syncFields.indexOf(',') > -1) {
+              var arrSyncFields = syncFields.split(',')
+              for (var j = 0; j < arrSyncFields.length; j++) {
+                this.list[selectIndexSort[i]][arrSyncFields[j]] = this.list[selectIndexSort[0]][arrSyncFields[j]]
+              }
+            } else {
+              this.list[selectIndexSort[i]][syncFields] = this.list[selectIndexSort[0]][syncFields]
+            }
+          }
+        }
+      }
+    },
+    // 重置
+    reset() {
+      // this.formField = JSON.parse(JSON.stringify(this.backFormField))
+      // for (const key in this.backFormField) {
+      //   this.formField[key] = this.backFormField[key]
+      // }
+      this.$utils.deepClone(this.formField, this.backFormField)
+    },
+    // 导出网格
+    // pageSize=-1：全部符合条件的记录
+    exportExcel(excelName, excelSheetName, pageSize) {
+      if (excelName) {
+        this.excelName = excelName
+      } else {
+        if (this.$route.matched.length > 0 && this.$route.matched[this.$route.matched.length - 1].meta) {
+          const now = this.$utils.parseTime(new Date(), '{y}{m}{d}{h}{i}{s}')
+          this.excelName = this.$route.matched[this.$route.matched.length - 1].meta.title + now
+        }
+      }
+      if (excelSheetName) {
+        this.excelSheetName = excelSheetName
+      } else {
+        this.excelSheetName = this.excelName
+      }
+      this.queryTable(1, 'excel', pageSize || -1)
+    },
+    // 构建导出Excel中台参数
+    buildExportParam(queryObj, paramsObj) {
+      var tmpCols = this.tableCols.filter(o => o.hidden !== true)
+      tmpCols = JSON.parse(JSON.stringify(tmpCols))
+      // 网格列对象转为excel列对象
+      var excelCols = {}
+      for (var i = 0; i < tmpCols.length; i++) {
+        if (tmpCols[i].prop !== 'controlBtn') {
+          tmpCols[i].prop = this.$utils.getExportStringFromString(tmpCols[i].prop)
+          excelCols[tmpCols[i].prop] = tmpCols[i].expLabel || tmpCols[i].label
+        }
+      }
+      // 数据类型
+      paramsObj.dataType = 'excel'
+      // excel文件名称
+      paramsObj.excelName = this.excelName
+      // 根据请求API描述excel数据对象
+      paramsObj.excels = [{
+        // excel sheet名称
+        title: this.excelSheetName,
+        // 对应API服务编码
+        actionName: queryObj.apiConfig.ServiceCode,
+        // excel列
+        columns: excelCols
+      }]
+    },
+    // 下载Excel
+    downloadExcel(data) {
+      this.$utils.downloadFile(data, this.excelName)
+    },
+    // 选中网格行
+    handleTableRowChange(val) {
+      this.currentRow = val
+      // 判断父组件是否需要接收选中行数据
+      if (this.$parent.clickRowsData !== undefined) {
+        this.$parent.clickRowsData = this.currentRow
+      }
+      // 判断父组件是否需要处理选中事件
+      if (typeof this.$parent.selectRowsData === 'function') {
+        this.$parent.selectRowsData(this.currentRow)
+      } else if (this.$parent.$parent && typeof this.$parent.$parent.selectRowsData === 'function') {
+        this.$parent.$parent.selectRowsData(this.currentRow)
+      }
+    },
+    // 处理双击事件
+    handleTableRowDbClick(row, column, event) {
+      if (this.isShowSelect === true) {
+        // 多选
+        this.$refs.multipleTable.toggleRowSelection(row)
+      }
+      // 回传事件
+      if (this.$parent) {
+        if (this.$parent.handleTableRowDbClick) {
+          this.$parent.handleTableRowDbClick(row, column, event)
+        } else if (this.$parent.$parent.handleTableRowDbClick) {
+          this.$parent.$parent.handleTableRowDbClick(row, column, event)
+        }
+      }
+    },
+    // // 把每一行的索引放进row      为了解决鼠标经过不断刷新问题弃用这种方式   luojx 2019-9-9
+    // tableRowClassName({ row, rowIndex }) {
+    //   row.index = rowIndex
+    // },
+    // 初始化list的索引
+    initListIndex() {
+      var that = this
+      for (var li = 0; li < that.list.length; li++) {
+        that.list[li].index = li
+      }
+    },
+    // 更多按钮点击事件
+    changeToggleParam() {
+      this.toggleParam = !this.toggleParam
+      if (this.toggleParam) {
+        this.moreBtnIcon = 'el-icon-minus'
+      } else {
+        this.moreBtnIcon = 'el-icon-plus'
+      }
+      this.setTableHeight()
+    },
+    // 处理每页显示改变事件
+    handleSizeChange(val) {
+      this.listQuery.pageSize = val
+      this.queryTable()
+    },
+
+    // 当前页记录
+    handleCurrentChange(val) {
+      this.listQuery.pageIndex = val
+      this.queryTable()
+    },
+    // 获取组件回传值
+    // val:值, codeField:绑定formField的字段名称, comType:组件类型（预留），textField：只有非propus有效
+    getComponentCode(val, txt, codeField, comType, popupsKey, textField, otherField, selectData) {
+      if (comType === 'propus' && !this.$utils.isEmpty(popupsKey)) {
+        // 弹窗赋值
+        // 根据popupsKey找到对应的弹窗key的弹窗组件
+        var dynamicPopup = this.dynamicComponents.filter(o => o.compKey === popupsKey)
+        if (dynamicPopup.length > 0) {
+          if (dynamicPopup[0].popups && dynamicPopup[0].popups.state) {
+            // 弹窗状态不是为已打开才进行计算
+            dynamicPopup[0].popups.state = false
+            dynamicPopup[0].popups.key = codeField + this.$utils.generateId()
+          }
+        }
+      }
+      // 赋值
+      if (codeField in this.formField) {
+        this.formField[codeField] = val
+      }
+      if (textField in this.formField) {
+        this.formField[textField] = txt
+      }
+    },
+    // 获取focus事件传回值
+    // val:值, codeField:绑定popupsState的字段名称, comType:组件类型（预留）
+    getFocusCode(val, txt, codeField, comType, popupsKey) {
+      // 只有popupsField和popupsKey都有传值才进行计算弹窗是否显示
+      if (!this.$utils.isEmpty(codeField) && !this.$utils.isEmpty(popupsKey)) {
+        // 根据popupsKey找到对应的弹窗key的弹窗组件
+        var dynamicPopup = this.dynamicComponents.filter(o => o.compKey === popupsKey)
+        if (dynamicPopup.length > 0) {
+          if (dynamicPopup[0].popups && !dynamicPopup[0].popups.state) {
+            // 弹窗状态不是为已打开才进行计算
+            dynamicPopup[0].popups.state = true
+            dynamicPopup[0].popups.key = codeField + this.$utils.generateId()
+          }
+        }
+      }
+    },
+    // 获取（网格中）组件回传值
+    // val:值, codeField:绑定formField的字段名称, comType:网格行索引（row.index），textField：只有非propus有效
+    getRowComponentCode(val, txt, codeField, comType, popupsKey, textField, otherField, selectData) {
+      switch (codeField) {
+        default:
+          // 普通赋值
+          if (this.list[comType].hasOwnProperty(codeField)) {
+            this.list[comType][codeField] = val
+          }
+          if (textField && this.list[comType].hasOwnProperty(textField)) {
+            this.list[comType][textField] = txt
+          }
+          // 其它选中对象返回值
+          this.setOtherField(comType, otherField, selectData)
+          break
+      }
+    },
+    // 其它选中对象返回值
+    setOtherField(comType, otherField, selectData) {
+      if (otherField && otherField !== '' && selectData && selectData.constructor === Array) {
+        var arrOtherField = otherField.split(',')
+        for (var i = 0; i < arrOtherField.length; i++) {
+          var arrOtherFieldVal = arrOtherField[i].split('-')
+          if (arrOtherFieldVal.length === 1) arrOtherFieldVal.push(arrOtherFieldVal[0])
+          if (this.list[comType].hasOwnProperty(arrOtherFieldVal[1])) {
+            var strOtherCode = ''
+            for (var j = 0; j < selectData.length; j++) {
+              if (selectData[j] && selectData[j].hasOwnProperty(arrOtherFieldVal[0])) {
+                strOtherCode += selectData[j][arrOtherFieldVal[0]] + ','
+              }
+            }
+            if (strOtherCode !== '') {
+              strOtherCode = strOtherCode.substring(0, strOtherCode.length - 1)
+            }
+            this.list[comType][arrOtherFieldVal[1]] = strOtherCode
+          }
+        }
+      }
+    },
+    // 设置网格高度
+    setTableHeight(isResize) {
+      this.$nextTick(() => {
+        this.tableHeight = this.$utils.setTableHeight(this, isResize, this.tableHeight)
+      })
+    },
+    // 隐藏more btn
+    hideMoreBtn() {
+      var maxControlCount = this.defalutCount > 0 ? this.defalutCount : 4
+      if (this.isShowMoreBtn === true && this.tableComponents.length <= maxControlCount) {
+        this.isShowMoreBtn = false
+      }
+    },
+    // 行拖动
+    rowDrop() {
+      const tbody = document.querySelector('.el-table__body-wrapper tbody')
+      const _this = this
+      this.$Sortable.create(tbody, {
+        onEnd({ newIndex, oldIndex }) {
+          const currRow = _this.list.splice(oldIndex, 1)[0]
+          _this.list.splice(newIndex, 0, currRow)
+        }
+      })
+    },
+    // 列拖动
+    columnDrop() {
+      const wrapperTr = document.querySelector('.el-table__header-wrapper tr')
+      this.$Sortable.create(wrapperTr, {
+        animation: 180,
+        delay: 0,
+        onEnd: evt => {
+          // 减去“序号列”
+          var oldIndex = evt.oldIndex - 1
+          var newIndex = evt.newIndex - 1
+          if (this.isShowSelect === true) {
+            // 减去“选择”列
+            oldIndex--
+            newIndex--
+          }
+          const oldItem = this.dropTableCols[oldIndex]
+          this.dropTableCols.splice(oldIndex, 1)
+          this.dropTableCols.splice(newIndex, 0, oldItem)
+        }
+      })
+    },
+    // 复制网格字段
+    copyTableCols(tableCols) {
+      var colsObj = tableCols.filter(o => o.hidden !== true)
+      // var cols = JSON.parse(JSON.stringify(colsObj))
+      return colsObj
+    }
+  }
+}

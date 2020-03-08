@@ -1,0 +1,296 @@
+<!--
+* description: 销售交车-弹窗
+* author: guanri
+* createdDate: 2019-10-22
+-->
+<template>
+  <section class="editCarBrand">
+    <el-dialog
+      :close-on-click-modal="false"
+      :append-to-body="true"
+      :visible.sync="curPopupsVisible"
+      @close="sendCode"
+      :key="popupsTableKey"
+      width="1400px"
+    >
+      <div class="carMessage"> 
+  <h5>合同信息</h5>
+  <div class="filter-container filter-params">
+    <el-row :gutter="26">
+      <component
+        v-for="comp in staticTableComponentsO.filter(o => o.isMust === true)"
+        :ref="comp.isRequire ? comp.isRequire+ comp.compKey : comp.compKey"
+        :validrule="comp.validrule"
+        :key="comp.compKey"
+        :codeField="comp.codeField"
+        :textField="comp.textField"
+        :popupsKey="comp.compKey"
+        :is="comp.component"
+        :code="formField[comp.codeField]"
+        @changeCode="getComponentCode"
+        @focusCode="getFocusCode"
+        :disabled="comp.disabled"
+        :isRequire="comp.isRequire"
+        :isMul="comp.isMul"
+        :span="comp.span || 6"
+        :labelName="comp.labelName"
+        :lookuptype="comp.lookuptype"
+        :dateOptionsType="comp.dateOptionsType"
+      ></component>
+    </el-row>
+  </div>
+  </div>
+      <!-- tab栏切换 -->
+      <br>
+
+  <div id="app">
+      <div >
+      <el-button type="primary" size="small"  @click="cur=0" :class="{active:cur==0}">交车信息</el-button>
+      <el-button size="small"  @click="cur=1" :class="{active:cur==1}">车主信息</el-button>
+      <el-button size="small"  @click="cur=2" :class="{active:cur==2}">交车项检查</el-button>
+      <el-button size="small" @click="cur=3" :class="{active:cur==3}">订单历史</el-button>
+      </div>
+         </div>
+     
+        <div class="tab-content">
+            <div v-show="cur==0"><handedCarmessage></handedCarmessage></div>
+            <div v-show="cur==1"><OwnersMessage></OwnersMessage></div>
+            <div v-show="cur==2"><handedCarInspect></handedCarInspect></div>
+            <div v-show="cur==3"><orderHistory></orderHistory></div>
+        </div>
+
+   </div>
+
+
+     <!-- <div slot="footer" class="dialog-footer">
+        <el-button
+          v-for="comp in tableButtons"
+          :key="comp.compKey"
+          :type="comp.type"
+          @click="comp.clickEvent"
+        >{{comp.text}}</el-button>
+      </div>  -->
+    </el-dialog>
+  </section>
+</template>
+<script>
+import { formMixins } from "@/components/mixins/formMixins";
+import { orgApis } from "@/api/graphQLApiList/org";
+import { veApis } from "@/api/graphQLApiList/ve";
+import OneTableTemplate from "@/components/templates/popupsOneTable";
+import handedCarInspect from "./handedCarInspect";
+import orderHistory from "./orderHistory";
+import OwnersMessage from "./OwnersMessage/OwnersMessage";
+import handedCarmessage from "./handedCarmessage/handedCarmessage";
+
+export default {
+  components: {
+    handedCarmessage,
+    orderHistory,
+    OwnersMessage,
+    handedCarInspect,
+  },
+  // 组件混入对象
+  mixins: [formMixins],
+  data() {
+    return {
+        cur:0 ,
+     // 网格查询API配置对象
+      apiConfig: veApis.veCarDeliveryM,
+           
+      // 动态组件-查询条件
+      staticTableComponentsO: [],
+      // 静态组件-查询条件
+      staticTableComponentsO: [
+        { compKey: "compKey9",
+          labelName:this.$t('ve.label.receiptState') ,/*单据状态*///
+          lookuptype: "VE0039",
+          codeField: "carSeriesCode",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: false
+        },
+          {
+          compKey: "compKey206",
+           labelName: this.$t("ve.label.contractNum"),
+          //合同编码
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputText",
+          disabled:true,
+          isMust: true
+        },
+      
+       {
+          compKey: "compKey266",
+           labelName: this.$t("ve.label.saletype"),
+          //销售类型
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputText",
+          disabled:true,
+          isMust: true
+        },
+        {
+          compKey: "compKey252",
+          labelName: this.$t("ve.label.salePlace"),
+         //销售渠道
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputText",
+          disabled:true,
+          isMust: true
+        },
+       {
+          compKey: "compKey261",
+           labelName: this.$t("ve.label.custName"),
+          labelName: "销售顾问",//销售顾问
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputText",
+          disabled:true,
+          isMust: true
+        },
+         {
+          compKey: "compKey118",
+           labelName: this.$t("ve.label.ordersBoutique"),
+          //下单专营店
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputText",
+          disabled:true,
+          isMust: true
+        },
+                 {
+          compKey: "compKey115",
+           labelName: this.$t("ve.label.operations"),
+          //购买方式
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputText",
+          disabled:true,
+          isMust: true
+        },
+                     {
+          compKey: "compKey96",
+           labelName: this.$t("ve.label.situation"),
+         //状态
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputText",
+          disabled:true,
+          isMust: true
+        },
+                 {
+          compKey: "compKey14",
+            labelName: this.$t("ve.label.certification"),
+         //合格证
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputText",
+          disabled:true,
+          isMust: true
+        },
+
+      ],
+    
+      // 表单数据（无需赋值，由混入对象赋值）
+      //   formField: {
+      //     carBrandCode: "",
+      //     carBrandCn: "",
+      //     carBrandEn: "",
+      //     isEnable: "",
+      //     updateControlId: "",
+      //     uid: ""
+      //   }
+    };
+  },
+   methods: {
+  //    retuApplicaFormField:{
+  //       contractNum:'',
+       
+  //     },
+   
+
+    demoClick: function (index) {
+            this.tabNum = index;
+        },
+    //保存
+    save() {
+      const that = this;
+      this.$utils.validataMoth(this, "validpopup");
+      if (this.valid) {
+        //保存表单
+        this.saveForm();
+      }
+    }
+  }
+};
+</script>
+<style scoped>
+#app[data-v-db326a18] {
+    width: 500px;
+    height: 20px;
+    margin-bottom: 0px;
+}
+.filter-params{
+  border: 1px solid rgb(228, 222, 222);
+  padding-top: 29px;
+  height: 123px;
+}
+.el-dialog {
+  z-index: 3000;
+  width: 1800px;
+  height: 1000px;
+}
+  ul li {
+
+            margin: 0;
+            padding: 0;
+            list-style: none;
+             font-size: 12px;
+        
+        }
+        #app {
+            width: 600px;
+            height: 400px;
+            margin-bottom: 10px;
+         
+        }
+        .tab-tilte{
+            width: 90%;
+           
+        }
+        .tab-tilte li{
+            float: left;
+            width: 18%;
+             height: 30px;
+             
+            text-align: center;
+            line-height: 30px;
+            border-radius: 2px;
+             margin-right: 15px;
+            background-color:#f4f4f4;
+            cursor: pointer;
+        }
+     /* 点击对应的标题添加对应的背景颜色 */
+        .tab-tilte .active{
+            background-color: #09f;
+            color: #fff;
+        }
+   .tab-content div{
+            float: left;
+              width: 132%;
+    line-height: 25px;
+            text-align: center;
+        }
+</style>>
+ 

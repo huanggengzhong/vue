@@ -1,0 +1,211 @@
+<template>
+  <el-dialog
+    :close-on-click-modal="false"
+    title="退款申请"
+    :visible.sync="curdialogVisible"
+    @close="sendCodeHandleVisible"
+    class="importDialog"
+    width="1000px"
+    :append-to-body="true"
+  >
+    <div class="filter-container filter-params">
+      <el-row :gutter="26" ref="vailComponentList">
+        <component
+          v-for="comp in tableComponents.filter(o => o.isMust === true)"
+          :ref="comp.disabled ? comp.disabled+ comp.compKey : comp.compKey"
+          :validrule="comp.validrule"
+          :key="comp.compKey"
+          :codeField="comp.codeField"
+          :textField="comp.textField"
+          :popupsKey="comp.compKey"
+          :is="comp.component"
+          :code="formField[comp.codeField]"
+          @changeCode="getComponentCode"
+          @focusCode="getFocusCode"
+          :disabled="comp.disabled"
+          :isRequire="comp.isRequire"
+          :isMul="comp.isMul"
+          :span="comp.span || 8"
+          :labelName="comp.labelName"
+          :lookuptype="comp.lookuptype"
+          :dateOptionsType="comp.dateOptionsType"
+        ></component>
+      </el-row>
+    </div>
+    <div slot="footer" class="dialog-footer">
+      <el-button
+        v-for="comp in tableButtons"
+        :key="comp.compKey"
+        :type="comp.type"
+        @click="comp.clickEvent"
+      >{{comp.text}}</el-button>
+    </div>
+  </el-dialog>
+</template>
+<script>
+import { formMixins } from "@/components/mixins/formMixins";
+import { orgApis } from "@/api/graphQLApiList/org";
+import OneTableTemplate from "@/components/templates/popupsOneTable";
+import { requestGraphQL } from "@/api/commonRequest";
+
+export default {
+  mixins: [formMixins],
+  props: {
+    dialogVisible: {
+      type: Boolean,
+      default: function() {
+        return false;
+      }
+    }
+  },
+  data() {
+    return {
+      apiConfig: orgApis.veContractQry,
+      curdialogVisible: this.dialogVisible, 
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.save(),
+          // text: this.$t("sys.button.save")
+          text: "确定"
+        }, // '保存'
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.close(),
+          text: "取消"
+        }
+      ],
+      // 动态组件-查询条件
+      tableComponents: [
+        {
+          compKey: "compKey1",
+          labelName: "订单号",
+          disabled: true,
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey2",
+          labelName: "订单状态",
+          disabled: true,
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey3",
+          labelName: "销售顾问",
+          disabled: true,
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey4",
+          labelName: "签约日期",
+          disabled: true,
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey5",
+          labelName: "客户名称",
+          codeField: "vin",
+          disabled: true,
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey6",
+          labelName: "车型名称",
+          codeField: "vin",
+          disabled: true,
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey7",
+          labelName: "内饰颜色",
+          codeField: "vin",
+          disabled: true,
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey8",
+          labelName: "车身颜色",
+          codeField: "vin",
+          disabled: true,
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey9",
+          labelName: "VIN码",
+          codeField: "vin",
+          disabled: true,
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey10",
+          labelName: "已收金额",
+          codeField: "vin",
+          disabled: true,
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey11",
+          labelName: "合同金额",
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          disabled: true,
+          isMust: true
+        },
+        {
+          compKey: "compKey12",
+          labelName: "申请退款金额",
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        }
+      ],
+      // 表单数据（无需赋值，由混入对象赋值）
+      formField: {
+        roleDesc: "",
+        saleContractDateBegin: "",
+        preDeliveryDate: "",
+        createDateBegin: "",
+        saleContractDateEnd: ""
+      }
+    };
+  },
+  methods: {
+    close() {
+      this.$emit("close", "");
+    },
+    sendCodeHandleVisible() {
+      this.$emit("visible", false);
+    }
+  }
+};
+</script>

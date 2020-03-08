@@ -1,0 +1,36 @@
+/**
+ * description: VPS样式
+ * author: luojx
+ * createdDate: 2019-08-30
+*/
+.filter-params-e3s {
+
+    .el-dialog {
+      // 居中样式
+      position: absolute;
+      left: 50%;
+      top: 50% !important;
+      margin-top: 0 !important;
+      transform: translate(-50%, -50%);
+        .el-table {
+        height: 360px;
+        font-size: 12px;
+        position: relative;
+        border-left: 1px solid #e8e8e8;
+        border-right: 1px solid #e8e8e8;
+        .el-table__body-wrapper {
+          height: 320px;
+          overflow-y: auto;
+        }
+      }
+    }
+  .el-date-editor .el-range__icon {
+    line-height: 25px;
+    position: absolute;
+    right: 3px;
+    font-size: 12px;
+  }
+
+
+  
+}

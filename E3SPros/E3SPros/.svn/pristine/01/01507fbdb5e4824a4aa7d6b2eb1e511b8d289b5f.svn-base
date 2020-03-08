@@ -1,0 +1,1332 @@
+<template>
+  <div class="app-container app-container-table">
+   <el-tabs v-model="activeName" style="margin-top: 15px;" >
+    <el-tab-pane label="工时单价模板设置" name="first">
+      <div class="left" style="width:45%;float:left;background: #fff;">
+            <div class="filter-container filter-params" style="height:75px;">
+             <el-row :gutter="28">
+               <el-col :span="12">
+                 <label>模板编码</label>
+                 <el-input v-model="wiPriceModelQuery.wiModelCode" placeholder="请输入内容" size="small"></el-input>
+               </el-col>
+               <el-col :span="12">
+                 <label>模板名称</label>
+                 <el-input v-model="wiPriceModelQuery.wiModelName" placeholder="请输入内容" size="small"></el-input>
+               </el-col>
+             </el-row>
+             <el-row :gutter="28">
+               <el-col :span="12">
+                 <label>状态</label>
+                 <el-select
+                 collapse-tags
+                 filterable
+                 v-model="wiPriceModelQuery.isEnable"
+                 placeholder="请选择"
+                 clearable
+                 size="small"
+                 >
+                <el-option
+                v-for="item in isEnableOptions1"
+                :key="item.code"
+                :label="item.text"
+                :value="item.code"
+                >{{item.text}}</el-option>
+                </el-select>
+              </el-col>
+              <el-col :span="12" style="padding-left:12px;padding-right:19px;">
+                <el-button type="primary" size="small" @click="doSeDbWiPriceModelMQueryFindAll">查询</el-button>
+                <el-button type="primary" size="small" @click="seDbWiPriceModelReset">重置</el-button>
+              </el-col>
+            </el-row>
+         </div>
+    <div class="filter-container filter-title">工时价格模板</div>
+    <el-table height="215px"
+      v-loading="listLoading"
+      :data="priceModelList"
+      element-loading-text="Loading"
+      border
+      fit
+      stripe
+      highlight-current-row
+      @row-click="rowClick">  
+      <el-table-column align="center" label="序号" style="padding-top: 3px;" fixed>
+        <template slot-scope="scope">
+          {{ scope.$index + 1 }}
+        </template>
+      </el-table-column>
+      <el-table-column label="工时价格模板Id" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.wiModelId }}</template>
+      </el-table-column>
+      <el-table-column label="模板编码" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.wiModelCode }}
+        </template>
+      </el-table-column>
+      <el-table-column label="模板名称" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.wiModelName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="付费性质" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.payKind }}</template>
+      </el-table-column>
+      <!--<el-table-column label="付费性质" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.payKindName }}</template>
+      </el-table-column>-->
+      <el-table-column label="状态" align="center">
+        <template slot-scope="scope">
+          <span v-if="scope.row.isEnable == 1">启用</span>
+          <span v-else-if="scope.row.isEnable == 0">停用</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="备注" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.remark }}
+        </template>
+      </el-table-column>
+      <el-table-column label="厂商标识ID" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.oemId }}</template>
+      </el-table-column>
+      <el-table-column label="集团标识ID" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.groupId }}</template>
+      </el-table-column>
+      <el-table-column label="厂商标识" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.oemCode }}</template>
+      </el-table-column>
+      <el-table-column label="集团标识" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.groupCode }}</template>
+      </el-table-column>
+      <el-table-column label="创建人" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.creator }}</template>
+      </el-table-column>
+      <el-table-column label="创建日期" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.createdDate }}</template>
+      </el-table-column>
+      <el-table-column label="修改人" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.modifier }}</template>
+      </el-table-column>
+      <el-table-column label="最后更新日期" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.lastUpdatedDate }}</template>
+      </el-table-column>
+      <el-table-column label="并发控制ID" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.updateControlId }}</template>
+      </el-table-column>
+     </el-table>
+
+     <el-row :gutter="28">
+       <el-col :span="12">
+         <div class="filter-container filter-title" v-text="showTitle"></div>
+       </el-col>
+       <el-col :span="12">
+         <div class="filter-container filter-button" style="padding-left:14px;padding-right:17px;">
+           <el-button type="primary" size="small" @click="saveWiModel">保存</el-button>
+           <el-button type="primary" size="small" @click="resetWiModel()">取消</el-button>
+        </div>
+       </el-col>
+     </el-row>
+     <div class="filter-container filter-params" style="padding-top:0px;height:110px">
+       <el-row :gutter="28">
+         <el-col :span="12">
+           <label>模板编码</label>
+           <el-input v-model="wiModel.wiModelCode" placeholder ref="modelCodeInput" :disabled="false" size="small"></el-input>
+         </el-col>
+         <el-col :span="12">
+           <label>模板名称</label>
+           <el-input v-model="wiModel.wiModelName" placeholder size="small" />
+         </el-col>
+      </el-row>
+      <el-row :gutter="28">
+        <el-col :span="12">
+          <label>状态</label>
+          <el-select
+              collapse-tags
+              filterable
+              v-model="wiModel.isEnable"
+              placeholder="请选择"
+              clearable
+              size="small"
+              :disabled="isSelectEnable"
+            >
+            <el-option
+                v-for="item in isEnableOptions"
+                :key="item.code"
+                :label="item.text"
+                :value="item.code"
+              >{{item.text}}</el-option>
+            </el-select>
+          </el-col>
+           <el-col :span="12">
+            <label>备注</label>
+            <el-input v-model="wiModel.remark" placeholder size="small"/>
+          </el-col>
+        </el-row>
+        <!--<el-row :gutter="30">
+          <el-col :span="22">
+            <el-button type="primary" size="small" @click="saveWiModel">保存</el-button>
+            <el-button type="primary" size="small" @click="resetWiModel()">取消</el-button>
+          </el-col>
+       </el-row>-->
+     </div>
+   </div>
+    
+    <wiBusinessCarSeries ref="wiBusinessCarSeriesSelect" :send="wiModel" :doDetailQuery="doSeDbWiPriceModelMQueryFindDetail"></wiBusinessCarSeries>
+    </el-tab-pane>
+   
+    <el-tab-pane label="模板对应经销商" name="second">
+    <div class="filter-container filter-button" ref="searcheHeight">
+      <el-button type="text" size="small" @click="downloadExcel">导入模板下载</el-button>
+      <el-button type="primary" size="small" @click="doSeDbWiPriceModelMQueryFindDlr(1)">查询</el-button>
+      <el-upload 
+       class="upload-demo" 
+       ref="upload"
+       style="margin-left: 10px;margin-right: 10px;"
+       :file-list="fileList"
+       name="excelFile"
+       action=""
+       :headers="uploadHeaders"
+       :http-request="handleChange"
+       :on-preview="handlePreview"
+       :on-remove="handleRemove"
+       :on-error="uploadFalse"
+       :on-success="uploadSuccess"
+       :auto-upload="true"
+       :before-upload="beforeAvatarUpload"
+       :before-remove="beforeRemove"
+       :on-exceed="handleExceed"
+       :on-change="handFileListChange"
+       :limit="1"
+       :show-file-list="false"
+       list-type="text">
+        <el-button size="small">导入</el-button>
+      </el-upload>
+      <el-button size="small" @click="addDlr">新增</el-button>
+      <el-button size="small" @click="modifyDlr">修改</el-button>
+      <el-button size="small" @click="deleteDlr">删除</el-button>
+      <el-button size="small" @click="resetDlrQuery">重置</el-button>
+    </div>
+      <!--<div class="filter-container filter-title">查询条件</div>-->
+      <div class="filter-container filter-params" ref="conHeight">
+        <el-row :gutter="26">
+        <el-col :span="22">
+          <el-row>
+            <!--车辆品牌-->
+            <carBrand 
+            :span="6" 
+            :key="componentsKeys.carBrandCode" 
+            :code="formCode.carBrandCode" 
+            labelName="组织品牌" 
+            @changeCode="getBrandCode" 
+            ref="carBrand"
+            :isMul="false">
+            </carBrand>
+            <!--地区-->
+            <ZoneQuery 
+            :span="6" 
+            :key="componentsKeys.areaCode" 
+            :code="formCode.areaCode" 
+            @changeCode="getAreaCode"
+            :carBrandCode="formField.dataInfo.carBrandCode"
+            ref="zoneQuery"
+            :isMul="false">
+            </ZoneQuery>
+            <!--大区-->
+            <bigArea 
+            :span="6" 
+            :key="componentsKeys.bigAreaCode" 
+            :code="formCode.bigAreaCode" 
+            @changeCode="getBigAreaCode" 
+            :areaId="formField.dataInfo.areaId"
+            :isMul="false"/>
+            <!--小区-->
+            <smallArea 
+            :span="6" 
+            :key="componentsKeys.smallAreaCode" 
+            :code="formCode.smallAreaCode" 
+            @changeCode="getSmallAreaCode"
+            :bigAreaId="formField.dataInfo.bigAreaId"
+            :isMul="false"/>
+          </el-row>
+        </el-col>
+        <el-col :span="2">
+          <el-button icon="el-icon-plus" @click="changeToggleParam" class="moreParam">更多</el-button>
+        </el-col>
+        <el-col :span="22" v-show="toggleParam" >
+          <el-row>
+            <el-col :span="6">
+              <lableName :curLabelName="dlrCodeName" :isShowLabel="true" :isRequire="false"></lableName>
+              <el-input
+                v-model="formField.dlrCode"
+                suffix-icon="el-icon-search"
+                placeholder="请选择"
+                size="small"
+                clearable
+                @focus="openComQueChoMuCodeDialog()"
+              />
+            </el-col>
+            <el-col :span="6">
+              <label>模板</label>
+              <el-select v-model="formField.wiModelId" placeholder="请选择" size="small">
+              <el-option
+                v-for="item in wiModelOptionDatas"
+                :key="item.wiModelId"
+                :label="item.wiModelName"
+                :value="item.wiModelId">
+              </el-option>
+            </el-select>
+          </el-col>
+          <!--经销商下拉框-->
+          <!--<seComQueChoDropDownList :span="6" labelName="经销商" @changeCode="getComQueChoDrop"/>-->
+         </el-row>
+        </el-col>
+      </el-row>
+    </div>
+    <div class="filter-container filter-title" ref="resultTitleHeight">查询结果</div>
+    <el-table 
+      v-loading="dlrLoading"
+      :data="dlrList"
+      element-loading-text="Loading"
+      border
+      fit
+      stripe
+      highlight-current-row
+      @row-click="dlrDataClick"
+      :height="tableHeight6"
+      ref="multipleTable">
+      <el-table-column align="center" label="序号" width="60">
+        <template slot-scope="scope">
+          {{ scope.$index + 1 }}
+        </template>
+      </el-table-column>
+      <!--<el-table-column type="selection" width="55" label="选择+" />-->
+      <el-table-column label="设置经销商ID" prop="wiPriceDlrId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.wiPriceDlrId }}</template>
+      </el-table-column>
+      <el-table-column label="模板Id" prop="wiModelId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.wiModelId }}</template>
+      </el-table-column>
+      <el-table-column label="模板编码" prop="wiModelCode" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.wiModelCode }}
+        </template>
+      </el-table-column>
+      <el-table-column label="模板名称" prop="wiModelName" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.wiModelName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="大区编码Id" prop="bigAreaId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.bigAreaId }}</template>
+      </el-table-column>
+      <el-table-column label="大区" prop="bigAreaName" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.bigAreaName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="小区编码Id" prop="smallAreaId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.smallAreaId }}</template>
+      </el-table-column>
+      <el-table-column label="小区" prop="smallAreaName" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.smallAreaName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="经销商Id" prop="dlrId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.dlrId }}</template>
+      </el-table-column>
+      <el-table-column label="经销商编码" prop="dlrCode" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.dlrCode }}
+        </template>
+      </el-table-column>
+      <el-table-column label="经销商名称" prop="dlrShortName" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.dlrShortName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="是否可用" prop="isEnable" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.isEnable }}</template>
+      </el-table-column>
+      <el-table-column label="地区ID" prop="areaId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.areaId }}</template>
+      </el-table-column>
+      <el-table-column label="厂商标识ID" prop="oemId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.oemId }}</template>
+      </el-table-column>
+      <el-table-column label="集团标识ID" prop="groupId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.groupId }}</template>
+      </el-table-column>
+      <el-table-column label="厂商标识" prop="oemCode" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.oemCode }}</template>
+      </el-table-column>
+      <el-table-column label="集团标识" prop="groupCode" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.groupCode }}</template>
+      </el-table-column>
+      <el-table-column label="创建人" prop="creator" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.creator }}</template>
+      </el-table-column>
+      <el-table-column label="创建日期" prop="createdDate" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.createdDate }}</template>
+      </el-table-column>
+      <el-table-column label="修改人" prop="modifier" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.modifier }}</template>
+      </el-table-column>
+      <el-table-column label="最后更新日期" prop="lastUpdatedDate" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.lastUpdatedDate }}</template>
+      </el-table-column>
+      <el-table-column label="并发控制ID" prop="updateControlId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.updateControlId }}</template>
+      </el-table-column>
+    </el-table>
+    <el-pagination
+      ref="paginationHeight"
+      background
+      layout="prev, pager, next, sizes, ->, total"
+      prev-text="上一页"
+      next-text="下一页"
+      :page-sizes="[10, 20, 30]"
+      :page-size="10"
+      :total="pageTotal"
+      :current-page.sync="listQuery.pageIndex"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+    />
+  </el-tab-pane>
+  </el-tabs>
+
+  <!--模板对应经销商弹出框 新增/修改-->
+  <saveDlrDialog 
+  ref="saveDlrDialog"
+  key="saveDlrDialogkey"
+  @visible="getVisible" 
+  @openEditComQueChoMu="openEditComQueChoMuCodeDialog()"
+  @setSelectRowDataNull="setDlrRowClickDataNull"
+  :doQuery="doSeDbWiPriceModelMQueryFindDlr"
+   />
+  <!--经销商弹框多选  折叠式--> 
+  <!--<seComQueryChoDlrMul  ref="seComQueryChoDlrMul" @changeCode="getComQueChoMuCode"/>-->
+  <!--经销商弹框多选 表格式-->
+  <seCommonQueryChooseDlr 
+  ref="multiChooseDlr" 
+  :isMul="true" 
+  :seComQueChoDlrVisible="multiSeComQueChoDlrVisible" 
+  @sentData="getMultiComQueCho" 
+  @close="closeMultiComQueCho" />
+
+  <!--经销商弹框单选 表格式-->
+  <seCommonQueryChooseDlr 
+  ref="singleChooseDlr" 
+  :isMul="false" 
+  :seComQueChoDlrVisible="singleSeComQueChoDlrVisible" 
+  @sentCode="getSingleComQueCho" 
+  @close="closeSingleComQueCho" />
+
+  </div> 
+</template>
+<script>
+import { apiSeDbWiPriceModel,seApis} from '@/api/graphQLApiList/se'
+import { requestGraphQL } from '@/api/commonRequest'
+import { getList } from '@/api/table'
+import carBrand from '@/components/org/carBrand/carBrand'
+import carSeries from '@/components/org/carSeries/carSeries'
+import isEnable from '@/components/org/isEnable/isEnable'
+import bigArea from '@/components/org/BigArea/index'
+import smallArea from '@/components/org/SmallArea/index'
+import wiBusinessCarSeries from '@/views/se/basedata/repair/wiBusinessCarSeries'
+import ZoneQuery from '@/components/org/ZoneQuery/index'
+import seComQueryChoDlrMul from "@/components/se/seComQueryChoDlrMul"
+import seCommonQueryChooseDlr from "@/components/se/seCommonQueryChooseDlr"
+import saveDlrDialog from "@/views/se/basedata/repair/saveDlrDialog"
+import { the_Height } from "@/components/se/seMixins/makeHeight"
+import lableName from "@/components/lableName/index"
+import config from '@/utils/config'
+import seComQueChoDropDownList from "@/components/se/seComQueChoDropDownList"
+
+  export default {
+    mixins:[the_Height],
+    components: {
+    carBrand,
+    isEnable,
+    bigArea,
+    smallArea,
+    wiBusinessCarSeries,
+    ZoneQuery,
+    seComQueryChoDlrMul,
+    seCommonQueryChooseDlr,
+    saveDlrDialog,
+    lableName,
+    config,
+    seComQueChoDropDownList
+  },
+  data() {
+    return {
+      dlrCodeName: '经销商编码',
+      isSelectEnable: false,
+      //工时价格模板查询条件
+      wiPriceModelQuery: {
+        wiModelCode: '',
+        wiModelName: '',
+        isEnable: '',
+        oemCode: '',
+        groupCode: ''
+      },
+      //工时价格模板新增/修改的字段
+      wiModel: {
+        wiModelId: '',
+        wiModelCode: '',
+        wiModelName: '',
+        isEnable: '1',
+        //payKind: '',
+        remark: '',
+        oemId: '',
+        groupId: '',
+        oemCode: '',
+        groupCode: '',
+        updateControlId: ''
+      },
+      wiModelOptionDatas: [],
+      curDlrDialog:'1',//当前打开经销商弹窗的页面，1主页面，0编辑页面
+      saveDlrDialogkey:'saveDlrDialog',
+      //经销商多选弹框显示/隐藏
+      multiSeComQueChoDlrVisible: false,
+      //经销商单选弹框显示/隐藏
+      singleSeComQueChoDlrVisible: false,
+      toggleParam: false,
+      priceModelList: null,
+      dlrList: null,
+      listLoading: true,
+      dlrLoading: true,
+      showTitle: '工时价格模板维护-新增',
+      //默认显示第一个选项卡
+      activeName: 'first',
+      errorMsg: "",
+      isSuccess: false,
+      //模板对应经销商-表单查询条件
+      formField: {
+        dlrId: '',
+        dlrCode: '',
+        wiModelId: '',
+        dataInfo: {
+          carBrandCode: '',
+          areaId: '',
+          bigAreaId: '',
+          smallAreaId: ''
+        }
+      },
+      componentsKeys: {
+        carBrandCode: 'a',
+        areaCode: 'b',
+        bigAreaCode: 'c',
+        smallAreaCode: 'd'
+      },
+      formCode: {
+        carBrandCode: "",//车辆品牌code
+        areaCode: "",//地区code
+        bigAreaCode: "",//大区code
+        smallAreaCode: "",//小区code
+      },
+      //表单查询数据备份对象（用于重置）
+      backFormField: {},
+      backFormCode: {},
+      //模板对应经销商返回的总记录数
+      pageTotal: 0,
+      //设置key更改状态,key 唯一
+      // carBrandKey: 'a',
+      // citySelectKey: 'b',
+      // bigAreaSelectKey: 'c',
+      // smallAreaSelectKey: 'd',
+      dlrDialogVisible: false,
+      //传给弹框的数据
+      gridData:{
+        wiPriceDlrId: '',
+        wiModelId: '',
+        wiModelCode: '',
+        wiModelName: '',
+        dlrId: '',
+        dlrCode: '',
+        dlrShortName: '',
+        oemId: '',
+        groupId: '',
+        oemCode: '',
+        groupCode: '',
+        isEnable: '',
+        updateControlId: ''
+      },
+      listQuery: {
+        pageIndex: 1,
+        pageSize: 10,
+        limit: 20,
+      },
+      rowClickData: {},
+      isEnableOptions: [
+        { code: "0", text: "停用" },
+        { code: "1", text: "启用" },
+      ],
+      isEnableOptions1: [
+        { code: "0", text: "停用" },
+        { code: "1", text: "启用" },
+        { code: "", text: "全部" },
+      ],
+      //导入文件
+      fileList: [],
+      // 导出Excel文件名称
+      excelName: '工时单价模板对应专营店模板',
+      exportData: null,
+      //用于查询模板对应业务类别和车系的查询数据集
+      wiPriceModelMQueryObject: {
+        oemCode: "",
+        groupCode: "",
+        wiModelId: ""
+      },
+      //工时价格模板与门店关系删除的参数集
+      deleteWiPriceModelDlrObject: {
+        wiPriceDlrId: '',
+        oemCode: '',
+        groupCode: '',
+        isEnable: '0',
+        updateControlId: ''
+      },
+      uploadHeaders:{
+        Authorization: this.$store.getters.token
+      }
+    }
+  },
+  created() {
+     this.doSeDbWiPriceModelMQueryFindAll();
+     this.doSeDbWiPriceModelMQueryFindDlr();
+     if (this.showTitle == '工时价格模板维护-新增') {
+        this.wiModel.isEnable = "1";
+        this.isSelectEnable = true;
+      } else if (this.showTitle == '工时价格模板维护-修改') {
+        this.isSelectEnable = false;
+      }
+
+      if (this.curValueObject && typeof this.curValueObject === 'object') {
+      for (var key in this.formField.dataInfo) {
+        if (this.curValueObject[key]) {
+          this.formField.dataInfo[key] = this.curValueObject[key]
+        } else {
+          this.formField.dataInfo[key] = ''
+        }
+      }
+    }
+    this.backFormField = JSON.parse(JSON.stringify(this.formField.dataInfo))
+    this.backFormCode = JSON.parse(JSON.stringify(this.formCode))
+  },
+  watch:{
+    // formField(val) {
+    //   this.carBrandKey = this.carBrandKey + 1
+    //   this.citySelectKey = this.citySelectKey + 1
+    //   this.bigAreaSelectKey = this.bigAreaSelectKey + 1
+    //   this.smallAreaSelectKey = this.smallAreaSelectKey + 1
+    // },
+    showTitle(val) {
+      if (val == '工时价格模板维护-新增') {
+        this.wiModel.isEnable = "1";
+        this.isSelectEnable = true;
+      } else if (val == '工时价格模板维护-修改') {
+        this.isSelectEnable = false;
+      }
+    }
+  },
+  methods: {
+    getComQueChoMu() {
+      this.$refs.seComQueryChoDlrMul.open();
+    },
+    doSeDbWiPriceModelMQueryFindAll() {
+       const that = this
+        that.listLoading = true
+        let queryObj = {
+          // api配置
+          apiConfig: apiSeDbWiPriceModel.seDbWiPriceModelMQueryFindAll,
+          // 需要调用的API服务配置
+          apiServices: [{
+              //表格中台返回网格的字段
+              apiQueryRow:['wiModelId','wiModelCode','wiModelName','payKind','isEnable','remark','oemId','groupId','oemCode',
+              'groupCode','creator','createdDate','modifier','lastUpdatedDate','updateControlId']
+          }],
+          //条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            dataInfo: that.wiPriceModelQuery
+          }
+        }
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        // 调用中台API方法（可复用）
+        requestGraphQL(paramD).then(response =>{
+          if(response.data[apiSeDbWiPriceModel.seDbWiPriceModelMQueryFindAll.ServiceCode].result === '1'){
+              that.priceModelList = response.data[apiSeDbWiPriceModel.seDbWiPriceModelMQueryFindAll.ServiceCode].rows;
+              //模板对应经销商父页面模板下拉框获取值
+              this.wiModelOptionDatas = that.priceModelList;
+              
+              //将模板编码及模板名称传到新增/修改弹框中的下拉框
+              this.$refs.saveDlrDialog.getWiModelData(that.priceModelList);
+              that.listLoading = false;
+            }
+        })
+    },
+    //查询模板对应经销商
+    doSeDbWiPriceModelMQueryFindDlr(page, dataType) {
+        const that = this;
+        that.dlrLoading = true;
+        var tableColumns = this.$refs.multipleTable == null ? null: this.$refs.multipleTable.columns;
+        
+        //去掉经销商编码
+        let queryDlrParam = {
+          carBrandCode: this.formField.dataInfo.carBrandCode,
+          areaId: this.formField.dataInfo.areaId,
+          bigAreaId: this.formField.dataInfo.bigAreaId,
+          smallAreaId: this.formField.dataInfo.smallAreaId,
+          dlrId: this.formField.dlrId,
+          wiModelId: this.formField.wiModelId,
+        };
+        let queryObj = {
+          type:'query',
+          // api配置
+          apiConfig: apiSeDbWiPriceModel.seDbWiPriceModelDlrQueryFindAll,
+          // 需要调用的API服务配置
+          apiServices: [{
+              //表格中台返回网格的字段
+              apiQueryRow:['wiPriceDlrId','wiModelId','wiModelCode','wiModelName','bigAreaId','bigAreaName','smallAreaId',
+              'smallAreaName','dlrId','dlrCode','dlrShortName','isEnable','updateControlId','areaId','oemId','groupId','oemCode','groupCode','creator',
+              'createdDate','modifier','lastUpdatedDate']
+          }],
+          //条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            pageSize: dataType == 'excel' ? 99999: that.listQuery.pageSize,
+            pageIndex: page || that.listQuery.pageIndex,
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: queryDlrParam
+          }
+        }
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        if (dataType === 'excel') {
+          if (tableColumns == null) tableColumns = [];
+          var tmpCols = tableColumns;
+          //网格对象转成excel列对象
+          var excelCols = {};
+          for (var i = 0; i < tmpCols.length; i++) {
+            console.log("tmpCols[i].property");
+            console.log(tmpCols[i].property);
+            if (tmpCols[i].property != null) excelCols[tmpCols[i].property] = tmpCols[i].label
+          }
+          //数据类型
+          paramD.dataType = 'excel';
+          //excel文件名称
+          paramD.excelName = '工时单价模板对应专营店模板导出';
+          // 根据请求API描述excel数据对象
+          paramD.excels = [{
+            //excel sheet名称
+            title: '工时单价模板对应专营店模板列表',
+           //对应API服务编码
+           actionName: queryObj.apiServices.apiConfig,
+           //excel列
+           columns: excelCols
+          }]
+        }
+        // 调用中台API方法（可复用）
+        requestGraphQL(paramD).then(response =>{
+          if (dataType === 'excel') {
+            that.$utils.downloadFile(response, '工时单价模板对应专营店模板.xlsx')
+            that.dlrLoading = false
+          } else {
+            var resData = response.data[apiSeDbWiPriceModel.seDbWiPriceModelDlrQueryFindAll.ServiceCode];
+            if (resData.result === '1') {
+              if(page) {
+                //查询完返回指定的page页数
+                that.listQuery.pageIndex = page;
+              }
+              that.pageTotal = response.data[apiSeDbWiPriceModel.seDbWiPriceModelDlrQueryFindAll.ServiceCode].records;
+              that.dlrList = response.data[apiSeDbWiPriceModel.seDbWiPriceModelDlrQueryFindAll.ServiceCode].rows;
+              that.dlrLoading = false;
+            } 
+          }
+        })
+    },
+    //重置模板查询条件
+    seDbWiPriceModelReset() {
+        this.wiPriceModelQuery = {}
+    },
+    //表格(工时价格模板)行点击事件
+    rowClick(row,event){
+        this.wiModel.wiModelId = row.wiModelId
+        this.wiModel.wiModelCode = row.wiModelCode
+        this.wiModel.wiModelName = row.wiModelName
+        this.wiModel.isEnable = row.isEnable
+        this.wiModel.remark = row.remark
+        this.wiModel.oemId = row.oemId
+        this.wiModel.groupId = row.groupId
+        this.wiModel.oemCode = row.oemCode
+        this.wiModel.groupCode = row.groupCode
+        this.wiModel.updateControlId = row.updateControlId
+        this.showTitle = "工时价格模板维护-修改"
+
+        this.$refs.wiBusinessCarSeriesSelect.getWiModelIdData(row.wiModelId)
+        this.$refs.wiBusinessCarSeriesSelect.getWiModelCodeData(row.wiModelCode)
+        this.$refs.wiBusinessCarSeriesSelect.getWiModelNameData(row.wiModelName)
+        this.$refs.wiBusinessCarSeriesSelect.getPayKindData(row.payKind)
+        this.$refs.wiBusinessCarSeriesSelect.setNull()
+        this.$refs.wiBusinessCarSeriesSelect.getAddTitle("模板对应业务类别和车系维护-新增")
+
+        this.wiPriceModelMQueryObject.oemCode = row.oemCode;
+        this.wiPriceModelMQueryObject.groupCode = row.groupCode;
+        this.wiPriceModelMQueryObject.wiModelId = row.wiModelId;
+        this.doSeDbWiPriceModelMQueryFindDetail(this.wiPriceModelMQueryObject)
+    },
+    //通过左表工时价格Id查询模板对应业务类别和车系
+    doSeDbWiPriceModelMQueryFindDetail(wiPriceModelMQueryObject) {
+        const that = this
+        that.$refs.wiBusinessCarSeriesSelect.getLoading(true)
+        let queryObj = {
+          // api配置
+          apiConfig: apiSeDbWiPriceModel.seDbWiPriceModelDQueryFindAll,
+          // 需要调用的API服务配置
+          apiServices: [{
+              //表格中台返回网格的字段
+              apiQueryRow:['wiModelDId','wiModelId','wiModelCode','wiModelName','businessType','businessTypeName','carBrandCode','carBrandCn',
+              'carSeriesCode','carSeriesCn','repairPrice','isEnable','oemId','groupId','oemCode','groupCode','creator','createdDate','modifier',
+              'lastUpdatedDate','updateControlId']
+          }],
+          //条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: wiPriceModelMQueryObject
+          }
+        }
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        // 调用中台API方法（可复用）
+        requestGraphQL(paramD).then(response =>{
+          if(response.data[apiSeDbWiPriceModel.seDbWiPriceModelDQueryFindAll.ServiceCode].result === '1') {
+              that.$refs.wiBusinessCarSeriesSelect.getData(response.data[apiSeDbWiPriceModel.seDbWiPriceModelDQueryFindAll.ServiceCode].rows)
+              that.$refs.wiBusinessCarSeriesSelect.getLoading(false)
+            }
+        })
+    },
+    //将工时价格模板新增/修改字段置空
+    resetWiModel() {
+        this.wiModel.wiModelCode = "";
+        this.wiModel.wiModelName = "";
+        this.wiModel.isEnable = "1";
+        this.wiModel.remark = "";
+        this.showTitle = "工时价格模板维护-新增";   
+    },
+    //保存工时价格模板
+    saveWiModel() {
+      if (this.wiModel.wiModelCode == '' && this.wiModel.wiModelName == '') {
+         this.$alert('模板编码和模板名称不能为空！', '信息提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                callback: action => {
+                }
+        });
+      } else if (this.wiModel.wiModelCode == '') {
+        this.$alert('模板编码不能为空！', '信息提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                callback: action => {
+                }
+        });
+      } else if (this.wiModel.wiModelName == '') {
+        this.$alert('模板名称不能为空！', '信息提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                callback: action => {
+                }
+        });
+      } else {
+        //this.listLoading = true;
+        this.isSuccess = false;
+        const that =this;
+        let queryObj = {
+          //保存需要传 type="mutation"
+          type:'mutation',
+          // api配置
+          apiConfig: apiSeDbWiPriceModel.seDbWiPriceModelMMutationSave,
+          // 需要调用的API服务配置
+          apiServices: [{
+              //表格中台返回网格的字段
+              apiQueryRow:[]
+          }],
+          //条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: that.wiModel
+          }
+        }
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        requestGraphQL(paramD).then(response =>{
+          //that.listLoading = false;
+          if(response.data[apiSeDbWiPriceModel.seDbWiPriceModelMMutationSave.ServiceCode].result === '1'){
+               that.isSuccess = true;      
+            } else {
+              that.isSuccess = false;
+              that.errorMsg = response.data.seDbWiPriceModelMMutationSave.msg;
+            }
+            that.dialogTips();
+            that.resetWiModel();
+            that.doSeDbWiPriceModelMQueryFindAll();
+        });
+      }
+    },
+    //获取模板经销商表的选中行数据
+    dlrDataClick(row, event) {
+        this.rowClickData = row
+    },
+   //删除模板对应经销商数据
+   deleteDlr() {
+       if(JSON.stringify(this.rowClickData) == '{}'){
+            this.$alert('请选择要删除的数据！', '信息提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                callback: action => {
+                }
+            });
+        } else {
+          this.$alert('确定删除吗！', '信息提示', {
+            confirmButtonText: '确定',
+            type: 'warning',
+            callback: action => {
+             const that =this;
+             that.deleteWiPriceModelDlrObject.wiPriceDlrId = that.rowClickData.wiPriceDlrId;
+             that.deleteWiPriceModelDlrObject.oemCode = that.rowClickData.oemCode;
+             that.deleteWiPriceModelDlrObject.groupCode = that.rowClickData.groupCode;
+             that.deleteWiPriceModelDlrObject.updateControlId = that.rowClickData.updateControlId;
+             let queryObj = {
+               type:'mutation',
+               // api配置
+               apiConfig: apiSeDbWiPriceModel.seDbWiPriceModelDlrMutationDelete,
+               // 需要调用的API服务配置
+               apiServices: [{
+                 //表格中台返回网格的字段
+                 apiQueryRow:[]
+               }],
+               //条件/实体参数（变量），根据typeParam中的定义配置
+               variables: {
+                 //当前中台使用的名称有dataInfo、info，具体查看API文档
+                 dataInfo: that.deleteWiPriceModelDlrObject
+               }
+             }
+             //转换了中台请求格式数据
+             var paramD = that.$getParams(queryObj);
+             requestGraphQL(paramD).then(response =>{ 
+               //that.dlrLoading = false;
+               if(response.data[apiSeDbWiPriceModel.seDbWiPriceModelDlrMutationDelete.ServiceCode].result === '1') {
+                 //that.dlrList.splice(that.rowClickData.index, 1);
+                  this.$message({
+                    type: "success", 
+                    message: "删除成功！"
+                  });
+                  //return;
+                  that.rowClickData = {};
+                  that.doSeDbWiPriceModelMQueryFindDlr();
+               } else {
+                 this.$alert(response.data.seDbWiPriceModelDlrMutationDelete.msg, '提示', {
+                    confirmButtonText: '确定'
+               });      
+               }
+             });
+             }
+          });
+        }
+   },
+   //查询区打开经销商弹框
+   openComQueChoMuCodeDialog() {
+     this.curDlrDialog = '1'
+     //this.$refs.seComQueryChoDlrMul.open();
+     this.multiSeComQueChoDlrVisible = true;
+   },
+   openEditComQueChoMuCodeDialog() {//编辑页面打开经销商弹框
+     this.curDlrDialog = '0'
+     //this.$refs.seComQueryChoDlrMul.open();
+     this.singleSeComQueChoDlrVisible = true;
+   },
+  //查询区中获取选中的经销商
+  // getComQueChoMuCode(val) {
+  //   if(this.curDlrDialog == '1'){
+  //     var dlrCodeTemp = '';
+  //     var dlrIdTemp = '';
+  //     for(let i = 0; i < val.length; i++) {
+  //       if(i == 0) {
+  //         dlrCodeTemp += val[i].dlrCode;
+  //         dlrIdTemp += val[i].dlrId;
+  //       } else {
+  //         dlrCodeTemp += ',' + val[i].dlrCode;
+  //         dlrIdTemp += ',' + val[i].dlrId;
+  //       }
+  //     }
+  //     this.formField.dlrCode = dlrCode;
+  //     this.formField.dlrId = dlrIdTemp;
+  //   }
+  // },
+  //新增/修改弹框获取经销商
+  getSingleComQueCho(val) {
+    this.$refs.saveDlrDialog.getComQueChoMu(val)
+    this.singleSeComQueChoDlrVisible = false
+  },
+  closeSingleComQueCho() {
+    this.singleSeComQueChoDlrVisible = false
+  },
+  getMultiComQueCho(val) {
+    console.log("val");
+    console.log(val);
+    if(this.curDlrDialog == '1'){//本页面选择经销商
+      var dlrCodeTemp = '';
+      var dlrIdTemp = '';
+      for(let i = 0; i < val.length; i++) {
+        if(i == 0) {
+          dlrCodeTemp += val[i].dlrCode;
+          dlrIdTemp += val[i].dlrId;
+        } else {
+          dlrCodeTemp += ',' + val[i].dlrCode;
+          dlrIdTemp += ',' + val[i].dlrId;
+        }
+      }
+      this.formField.dlrCode = dlrCodeTemp;
+      this.formField.dlrId = dlrIdTemp;
+    }
+    //else this.$refs.saveDlrDialog.getComQueChoMu(val)//编辑页面选择经销商
+    //console.log(val)
+    this.multiSeComQueChoDlrVisible = false
+  },
+  closeMultiComQueCho() {
+    this.multiSeComQueChoDlrVisible = false
+  },
+  //获取显示
+  getVisible(val) {
+      this.dlrDialogVisible = val
+  },
+   //新增
+   addDlr() {
+     this.gridData = {
+        wiPriceDlrId: '',
+        wiModelId: '',
+        wiModelCode: '',
+        wiModelName: '',
+        dlrId: '',
+        dlrCode: '',
+        dlrShortName: '',
+        oemId: '',
+        groupId: '',
+        oemCode: '',
+        groupCode: '',
+        isEnable: '1',
+        updateControlId: ''
+      };
+     this.$refs.saveDlrDialog.open();
+     this.$refs.saveDlrDialog.setData(this.gridData, "新增", false);
+     this.saveDlrDialogkey = this.$utils.generateId();
+   },
+   //修改
+   modifyDlr() {
+       if (JSON.stringify(this.rowClickData)=='{}') {
+           this.$alert('请选择一行进行修改', '信息提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                callback: action => {
+                }
+          });
+       } else {
+         this.gridData = {
+           wiPriceDlrId: this.rowClickData.wiPriceDlrId,
+           wiModelId: this.rowClickData.wiModelId,
+           wiModelCode: this.rowClickData.wiModelCode,
+           wiModelName: this.rowClickData.wiModelName,
+           dlrId: this.rowClickData.dlrId,
+           dlrCode: this.rowClickData.dlrCode,
+           dlrShortName: this.rowClickData.dlrShortName,
+           oemId: this.rowClickData.oemId,
+           groupId: this.rowClickData.groupId,
+           oemCode: this.rowClickData.oemCode,
+           groupCode: this.rowClickData.groupCode,
+           isEnable: this.rowClickData.isEnable,
+           updateControlId: this.rowClickData.updateControlId,
+         };
+         
+         this.$refs.saveDlrDialog.open();
+         this.$refs.saveDlrDialog.setData(this.gridData, "修改", true);
+         this.saveDlrDialogkey = that.$utils.generateId();
+       }
+   },
+   setDlrRowClickDataNull() {
+     this.rowClickData = {};
+   },
+  //重置专营店查询条件
+   resetDlrQuery() {
+    // this.formField = {
+    //     carBrandCode: '',
+    //     areaId: '',
+    //     bigAreaId: '',
+    //     smallAreaId: '',
+    //     dlrId: '',
+    //     wiModelId: '',
+    //   }
+    (this.componentsKeys = {
+      carBrandCode: "a" + Math.random(),
+      areaCode: "b" + Math.random(),
+      bigAreaCode: "c" + Math.random(),
+      smallAreaCode: "d" + Math.random()
+    });
+    this.formCode = JSON.parse(JSON.stringify(this.backFormCode));
+    this.formField.dataInfo = JSON.parse(JSON.stringify(this.backFormField));
+    this.formField.dlrCode = '';
+    this.formField.dlrId = '';
+    this.formField.wiModelId = '';
+   }, 
+   //上传路径至后台
+   uploadUrl() {
+     //return ('mock' + apiSeDbWiPriceModel.seDbWiPriceModelMutationDlrImport.APIUrl + '/' + 'v=' + apiSeDbWiPriceModel.seDbWiPriceModelMutationDlrImport.ServiceCode);
+     //return seApis.resolve.APIUrl + config.cH + 'v=' + seApis.resolve.ServiceCode;
+     return apiSeDbWiPriceModel.seDbWiPriceModelDlrImport.APIUrl + config.cH + 'v=' + apiSeDbWiPriceModel.seDbWiPriceModelDlrImport.ServiceCode;
+   }, 
+   //处理文件选择器改变事件
+    handleChange(param) {
+      //debugger
+      var url = this.uploadUrl()  // API根据不同功能url不同，请配置到对应模块配置
+      var that = this
+      this.$requestImport(url, param, function(response) {
+        that.uploadSuccess(response)
+      })
+    },
+      //上传成功
+    uploadSuccess(response) {
+        debugger
+        //if(response.data[apiSeDbWiPriceModel.seDbWiPriceModelMutationDlrImport.ServiceCode].rows) {
+        if(response.data.result === '1' 
+        && response.data.rows != null && 
+        response.data.rows.length > 0) {
+          var tempList = response.data.rows;
+          var implistTemp = [];
+          //导入Excel模块列头、数据是否必填
+          var excelCols = [
+            {name:'模板编码',required:true},
+            // {name:'模板名称',required:true},
+            // {name:'大区',required:true},
+            // {name:'小区',required:true},
+            {name:'经销商编码',required:true},
+            //{name:'经销商名称',required:true}
+          ]
+          var isErrorTemplate = false // 模版错误
+          var firstRow = tempList[0]
+          for (let i = 0; i < excelCols.length; i++) {
+            if (firstRow.hasOwnProperty(excelCols[i].name) == false) {
+              isErrorTemplate = true
+             } else {
+              isErrorTemplate = false
+            }  
+          }
+          // excelCols.forEach(col => {// 检查模版是否错误
+          //   if(!firstRow.hasOwnProperty(col.name)) isErrorTemplate = true
+          // })
+          if (isErrorTemplate) {
+          this.$alert('Excel模版错误', '提示', {
+            confirmButtonText: '确定',
+            type: 'warning'
+          })
+          this.$refs.upload.clearFiles()
+          this.dlrList = []
+          return
+        }
+        var dataNullErrorMsg = ''
+        for(var i = 0; i < tempList.length; i++) { // 检查数据是否为空
+          if(!this.$utils.isEmpty(dataNullErrorMsg)) break
+          var row = tempList[i]
+          for(var j = 0; j < excelCols.length; j++) {
+            var col = excelCols[j];
+            if(col.required == true && this.$utils.isEmpty(row[col.name])) {
+              dataNullErrorMsg = `Excel第${i+2}行“${col.name}”不能为空`
+              break
+            }
+          }
+        }
+        if (!this.$utils.isEmpty(dataNullErrorMsg)) {
+          this.$alert(dataNullErrorMsg, '提示', {
+            confirmButtonText: '确定',
+            type: 'warning'
+          })
+          this.$refs.upload.clearFiles()
+          this.dlrList = []
+          return
+        }
+        for (var j = 0; j < tempList.length; j++) {
+          var newRow = {
+            wiModelCode: row.模板编码,
+            // wiModelName: row.模板名称,
+            // bigAreaName: row.大区,
+            // smallAreaName: row.小区,
+            dlrCode: row.经销商编码,
+            //dlrName: row.经销商名称
+          }
+          implistTemp.push(newRow)
+        }
+        // tempList.forEach(row => {
+        //   var newRow = {
+        //     wiModelCode: row.模板编码,
+        //     // wiModelName: row.模板名称,
+        //     // bigAreaName: row.大区,
+        //     // smallAreaName: row.小区,
+        //     dlrCode: row.经销商编码,
+        //     //dlrName: row.经销商名称
+        //   }
+        //   implistTemp.push(newRow)
+        // })
+        //debugger
+        this.dlrList = implistTemp
+        this.$alert('文件导入成功', '提示', {
+             confirmButtonText: '确定',
+             type:'success',
+           });
+           //this.doSeDbWiPriceModelMQueryFindDlr();
+        } else {
+           this.$alert(response.data.msg, '提示', {
+             confirmButtonText: '确定',
+             type:'warning',
+            });
+        }
+        this.$refs.upload.clearFiles()
+   },
+   handlePreview(file) {
+     if(file.response.status) {
+       this.$alert('此文件导入成功', '提示', {
+          confirmButtonText: '确定',
+          type:'success',
+        });
+      } else {
+        this.$alert('此文件导入失败', '提示', {
+         confirmButtonText: '确定',
+        type:'warning',
+        });
+      }   
+    },
+    handleRemove(file, fileList) {
+
+    },
+    uploadFalse(response, file, fileList) {
+        this.$alert('文件上传失败', '提示', {
+          confirmButtonText: '确定',
+          type:'warning',
+        });
+    },
+  
+      //上传前对文件进行判断
+      beforeAvatarUpload(file) {
+          const extension = file.name.split(".")[1] === "xls";
+          const extension2 = file.name.split(".")[1] === "xlsx";
+          if(!extension && !extension2){
+             this.$alert('上传文件只能为Excel文件', '提示', {
+               confirmButtonText: '确定',
+               type:'warning',
+             });
+          }
+          return extension || extension2;
+      },
+      beforeRemove(file, fileList) {
+        this.$alert(`选择文件类型或大小不符，已移除 ${ file.name }，请重新选择`,'提示',{
+          confirmButtonText:'确定',
+          type:'warning'
+        })
+        //return (this.firstFile.name = []);
+      },
+      handleExceed(files, fileList) {
+        this.$message.warning(`当前限制选择 1 个文件，本次选择了 ${files.length} 个文件，共选择了 ${files.length + fileList.length} 个文件`);
+      },
+      handFileListChange(file, fileList) {
+        //this.firstFile = fileList != null && fileList.length > 0 ? fileList[0] : {}
+      },
+
+      //下载导入模板
+      downloadExcel() {
+        // console.info('下载excel成功')
+        // var blob = new Blob([that.dlrList], {type: 'application/vnd.ms-excel;charset=utf-8'})
+        // var url = window.URL.createObjectURL(blob)
+        // var aLink = document.createElement("a")
+        // aLink.style.display = "none"
+        // aLink.href = url
+        // aLink.setAttribute("download", this.excelName)
+        // document.body.appendChild(aLink)
+        // aLink.click()
+        // document.body.removeChild(aLink) // 下载完成移除元素
+        // window.URL.revokeObjectURL(url) // 释放对象
+        this.doSeDbWiPriceModelMQueryFindDlr(1, 'excel');
+      },
+   //保存成功/失败提示
+   dialogTips() {
+     if (this.isSuccess == true) {
+       this.$alert('保存成功', '提示', {
+         type: 'success',
+         confirmButtonText: '确定'
+       });  
+     } else if (this.isSuccess == false) {
+       this.$alert(this.errorMsg, '提示', {
+         type: 'warning',
+         confirmButtonText: '确定'
+       });  
+     }
+   },
+    //点击更多
+    changeToggleParam() {
+      this.toggleParam = !this.toggleParam
+    },
+    getBrandCode(val, text, cs, cd, cb) {
+      this.formField.dataInfo.carBrandCode = val;
+      this.formField.dataInfo.areaId = '';
+      this.formField.dataInfo.bigAreaId = '';
+      this.formField.dataInfo.smallAreaId = '';
+      this.componentsKeys.areaCode = 'areaCode' + this.$utils.generateId();
+      this.componentsKeys.bigAreaCode = 'bigAreaCode' + this.$utils.generateId();
+      this.componentsKeys.smallAreaCode = 'smallAreaCode' + this.$utils.generateId();
+    },
+    getAreaCode(val, text, cs, cd, cb) {
+      this.formField.dataInfo.areaId = val;
+      this.formField.dataInfo.bigAreaId = '';
+      this.formField.dataInfo.smallAreaId = '';
+      this.componentsKeys.bigAreaCode = 'bigAreaCode' + this.$utils.generateId();
+      this.componentsKeys.smallAreaCode = 'smallAreaCode' + this.$utils.generateId();
+    },
+    getBigAreaCode(val, text, cs, cd, cb) {
+      this.formField.dataInfo.bigAreaId = val;
+      this.formField.dataInfo.smallAreaId = '';
+      this.componentsKeys.smallAreaCode = 'smallAreaCode' + this.$utils.generateId();
+    },
+    getSmallAreaCode(val, text, cs, cd, cb) {
+      this.formField.dataInfo.smallAreaId = val
+    },
+    //经销商下拉框
+    getComQueChoDrop(val, text) {
+      console.log(val);
+      console.log(text);
+    },
+    handleSizeChange(val) {
+      this.listQuery.pageSize = val
+      this.doSeDbWiPriceModelMQueryFindDlr()
+    },
+    handleCurrentChange(val) {
+      this.listQuery.pageIndex = val
+      this.doSeDbWiPriceModelMQueryFindDlr()
+    },
+  }
+  };
+</script>
+<style scoped>
+/deep/.el-tabs__header {
+  height: 32px;
+  margin: 0px;
+}
+
+/deep/#tab-first {
+  position: relative;
+    left: 680%;
+    top: -11px;
+}
+
+/deep/#tab-second {
+  position: absolute;
+  left: 770%;
+  top: -11px;
+}
+
+/deep/.el-tabs__active-bar {
+  width: 0px !important;
+}
+</style>

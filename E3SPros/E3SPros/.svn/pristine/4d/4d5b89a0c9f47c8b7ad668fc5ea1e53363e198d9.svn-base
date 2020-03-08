@@ -1,0 +1,385 @@
+<!--
+* description: 流程节点维护
+* author: zouzx
+* createdDate: 2019-09-26
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template
+      ref="multipleTable"
+      :dynamicSearchField="searchField"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="false"
+      :dynamicIsInitTable="false"
+      :dynamicIsColumnDrop="false"/>
+
+      <Edit
+      :dynamicEditRowData="editRowData"
+      :popupsVisible="editPopupsVisible"
+      :key="editPopupsKey"
+      :popupsState="editPopupsState"
+      @close="close"/>
+  </div>
+</template>
+<script>
+import { crmApis } from "@/api/graphQLApiList/crm";
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import OneTableTemplate from "@/components/crm/Template/crmonePage";
+import Edit from './edit'
+import { CacheConfig } from '@/cache/configCache/index'
+
+export default {
+  name:"crmNodePoint",
+  // 组件混入对象
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+    Edit
+  },
+  // 阻塞路由预加载网格中组件的数据
+  beforeRouteEnter(to, from, next) {CacheConfig.initData(to.path, function(){next()})},
+  data() {
+    var p = new Promise(function(resolve, reject) {
+      setTimeout(function() {
+        console.log("异步 start");
+        resolve("异步 end");
+      }, 1000);
+    });
+    console.log("同步 start");
+    return {
+      searchField:"节点编码/节点名称",
+      // 网格查询API配置对象
+      apiConfig: crmApis.csDbNodeQueryFindAll,
+      // 动态组件-按钮
+      tableButtons: [
+        // {
+        //   compKey: "btnKey1",
+        //   type: "primary",
+        //   size: "small",
+        //   clickEvent: () => this.queryTable(1),
+        //   text: "查询"
+        // },
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.add(),
+          text: "新增"
+        },
+        // {
+        //   compKey: "btnKey3",
+        //   type: "",
+        //   size: "small",
+        //   clickEvent: () => this.reset(),
+        //   text: "重置"
+        // }
+      ],
+      // 动态组件-查询条件
+      tableComponents:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              {
+                compKey: "compKey1",
+                labelName: "业务流程",
+                codeField: "serverType",
+                lookuptype: "LX009",
+                component: () => import("@/components/crm/lookupValue/lookupvalue"),
+                type: "dropdownList",
+                isMust: false,
+                isMul:false,
+              },
+              {
+                compKey: "compKey2",
+                labelName: "节点编码",
+                codeField: "nodeCode",
+                component: () => import("@/components/crm/textbox/crmTextInput"),
+                type: "inputText",
+                isMust: false
+              },
+              {
+                compKey: "compKey3",
+                labelName: "节点名称",
+                codeField: "nodeName",
+                component: () => import("@/components/crm/textbox/crmTextInput"),
+                type: "inputText",
+                isMust: false
+              },
+              {
+                compKey: "compKey4",
+                labelName: "节点组",
+                codeField: "nodeGroupCode",
+                textField: "groupName",
+                component: () => import("@/components/crm/crmEjectWindows/crmNodeGroupPop/index"),
+                type: "propus",
+                isMust: false
+              },
+              {
+                compKey: "compKey5",
+                labelName: "是否启用",
+                codeField: "isEnable",
+                component: () => import("@/components/crm/Select/crmIsEnable"),
+                type: "dropdownList",
+                isMust: false,
+                isMul:false,
+              },
+              {
+                compKey: "compKey6",
+                labelName: "是否需要下一步处理人",
+                codeField: "isNext",
+                component: () => import("@/components/crm/Select/ONEID/sct_YesOrNo"),
+                type: "dropdownList",
+                isMust: false,
+                isMul:false,
+              },
+              {
+                compKey: "compKey7",
+                labelName: "是否驳回节点",
+                codeField: "isReject",
+                component: () => import("@/components/crm/Select/ONEID/sct_YesOrNo"),
+                type: "dropdownList",
+                isMust: false,
+                isMul:false,
+              }
+            ],
+      // 动态生成网格列
+      tableCols:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableCols.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableCols
+          : [
+              {
+                prop: "controlBtn",
+                label: "操作",
+                width: 56,
+                align: "center",
+                codeField: 'controlBtn',
+                isComponent: true,
+                comps: [
+                  {
+                    compKey: "propKey1",
+                    labelName: '编辑',
+                    codeField: 'editControlBtn',
+                    align: "center",
+                    isShowLabel:true,
+                    isShow:true,
+                    clickEvent: this.edit,
+                    component: () => import("@/components/org/linkButton")
+                  }
+                ]
+              },
+              {
+                prop: "groupName",
+                label: "节点组",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "nodeCode",
+                label: "节点编码",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "nodeName",
+                label: "节点名称",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "serverTypeName",
+                label: "业务流程",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "statusName",
+                label: "单据状态",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "isEnableName",
+                label: "是否启用",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "isNextName",
+                label: "是否需要下一步处理人",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "isRejectName",
+                label: "是否驳回节点",
+                width: null,
+                align: "center",
+              },
+              {
+                prop: "createdName",
+                label: "创建人",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "createdDate",
+                label: "创建时间",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "modifyName",
+                label: "修改人",
+                width: null,
+                align: "center",
+              },
+              {
+                prop: "lastUpdatedDate",
+                label: "修改时间",
+                width: null,
+                align: "center",
+              },
+              {
+                prop: "nodeId",
+                label: "主键",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "updateControlId",
+                label: "并发控制",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "serverType",
+                label: "业务流程编码",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "nodeGroupCode",
+                label: "节点组编码",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "statusCode",
+                label: "单据状态编码",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "isCanRejected",
+                label: "是否允许被驳回",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "responNodeCode",
+                label: "响应的节点编码",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "isReview",
+                label: "是否需要回访",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "isEnd",
+                label: "是否结案",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "isNext",
+                label: "是否需要下一步处理人",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "isReject",
+                label: "是否驳回节点",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "isAsse",
+                label: "是否考核",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "page",
+                label: "跳转页面",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "orderNo",
+                label: "顺序",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "isEnable",
+                label: "是否启用编码",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "oemCode",
+                label: "厂商编码",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "groupCode",
+                label: "集团编码",
+                width: null,
+                align: "center",
+                hidden: true
+              }
+            ],
+      // 表单查询数据
+      formField: {
+        oemCode:"1",
+        groupCode: "1",
+        serverType:"",
+        nodeCode:"",
+        nodeName:"",
+        nodeGroupCode:"",
+        isEnable:"",
+        isNext:"",
+        isReject:""
+      }
+    };
+  },
+  methods: {
+  }
+};
+</script>

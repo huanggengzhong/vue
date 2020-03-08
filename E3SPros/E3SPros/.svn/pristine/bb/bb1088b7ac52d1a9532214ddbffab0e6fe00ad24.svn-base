@@ -1,0 +1,618 @@
+<template>
+  <div class="app-container app-container-table" ref="crmArea">
+    <div class="filter-container filter-button">
+      <el-button type="primary" @click="query()">查询</el-button>
+      <el-button @click="clueAssign()">线索分配</el-button>
+      <el-button @click="reset()">重置</el-button>
+    </div>
+
+    <div class="filter-container filter-title-crm">查询条件</div>
+    <div class="filter-container filter-params-crm">
+      <el-form label-position="right">
+        <el-row>
+          <el-col :span="22">
+            <el-col :span="6">
+              <txt_CustomerName :txt_CustomerName="tcn" ref="txt_CustomerName" />
+            </el-col>
+            <el-col :span="6">
+              <PhoneNumber :PhoneNumber="pn" ref="PhoneNumber" />
+            </el-col>
+            <el-col :span="6">
+              <IntentionalCar :IntentionalCar="ic" ref="IntentionalCar" />
+            </el-col>
+            <el-col :span="6">
+              <IntentionLevel :IntentionLevel="il" ref="IntentionLevel" />
+            </el-col>
+          </el-col>
+          <el-col :span="2">
+            <el-button icon="el-icon-plus" @click="changeToggleParam" class="moreParam">更多</el-button>
+          </el-col>
+          <el-col :span="22" v-show="toggleParam" class="toggleParam">
+            <el-row>
+              <el-col :span="6">
+                <dt_RetentionTimes :dt_RetentionTimes="drt" ref="dt_RetentionTimes" />
+              </el-col>
+              <el-col :span="6">
+                <ReceiptStatus_clue :ReceiptStatus="rs" ref="ReceiptStatus_clue" />
+              </el-col>
+              <el-col :span="6">
+                <ServiceMenuNumber :ServiceMenuNumber="smn" ref="ServiceMenuNumber" />
+              </el-col>
+              <el-col :span="6">
+                <AssignStatus :AssignStatus="as" ref="AssignStatus" />
+              </el-col>
+              <el-col :span="6">
+                <Telemarketer :Telemarketer="tm" ref="Telemarketer" />
+              </el-col>
+              <el-col :span="6">
+                <ContactWay :ContactWay="cw" ref="ContactWay" @changeCode="change" />
+              </el-col>
+              <el-col :span="6">
+                <ChannelBigClass :ChannelBigClass="cbc" ref="ChannelBigClass" />
+              </el-col>
+            </el-row>
+          </el-col>
+        </el-row>
+      </el-form>
+    </div>
+    <!-- 主网格开始 -->
+    <div class="filter-container filter-title-crm">查询结果</div>
+    <el-table 
+    ref="table"
+      :style="{width:'100%',height:tableHeight+'px'}"
+    :data="tabledatasMain.tableData" @current-change="SelectH" @selection-change="handleSelectionChange" highlight-current-row v-loading.body="listLoading" element-loading-text="Loading" border fit>
+      <el-table-column type="selection" width="55"></el-table-column>
+      <el-table-column type="index" label="序号" width="55"></el-table-column>
+      <el-table-column v-for="item in tabledatasMain.colnames" :key="item.value" :label="item.label" :prop="item.value" align="center"></el-table-column>
+    </el-table>
+    <el-pagination background layout="prev, pager, next" 
+     :total="tabledatasMain.total?tabledatasMain.total:0"
+        :page-size="tabledatasMain.pageSize?tabledatasMain.pageSize:this.$crmcf.PAGE_SIZE"
+        :current-page="tabledatasMain.pageIndex?tabledatasMain.pageIndex:this.$crmcf.PAGE_INDEX"
+    @prev-click="prev" @next-click="next" @current-change="changepage">
+    </el-pagination>
+    <!-- 主网格结束 -->
+
+    <!-- 线索分配弹窗 -->
+    <el-dialog title="线索分配" :visible.sync="dialogVisible" width="900px" center append-to-body>
+      <div class="filter-container filter-title-crm">
+        任务分配
+        <div style="float:right">
+          <el-button type="primary" size="small" @click="averAssign()">平均分配</el-button>
+          <el-button size="small" @click="clueAssignSure">确认</el-button>
+        </div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;共选择任务:{{choiceRow}}条，数量为0或为空表示不为此人员分配</div>
+        <br>
+      </div>
+      <br>
+      <div class="filter-container filter-title-crm">查询结果</div>
+      <el-table :data="tabledatasDiag.tableData" @selection-change="handleSelectionChangeAssign" highlight-current-row style="width: 100%;height:330px" v-loading.body="loadingx" element-loading-text="Loading" border fit ref="multipleTableRY">
+        <el-table-column label="选择" align="center" type="selection" width="55"></el-table-column>
+        <el-table-column type="index" label="序号" width="55"></el-table-column>
+        <el-table-column v-for="item in tabledatasDiag.colnames" :key="item.value" :label="item.label" :prop="item.value" align="center"></el-table-column>
+        <el-table-column label="数量">
+          <template slot-scope="scope">
+            <el-input ref="testnum" style="border:none" class="assignq-001" type="number" v-model="tabledatasDiag.tableData[scope.$index].num"></el-input>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-pagination background layout="prev, pager, next" 
+        :total="tabledatasDiag.total?tabledatasDiag.total:0"
+        :page-size="tabledatasDiag.pageSize?tabledatasDiag.pagesize:this.$crmcf.PAGE_SIZE"
+        :current-page="tabledatasDiag.pageIndex?tabledatasDiag.pageindex:this.$crmcf.PAGE_INDEX"
+      @prev-click="pagePrev" @next-click="pageNext" @current-change="diagChangePage">
+      </el-pagination>
+    </el-dialog>
+    <!-- 线索分配弹窗结束 -->
+  </div>
+</template>
+
+<script>
+import txt_CustomerName from "@/components/crm/textbox/Public/customerInfos/txt_CustomerName";
+import PhoneNumber from "@/components/crm/textbox/Public/customerInfos/PhoneNumber";
+import IntentionalCar from "@/components/crm/EjectWindows/IntentionalCar";
+import IntentionLevel from "@/components/crm/Select/Common/Customer/IntentionLevel";
+import dt_RetentionTimes from "@/components/crm/Time/dt_RetentionTimes";
+import ReceiptStatus_clue from "@/components/crm/Select/Clue/ReceiptStatus_clue";
+import ChannelBigClass from "@/components/crm/Select/Common/ChannelBigClass";
+import AssignStatus from "@/components/crm/Select/Clue/AssignStatus";
+import Telemarketer from "@/components/crm/Select/Clue/Telemarketer";
+import ContactWay from "@/components/crm/Select/Common/ContactWay";
+import ServiceMenuNumber from "@/components/crm/textbox/Public/ServiceMenuNumber";
+import { crmApis } from "@/api/graphQLApiList/crm";
+import { requestGraphQL } from "@/api/commonRequest";
+export default {
+  name: "crmClueMenuAssignPage",
+  components: {
+    txt_CustomerName,
+    PhoneNumber,
+    IntentionalCar,
+    IntentionLevel,
+    dt_RetentionTimes,
+    ReceiptStatus_clue,
+    ChannelBigClass,
+    AssignStatus,
+    Telemarketer,
+    ContactWay,
+    ServiceMenuNumber
+  },
+  mounted() {
+    this.$nextTick(() => {
+      // 页面渲染完成后的回调
+      let that = this;
+      this.$crmcf.__setAutoTableStyle(that);
+    });
+  },
+  data() {
+    return {
+      toggleParam: false,
+      tableHeight:'',
+      dialogVisible: false,
+      clueScriptNumber: [], //线索数组
+      usersAndNumber: [], //员工ID、分配线索数量集合
+      multipleSelection: [], //获取选中项
+      handleCode: "0",
+      listLoading:false,
+      loadingx: false, //加载动画
+      choiceRow: "", //选择线索总数
+      tabledatasDiagListCopy:'',
+      clueAssignchoiceRow: "", //员工总数
+      rowData: { dlrcode: "" },
+      dlrcodetest: "",
+      tcn: {
+        input: ""
+      },
+      pn: {
+        input: ""
+      },
+      ic: {
+        value: ""
+      },
+      il: {
+        value: ""
+      },
+      drt: {
+        value: ""
+      },
+      rs: {
+        value: ""
+      },
+      cbc: {
+        value: "",
+        pcode: ""
+      },
+      as: {
+        value: ""
+      },
+
+      tm: {
+        value: ""
+      },
+      cw: {
+        value: ""
+      },
+      smn: {
+        input: ""
+      },
+      tabledatasMain: {
+        colnames: [
+          { label: "当前处理人", value: "nextDealUserName" },
+          { label: "客户名称", value: "custName" },
+          { label: "联系电话", value: "contactTel" },
+          { label: "备用电话", value: "backupTel" },
+          { label: "意向级别", value: "clueLevelCode" },
+          { label: "意向车系", value: "carSeriesCn" },
+          { label: "单据状态", value: "statusName" },
+          { label: "服务单号", value: "serverOrder" },
+          { label: "分配状态", value: "assignStatusName" },
+          { label: "留资时间", value: "remainDataDate" },
+          { label: "专营店ID", value: "dlrCode" },
+          { label: "接触方式", value: "cantactWayName" },
+          { label: "渠道大类", value: "infoChanMName" },
+          { label: "建单时间", value: "createdDate" }
+          //{ label: "线索单号", value: "serverOrder" }
+        ],
+        tableData: [],
+        queryObj: {
+          apiConfig: crmApis.clueServerQueryFromDlr,
+          apiQueryRow: [
+            "nextDealUserName",
+            "custName",
+            "contactTel",
+            "backupTel",
+            "clueLevelCode",
+            "carSeriesCn",
+            "statusName",
+            "serverOrder",
+            "assignStatusName",
+            "remainDataDate",
+            "cantactWayName",
+            "infoChanMName",
+            "createdDate",
+            "dlrCode"
+          ],
+          params: {
+            handleCode: "1", //
+            statusArray: ["20","21","30"], //
+            custName: "",
+            contactTel: "",
+            inteSeriesCode: "",
+            clueLevelCode: "",
+            remainDataDateStart: "",
+            remainDataDateEnd: "",
+            status: "",
+            serverOrder: "",
+            assignStatusName: "",
+            nextDealUserId: "",
+            cantactWayCode: "",
+            infoChanMCode: "",
+            dlrCode:this.$store.getters.orgInfo.DLR_CODE
+          }
+        }
+      },
+      tabledatasDiag: {
+        colnames: [{ label: "人员", value: "empName" }],
+        tableData: [],
+        queryObj: {
+          // .后面是服务编码，.前面固定写死
+          apiConfig: crmApis.mdsSysPositionQueryEmpList,
+          apiQueryRow: ["empName", "userId"],
+          params: {
+                dlrCode: this.$store.getters.orgInfo.DLR_CODE,
+            positionCode:"COC_XS_CSR",
+            isEnable:"1"
+           
+          }
+        },
+        pagesize: 10,
+        pageindex: 1,
+        total: 0
+      }
+    };
+  },
+  methods: {
+    // 主页面查询
+    query: function() {
+      let that = this;
+      //查询参数赋值
+      //that.tabledatasMain.queryObj.params.statusArray = this.$refs.ReceiptStatus_clue.value;
+      if (this.$refs.dt_RetentionTimes.value[0] == undefined) {
+        that.tabledatasMain.queryObj.params.remainDataDateStart = this.$refs.dt_RetentionTimes.value[0];
+        that.tabledatasMain.queryObj.params.remainDataDateEnd = this.$refs.dt_RetentionTimes.value[1];
+      } else {
+        that.tabledatasMain.queryObj.params.remainDataDateStart =
+          this.$refs.dt_RetentionTimes.value[0] + " " + "00:00:00";
+        that.tabledatasMain.queryObj.params.remainDataDateEnd =
+          this.$refs.dt_RetentionTimes.value[1] + " " + "23:59:59";
+      }
+      that.tabledatasMain.queryObj.params.custName = this.$refs.txt_CustomerName.input;
+      that.tabledatasMain.queryObj.params.contactTel = this.$refs.PhoneNumber.input;
+      that.tabledatasMain.queryObj.params.inteSeriesCode = this.$refs.IntentionalCar.input;
+      that.tabledatasMain.queryObj.params.clueLevelCode = this.$refs.IntentionLevel.value;
+      that.tabledatasMain.queryObj.params.remainDataDateStart = this.$refs.dt_RetentionTimes.value[0];
+      that.tabledatasMain.queryObj.params.remainDataDateEnd = this.$refs.dt_RetentionTimes.value[1];
+      that.tabledatasMain.queryObj.params.status = this.$refs.ReceiptStatus_clue.value;
+      that.tabledatasMain.queryObj.params.serverOrder = this.$refs.ServiceMenuNumber.input;
+      that.tabledatasMain.queryObj.params.assignStatus = this.$refs.AssignStatus.value;
+      that.tabledatasMain.queryObj.params.nextDealUserId = this.$refs.Telemarketer.value;
+      that.tabledatasMain.queryObj.params.cantactWayCode = this.$refs.ContactWay.value;
+      that.tabledatasMain.queryObj.params.infoChanMCode = this.$refs.ChannelBigClass.value;
+  this.$crmcf.simpleTablequery(that, that.tabledatasMain, that.tabledatasMain.queryObj.apiConfig,function(data){
+        that.tabledatasMain.tableData =data.rows;
+        })
+    },
+    // 线索分配网格初始化
+    clueAssign: function() {
+      let that = this;
+      if (that.choiceRow < 1) {
+        this.$message({
+          message: "至少选择1条线索",
+          type: "error",
+          duration: 1000
+        });
+        return;
+      }
+      that.dialogVisible = true;
+      this.$crmcf.simpleTablequery(that, that.tabledatasDiag, that.tabledatasDiag.queryObj.apiConfig,function(data){
+        that.tabledatasDiag.tableData =data.rows;
+        })
+      
+    },
+    // 平均分配
+    averAssign: function() {
+      let that = this;
+      let selectData = that.$refs.multipleTableRY.selection;
+      if (selectData.length == 0) {
+        this.$message({
+          message: "请至少选择一个人员",
+          type: "warning",
+          duration: 2000
+        });
+        return;
+      }
+      that.usersAndNumber = [];
+      // 清空所有选中人的数量
+      var pageData = that.tabledatasDiag.tableData;
+      Object.keys(pageData).forEach(function(key) {
+        pageData[key].num = 0;
+      });
+      var tabledatasDiagListCopy1 = Object.assign(
+        {},
+        that.tabledatasDiag.tableData
+      );
+      that.tabledatasDiag.tableData = [];
+      that.tabledatasDiag.tableData = tabledatasDiagListCopy1;
+      let mostall = this.choiceRow; //线索任务选中总数
+      let oneall = this.clueAssignchoiceRow; //  选中人总数
+      if (mostall % oneall == 0) {
+        // 2.刚好平均分配
+        that.usersAndNumber = []; //最新选中   置空
+        var averNum = mostall / oneall; //平均分配数
+        for (var i = 0; i < oneall; i++) {
+          // 假如初始化为0
+          that.multipleSelection[i].num = 0;
+          that.multipleSelection[i].num = averNum;
+          // that.tabledatasDiag.tableData[i].num =averNum ;
+          let str =
+            that.multipleSelection[i].userId +
+            "&" +
+            that.multipleSelection[i].num;
+
+          that.usersAndNumber.push(str);
+        }
+      } else {
+        //  倍数小于1,线索数小于人数 ， 3 条线索  4个人
+        var BS = mostall / oneall;
+        if (parseInt(BS) == 0) {
+          var timer = 0; //将线索一条一条分出去
+          for (var i = 0; i < this.clueAssignchoiceRow; i++) {
+            //每一次循环结束，表示有一个人拿到了线索，循环结束表示线索被分配完毕
+            if (timer < mostall) {
+              if (typeof that.multipleSelection[i].num == 'number') {
+                that.multipleSelection[i].num =
+                  that.multipleSelection[i].num + 1;
+                timer = timer + 1;
+              } else {
+                that.multipleSelection[i].num = 0;
+                that.multipleSelection[i].num =
+                  that.multipleSelection[i].num + 1;
+                timer = timer + 1;
+              }
+            } else {
+              //  分配完毕
+              that.tabledatasDiagListCopy = Object.assign(
+                {},
+                that.tabledatasDiag.tableData
+              );
+              that.tabledatasDiag.tableData = [];
+              that.tabledatasDiag.tableData = that.tabledatasDiagListCopy;
+              return;
+            }
+          }
+        } else {
+          var timer = 0;
+          for (var j = 0; j < parseInt(BS); j++) {
+            for (var i = 0; i < this.clueAssignchoiceRow; i++) {
+              if (timer < mostall) {
+                if (typeof that.multipleSelection[i].num == "number") {
+      
+                  that.multipleSelection[i].num =
+                    that.multipleSelection[i].num + 1;
+                  timer = timer + 1;
+                } else {
+                  that.multipleSelection[i].num = 0;
+                  that.multipleSelection[i].num =
+                    that.multipleSelection[i].num + 1;
+                  timer = timer + 1;
+                }
+              } else {
+                //  分配完毕
+                that.tabledatasDiagListCopy = Object.assign(
+                  {},
+                  that.tabledatasDiag.tableData
+                );
+                that.tabledatasDiag.tableData = [];
+                that.tabledatasDiag.tableData = that.tabledatasDiagListCopy;
+                return;
+              }
+            }
+          }
+          var timer1 = 0;
+          for (var i = 0; i < this.clueAssignchoiceRow; i++) {
+            if (timer1 < mostall % oneall) {
+              if (typeof that.multipleSelection[i].num == "number") {
+                that.multipleSelection[i].num =
+                  that.multipleSelection[i].num + 1;
+                timer1 = timer1 + 1;
+              } else {
+                that.multipleSelection[i].num = 0;
+                that.multipleSelection[i].num =
+                  that.multipleSelection[i].num + 1;
+                timer1 = timer1 + 1;
+              }
+            } else {
+              that.tabledatasDiagListCopy = Object.assign(
+                {},
+                that.tabledatasDiag.tableData
+              );
+              that.tabledatasDiag.tableData = [];
+              that.tabledatasDiag.tableData = that.tabledatasDiagListCopy;
+              //  分配完毕
+              return;
+            }
+          }
+        }
+      }
+    
+    },
+    // 线索分配-保存
+    clueAssignSure: function() {
+      let that = this;
+      let selectData = that.$refs.multipleTableRY.selection;
+      if (selectData.length == 0) {
+        this.$message({
+          message: "请至少选择一个人员",
+          type: "warning",
+          duration: 2000
+        });
+        return;
+      }
+      console.info(this.multipleSelection);
+      var addNum = 0; //计数
+      that.usersAndNumber = [];
+      for (var i = 0; i < this.multipleSelection.length; i++) {
+        let str =
+          this.multipleSelection[i].userId +
+          "&" +
+          this.multipleSelection[i].num;
+        that.usersAndNumber.push(str);
+        addNum = addNum + parseInt(this.multipleSelection[i].num);
+      }
+      if (addNum > parseInt(that.clueScriptNumber)) {
+        this.$message({
+          message: "填写线索数大于选中线索数",
+          type: "error",
+          duration: 1000
+        });
+        return;
+      }
+      let queryObj = {
+        // api配置
+        type: "mutation",
+        apiConfig: crmApis.clueServerMutationAssign,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: []
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          dataInfo: {
+            assignServerOrders: that.clueScriptNumber,
+            assignUserIdAndNumber: that.usersAndNumber,
+            handleCode: "0"
+          }
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (response.data[queryObj.apiConfig.ServiceCode].result == "1") {
+          this.$message({
+            message: response.data[queryObj.apiConfig.ServiceCode].msg,
+            type: "success",
+            duration: 1000
+          });
+          // 请求成功隐藏
+          this.dialogVisible = false;
+          this.query();
+        } else {
+          this.$message({
+            message: response.data[queryObj.apiConfig.ServiceCode].msg,
+            type: "error",
+            duration: 1000
+          });
+        }
+      });
+    },
+    //行选择事件
+    SelectH: function(row) {
+      let that = this;
+      //that.rowData.dlrcode = row.dlrCode; //从网格中取得专营店编码
+    },
+    //主网格多选方法
+    handleSelectionChange(val) {
+      let that = this;
+      that.clueScriptNumber = [];
+      that.choiceRow = val.length;
+      for (let i = 0; i < val.length; i++) {
+        let str = val[i].serverOrder;
+        that.dlrcodetest = val[0].dlrCode; //从网格取得专营店编码
+        that.clueScriptNumber.push(str);
+      }
+    },
+    //取得行数
+    handleSelectionChangeAssign(val) {
+      let that = this;
+      that.multipleSelection = val;
+      // 选择人员总数
+      that.clueAssignchoiceRow = val.length;
+      that.usersAndNumber = [];
+      for (let i = 0; i < val.length; i++) {
+        console.log(that.tabledatasDiag.tableData[i].userId);
+        let str = val[i].userId + "&" + val[i].num;
+        that.usersAndNumber.push(str);
+      }
+    },
+    //联系方式和渠道大类联动传值
+    change(val) {
+      let that = this;
+      that.cbc.pcode = val;
+      if (that.$refs.ChannelBigClass == undefined) {
+      } else {
+        that.$refs.ChannelBigClass.getData();
+      }
+    },
+    // 查询条件隐藏
+    changeToggleParam() {
+      this.toggleParam = !this.toggleParam;
+    },
+    // 重置
+    reset: function() {
+      let that = this;
+      that.loadingx = false;
+      this.$refs.txt_CustomerName.reset();
+      this.$refs.PhoneNumber.reset();
+      this.$refs.IntentionalCar.resetgz();
+      this.$refs.IntentionLevel.reset();
+      this.$refs.dt_RetentionTimes.reset();
+      this.$refs.ReceiptStatus_clue.reset();
+      this.$refs.ChannelBigClass.reset();
+      this.$refs.AssignStatus.reset();
+      this.$refs.ContactWay.reset();
+      this.$refs.Telemarketer.reset();
+      this.$refs.ServiceMenuNumber.reset();
+    },
+    // 主网格分页
+    prev() {
+      let that = this;
+      if (this.tabledatasMain.pageindex > 1) {
+        that.tabledatasMain.pageindex = this.tabledatasMain.pageindex - 1;
+        this.query();
+      }
+    },
+    next() {
+      let that = this;
+      if (true) {
+        that.tabledatasMain.pageindex = this.tabledatasMain.pageindex + 1;
+        this.query();
+      }
+    },
+    changepage(index) {
+      let that = this;
+      that.tabledatasMain.pageIndex = index;
+      this.query();
+    },
+    //分配页面网格分页
+    pagePrev() {
+      let that = this;
+      if (this.tabledatasDiag.pageIndex > 1) {
+        that.tabledatasDiag.pageIndex = this.tabledatasDiag.pageIndex - 1;
+        this.clueAssign();
+      }
+    },
+    pageNext() {
+      that.tabledatasDiag.pageIndex = this.tabledatasDiag.pageIndex + 1;
+      this.clueAssign();
+    },
+    diagChangePage(index) {
+      let that = this;
+      that.tabledatasDiag.pageindex = index;
+      this.clueAssign();
+    }
+  }
+};
+</script >

@@ -1,0 +1,117 @@
+<!--
+* description: 模板-表单
+* author: zhongchh
+* createdDate: 2019-10-06
+* logs:
+-->
+<template>
+    <el-row>
+      <el-col :span="12" class="u-btn-left">
+        <el-button v-for="(item, i) in btnLeft" :key="`${name}Left_${i}`" size="small" @click="doChildEvent(item.event, item.argument)" :class="item.class">{{item.label}}</el-button>
+        <el-dropdown v-if="btnLeftMore.length !== 0">
+          <el-button type="primary">
+            more<i class="el-icon-arrow-down el-icon--right"></i>
+          </el-button>
+          <el-dropdown-menu slot="dropdown">
+            <el-dropdown-item v-for="(item, i) in btnLeftMore" :key="`${name}LeftMore${i}`">{{item.label}}</el-dropdown-item>
+          </el-dropdown-menu>
+        </el-dropdown>
+      </el-col>
+      <el-col :span="12" class="u-btn-right">
+        <el-button  v-for="(item, i) in btnRight" :key="`${name}Right_${i}`" type="item.type" size="small"  @click="doChildEvent(item.event, item.argument)" :class="item.class">{{item.label}}</el-button>
+        <el-button v-if="isShowMore" :icon="moreBtnIcon" @click="changeToggleParam" class="moreParam">{{moreLabel}}</el-button>
+      </el-col>
+    </el-row>
+</template>
+<script>
+export default {
+  props: {
+    // 创建表单的参数
+    dynamicButtons: { type: Object, default: () => {} },
+    //查询条件个数是否显示高级搜索
+    isShowMore:  { type: Boolean, default: false },
+    // 组件名
+    name: { type: String, default: '' },
+    // 组件名
+    showbtnLength: { type: Number, default: 6 }
+  },
+  data() {
+    return {
+      // 表单列
+      btnLeft: [],
+      btnLeftMore: [],
+      btnRight: [],
+      moreLabel: '高级搜索',
+      moreBtnIcon: 'iconfont icon-Group-spread-up',
+      toggleParam: false
+    };
+  },
+  created() {
+    //设置button的图标
+    this.setBtns()
+  },
+  methods: {
+    changeToggleParam() {
+      this.$emit('toggle')
+      this.toggleParam = !this.toggleParam;
+      if (this.toggleParam) {
+        this.moreBtnIcon = "iconfont icon-Group-pick-up"
+        this.moreLabel = "收起"
+      } else {
+        this.moreBtnIcon = "iconfont icon-Group-spread-up"
+        this.moreLabel = "高级搜索"
+      }
+    },
+    setBtns(){
+      const that = this
+      this.btnLeft = this.dynamicButtons.left.slice(0, this.showbtnLength)
+      if(this.dynamicButtons.length > this.showbtnLength){
+        this.btnLeftMore = this.dynamicButtons.left.slice(this.showbtnLength)
+      }
+      this.btnRight = this.dynamicButtons.right
+      this.btnLeft.map(function(item, i){
+        that.setIcon(item)
+      })
+      this.btnLeftMore.map(function(item, i){
+        that.setIcon(item)
+      })
+      this.btnRight.map(function(item, i){
+        that.setIcon(item)
+      })
+    },
+    setIcon(item){
+       switch(item.name){
+          case 'add':
+            item.class = 'iconfont icon-Group-add'
+            break
+          case 'search':
+            item.class = 'iconfont icon-group-search'
+            break
+          case 'reset':
+            item.class = 'iconfont icon-group-reset'
+            break
+          case 'export':
+            item.class = 'iconfont icon-group-export'
+            break
+          case 'choose':
+            item.class = 'iconfont icon-group-export'
+            break
+          case '审核':
+            item.v = 'el-icon-delete'
+            break
+          case '拒绝':
+            item.class = 'el-icon-delete'
+            break
+        }
+    },
+    doChildEvent(event, args){
+      args = args || {}
+      if(typeof event === 'function'){
+        event({...args})
+      }else{
+        event ? this.$parent[event]({...args}) : false
+      }
+    }
+  }
+};
+</script>

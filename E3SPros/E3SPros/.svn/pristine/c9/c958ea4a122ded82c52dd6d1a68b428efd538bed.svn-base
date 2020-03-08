@@ -1,0 +1,35 @@
+  <template>
+  <el-dialog
+    title="出库单打印"
+    :visible.sync="printfDialogVisible"
+    width="80%"
+    :append-to-body="true"
+    :close-on-click-modal="false"
+  >
+    <h4 class="tTitle">增值税发票</h4>
+    <div class="tTips">
+      <span>发票代码</span>
+      <span>开票日期 2019-10-21</span>
+      <span>发票号码</span>
+    </div>
+    <span slot="footer" class="dialog-footer" style="position">
+      <el-button size="small" @click="printf2()">打印</el-button>
+    </span>
+  </el-dialog>
+</template>
+<script>
+export default {};
+</script>
+<style lang="scss" scoped>
+/deep/.tTitle {
+  color: #e70020;
+  margin: 0;
+  text-align: center;
+  font-size: 22px;
+}
+/deep/.tTips {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 8px;
+}
+</style>

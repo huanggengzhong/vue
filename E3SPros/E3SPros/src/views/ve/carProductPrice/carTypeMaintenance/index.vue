@@ -1,0 +1,191 @@
+<!--
+* description: 车辆产品资料 - 车型维护
+* author: zhhx
+* createdDate: 2019-08-08
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template
+      ref="multipleTable"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="false"
+      :dynamicIsShowMoreBtn="true"
+    />
+
+    <edit
+      :dynamicEditRowData="editRowData"
+      :popupsVisible="editPopupsVisible"
+      :key="editPopupsKey"
+      :popupsState="editPopupsState"
+      @close="close"
+    ></edit>
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { orgApis } from "@/api/graphQLApiList/org";
+import OneTableTemplate from "@/components/templates/oneTable";
+import Edit from "./edit";
+import { CacheConfig } from '@/cache/configCache/index';
+import LangSelect from "@/components/LangSelect";
+import mixButton from "@/components/basicComponent/mixButton";
+export default {
+  name: "veCarTypeMaintenance",
+  // 组件混入对象
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+    Edit,
+    LangSelect
+  },
+
+  // 阻塞路由预加载网格中组件的数据
+beforeRouteEnter(to, from, next) {CacheConfig.initData(to.path, function(){next()})},
+  data() {
+    return {
+      // 网格查询API配置对象
+      apiConfig: orgApis.mdmSmallCarTypeQueryListForPage,
+      // 动态组件-按钮
+      clickRowsData:{},
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+           name: "search",
+          position: "right",
+          fuzzySearch: true,
+          text: this.$t('sys.button.query')  //查询
+        },
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.add(),
+           name: "add",
+          position: "left",
+          text: this.$t('sys.button.newAdd') //新增
+        },
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+           name: "reset",
+          position: "right",
+          text: this.$t('sys.button.reset') //重置
+        },
+        {
+          compKey: "btnKey4",
+          type: "",
+          size: "small",
+          clickEvent: () => this.exportExcel(),
+          name: "export",
+          position: "left",
+          text: this.$t('sys.button.export') //导出
+        }
+      ],
+      tableComponents: CacheConfig.cacheData[this.$route.path] && CacheConfig.cacheData[this.$route.path].tableComponents.length > 0 ? CacheConfig.cacheData[this.$route.path].tableComponents : [
+        // 动态组件-查询条件
+        {
+          compKey: "compKey1",
+          labelName: this.$t('org.label.carBrand'),  //品牌名称
+          codeField: "carBrandCode",
+          component: () => import("@/components/org/carBrand/carBrand"),
+          type: "dropdownList",
+          isMust: false
+        },
+        {
+          compKey: "compKey2",
+          labelName: this.$t('org.label.carSerise'),  //车系
+          codeField: "carSeriesId",
+          parentFileds:'carBrandCode-carBrandCode',
+          component: () => import("@/components/org/CarCode"),
+          type: "dropdownList",
+          isMust: false
+        },
+        {
+          compKey: "compKey3",
+          labelName: this.$t('org.label.carTypeCode'),  //车型编码
+          codeField: "smallCarTypeCode",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          fuzzySearch: true,
+          isMust: false
+        },
+        {
+          compKey: "compKey4",
+          labelName: this.$t('org.label.carTypeName'), //车型名称
+          codeField: "smallCarTypeCn",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          fuzzySearch: true,
+          isMust: false
+        },
+        {
+                compKey: "compKey5",
+                labelName: this.$t("org.label.isEnable") /*是否启用*/,
+                codeField: "isEnable",
+                component: () => import("@/components/org/isEnable/isEnable"),
+                type: "dropdownList",
+                isMust: false
+              }
+
+      ],
+      // 动态生成网格列
+      tableCols: CacheConfig.cacheData[this.$route.path]&& CacheConfig.cacheData[this.$route.path].tableCols.length > 0 ? CacheConfig.cacheData[this.$route.path].tableCols: [
+        {
+          prop: "controlBtn",
+          label: this.$t('sys.content.operate'),
+          codeField: "controlBtn",
+          width: 60,
+          align: "center",
+          isComponent: true,
+          comps: [
+            {
+              compKey: "propKey0",
+              labelName: this.$t('sys.button.edit'),
+              codeField: "editControlBtn",
+              clickEvent: this.edit,
+              component: () => import("@/components/org/linkButton")
+            }
+          ]
+        },
+        { prop: "mdmCarBrandExtend.carBrandCn", label: this.$t('org.label.carBrand'), width: null, align: "center" }, //品牌名称
+        { prop: "mdmCarBrandExtend.carBrandCode", label: "品牌编码", width: null, align: "center" , hidden:true},
+        { prop: "smallCarTypeId", label: "车型小类ID", width: null, align: "center" , hidden:true},
+        { prop: "stdCarId", label: "车型中类ID", width: null, align: "center" , hidden:true},
+        //api文档已更改
+        { prop: "mdmVeCarSeries.carSeriesCode", label: this.$t('org.label.carSeriesCode'), width: null, align: "center"},//车系编码
+        { prop: "mdmVeCarSeries.carSeriesEn", label: this.$t('org.label.carSeriesEn'), width: null, align: "center",hidden: true}, //车系英文名称
+        { prop: "carSeriesId", label: '车系id', width: null, align: "center",hidden:true}, //车系id
+        { prop: "mdmVeCarSeries.carSeriesCn", label: this.$t('org.label.carSeriesCn'), width: null, align: "center"}, //车系中文名称
+        { prop: "smallCarTypeCode", label: this.$t('org.label.carTypeCode'), width: 160, align: "center" },  //车型编码
+        { prop: "smallCarTypeCn", label: this.$t('org.label.carTypeName'), width: 160, align: "center"},//车型名称
+        { prop: "smallCarTypeEn", label: this.$t('org.label.smallCarTypeEn'), width: 160, align: "center"},//车型英文名称
+        { prop: "isEnableCn", label: this.$t('org.label.isEnableCn'), width: null, align: "center" },    //启用状态
+        { prop: "isEnable", label: "启用状态", width: null, align: "center",hidden:true},
+        { prop: "updateControlId", label: "并发控制字段", width: null, align: "center",hidden:true}
+
+      ],
+      //表单查询数据
+      formField: {
+        carSeriesId: "",
+        carBrandCode: "",
+        smallCarTypeCode: "",
+        smallCarTypeCn: "",
+        isEnable: ""
+      },
+      // 是否使用刷新Key的方式刷新弹窗
+      resetDialogKey: false
+    };
+  },
+
+
+};
+</script>

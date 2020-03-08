@@ -1,0 +1,735 @@
+<template>
+  <section class="opentable">
+    <el-dialog
+      :title="title"
+      :append-to-body="true"
+      :close-on-click-modal="false"
+      :lock-scroll="true"
+      :visible.sync="handleVisibled"
+      center
+      width="1000px"
+      @close="close"
+    >
+      <el-tabs type="border-card">
+        <el-tab-pane :label="$t('org.label.priceSetting')/*价格设置*/">
+          <div class="filter-container filter-params">
+            <el-form :model="ruleForm" :rules="rules" ref="ruleForm" class="demo-ruleForm">
+              <el-row :gutter="24" class="padding10">
+                <el-col :span="9">
+                  <el-form-item :label="$t('org.label.sellingPrice')/*销售价格*/" prop="sellingPrice">
+                    <el-input
+                      v-model="ruleForm.sellingPrice"
+                      :placeholder="$t('sys.tips.esTip0')/*请选择*/"
+                      size="small"
+                    ></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="7">
+                  <el-form-item
+                    :label="$t('org.label.SalesSalesPriceDifference')/*销售进销差价*/"
+                    prop="sellingPrice"
+                  >
+                    <el-input
+                      v-model="ruleForm.estimatedInvoicingSpread"
+                      :placeholder="$t('sys.tips.esTip0')/*请选择*/"
+                      size="small"
+                    ></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item
+                    :label="$t('org.label.estimatedCostPrice')/*估算成本价*/"
+                    prop="sellingPrice"
+                  >
+                    <el-input
+                      v-model="ruleForm.estimatedCost"
+                      :placeholder="$t('sys.tips.esTip0')/*请选择*/"
+                      size="small"
+                    ></el-input>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="24" class="padding10">
+                <el-col :span="9">
+                  <el-form-item
+                    :label="$t('org.label.estimatedInvoicingSpread')/*估算进销差价*/"
+                    prop="sellingPrice"
+                  >
+                    <el-input
+                      v-model="ruleForm.estimatedInvoicingSpread"
+                      :placeholder="$t('sys.tips.esTip0')/*请选择*/"
+                      size="small"
+                    ></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="7">
+                  <el-form-item
+                    :label="$t('org.label.minimumSalePrice')/*最低销售价*/"
+                    prop="sellingPrice"
+                  >
+                    <el-input
+                      v-model="ruleForm.estimatedInvoicingSpread"
+                      :placeholder="$t('sys.tips.esTip0')/*请选择*/"
+                      size="small"
+                    ></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item
+                    :label="$t('org.label.discountAmount1')/*折让金额*/"
+                    prop="sellingPrice"
+                  >
+                    <el-input
+                      v-model="ruleForm.discountAmount"
+                      :placeholder="$t('sys.tips.esTip0')/*请选择*/"
+                      size="small"
+                    ></el-input>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="24" class="padding10">
+                <el-col :span="9">
+                  <el-form-item :label="$t('org.label.minimumFare')/*最低开票价*/" prop="sellingPrice">
+                    <el-input
+                      v-model="ruleForm.currentPrice"
+                      :placeholder="$t('sys.tips.esTip0')/*请选择*/"
+                      size="small"
+                    ></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="7">
+                  <el-form-item :label="$t('org.label.packagePrice')/*包牌价*/" prop="sellingPrice">
+                    <el-input
+                      v-model="ruleForm.packageFare"
+                      :placeholder="$t('sys.tips.esTip0')/*请选择*/"
+                      size="small"
+                    ></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item
+                    :label="$t('org.label.estimatedCostPrice')/*精品赠送额*/"
+                    prop="sellingPrice"
+                  >
+                    <el-input
+                      v-model="ruleForm.send"
+                      :placeholder="$t('sys.tips.esTip0')/*请选择*/"
+                      size="small"
+                    ></el-input>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="24" class="padding10">
+                <el-col :span="9">
+                  <el-form-item label prop="sellingPrice">
+                    <el-checkbox
+                      v-model="ruleForm.isSend"
+                    >{{$t('org.label.estimatedCostPrice')/*指定赠送精品*/}}</el-checkbox>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="7">
+                  <el-form-item
+                    :label="$t('org.label.estimatedCostPrice')/*保险赠送额*/"
+                    prop="sellingPrice"
+                  >
+                    <el-input
+                      v-model="ruleForm.insurance"
+                      :placeholder="$t('sys.tips.esTip0')/*请选择*/"
+                      size="small"
+                    ></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item :label="$t('org.label.executionDate')/*执行日期*/" prop>
+                    <el-date-picker
+                      v-model="ruleForm.doneDate"
+                      type="date"
+                      :placeholder="$t('sys.tips.esTip15')/*选择日期*/"
+                    ></el-date-picker>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-col :span="9" class="padding10">
+                <div class="filter-container filter-button">
+                  <el-button
+                    size="small"
+                    @click="selBoutique"
+                  >{{$t('org.label.ChooseBoutique')/*选择精品*/}}</el-button>
+                  <el-button
+                    size="small"
+                    @click="deleteBoutique"
+                  >{{$t('org.label.deleteBoutique')/*删除精品*/}}</el-button>
+                </div>
+              </el-col>
+              <el-col :span="7" :offset="8" class="padding10">
+                <el-form-item class="dialog-footer">
+                  <el-button type="primary" @click="save">{{$t('sys.button.save')/*保存*/}}</el-button>
+                  <el-button @click="close">{{$t('sys.button.cancel')/*取 消*/}}</el-button>
+                </el-form-item>
+              </el-col>
+            </el-form>
+          </div>
+
+          <el-table
+            :row-class-name="tableRowClassName"
+            v-loading="listLoading"
+            class="multipleTable"
+            :data="list"
+            element-loading-text="Loading"
+            border
+            fit
+            stripe
+            :height="tableHeight"
+            :header-cell-style="tableHeaderRowClassName"
+            :cell-class-name="addTdClass"
+            ref="multipleTables"
+            @select="select"
+            @select-all="select"
+            @row-click="rowClick"
+          >
+            <el-table-column
+              type="selection"
+              width="55"
+              :label="$t('sys.content.gridChoose')+'+'/*选择*/"
+              filed="chose"
+              current-row-key="choose"
+            />
+            <el-table-column
+              align="center"
+              :label="$t('sys.content.gridIndex')/*序号*/"
+              width="60"
+              type="index"
+              prop="id"
+            ></el-table-column>
+            <el-table-column
+              :label="$t('org.label.BoutiqueName')/*精品名称*/"
+              align="center"
+              current-row-key="carBrandCn"
+            >
+              <template slot-scope="scope">{{ scope.row.boutiqueName }}</template>
+            </el-table-column>
+            <el-table-column
+              :label="$t('org.label.BoutiqueCode')/*精品编码*/"
+              align="center"
+              current-row-key="carSeriesCn"
+            >
+              <template slot-scope="scope">{{ scope.row.boutiqueCode }}</template>
+            </el-table-column>
+            <el-table-column
+              :label="$t('org.label.BoutiquePrice')/*精品价格*/"
+              align="center"
+              current-row-key="carSeriesCode"
+            >
+              <template slot-scope="scope">{{ scope.row.boutiquePrice }}</template>
+            </el-table-column>
+          </el-table>
+          <el-pagination
+            background
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+            :page-sizes="[10, 20, 30]"
+            :page-size="10"
+            :prev-text="$t('sys.content.prevPage')/*上一页*/"
+            :next-text="$t('sys.content.nextPage')/*下一页*/"
+            layout="prev, pager, next, sizes, ->, total"
+            ref="paginationHeight"
+            :total="pageTotal"
+            :current-page.sync="listQuery.pageIndex"
+            style="margin-bottom:10px"
+          ></el-pagination>
+        </el-tab-pane>
+
+        <el-tab-pane :label="$t('org.label.SettingHistory')/*设置历史*/">
+          <one-table-template
+            ref="multipleTable"
+            :dynamicButtons="tableButtons"
+            :dynamicComponents="tableComponents"
+            :dynamicApiConfig="apiConfig"
+            :dynamicTableCols="tableCols"
+            :dynamicFormFields="formField"
+            :dynamicIsInitTable="true"
+            :dynamicIsShowSelect="true"
+            :dynamicIsShowMoreBtn="false"
+            :dynamicTableOtherHeight="tableOtherHeight"
+          />
+        </el-tab-pane>
+      </el-tabs>
+      <chooseSpareParts
+        :popupsVisible="chooseSparePartsVisible"
+        :key="chooseSparePartsKey"
+        ref="chooseSpareParts"
+      ></chooseSpareParts>
+    </el-dialog>
+  </section>
+</template>
+<script>
+import { getListQuery } from "@/api/table";
+import chooseSpareParts from "@/components/ve/chooseSpareParts/chooseSpareParts";
+import { orgApis } from "@/api/graphQLApiList/org";
+import { veApis } from "@/api/graphQLApiList/ve";
+import { oneTableWithViewTemplateMixins } from "@/components/mixins/oneTableWithViewTemplateMixins";
+import OneTableTemplate from "@/components/templates/oneTable";
+import { CacheConfig } from "@/cache/configCache/index";
+import { requestGraphQL } from "@/api/commonRequest";
+export default {
+  mixins: [oneTableWithViewTemplateMixins],
+  name: "vecarPriceHand",
+  components: {
+    OneTableTemplate,
+    chooseSpareParts
+  },
+  props: {
+    carColorVisible: {
+      type: Boolean,
+      default: function() {
+        return false;
+      }
+    },
+    initData: {
+      type: Object,
+      default: function() {
+        return {};
+      }
+    }
+  },
+  data() {
+    return {
+      chooseSparePartsVisible: false,
+      chooseSparePartsKey: "chooseSparePartsKey",
+      title: this.$t(
+        "org.label.PriceSettingAndSettingHistory"
+      ) /*价格设置及设置历史*/,
+      apiConfig: veApis.veDbCarSalePriceMutationSave,
+      // 动态组件-按钮
+      tableButtons: [],
+      tableComponents:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              {
+                compKey: "compKey3",
+                span: 8,
+                labelName: this.$t("org.label.carConfig") /*车型*/,
+                codeField: "carConfigId",
+                component: () => import("@/components/org/carTypeConfig"),
+                type: "propus",
+                isMust: true
+              },
+              {
+                compKey: "compKey4",
+                span: 8,
+                labelName: this.$t("org.label.carColor") /*车身颜色*/,
+                codeField: "carColorId",
+                component: () => import("@/components/org/carColor"),
+                type: "propus",
+                isMust: true
+              },
+              {
+                compKey: "compKey5",
+                span: 8,
+                labelName: this.$t("org.label.carIncolor") /*内饰色*/,
+                codeField: "carIncolorId",
+                component: () => import("@/components/org/TrimPopupColor"),
+                type: "propus",
+                isMust: true
+              }
+            ],
+      tableCols:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableCols.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableCols
+          : [
+              {
+                prop: "doneDate",
+                label: this.$t("org.label.executionDate") /*执行日期*/,
+                width: 100,
+                align: "center"
+              },
+              {
+                prop: "marketGuidancePrice",
+                label: this.$t("org.label.marketGuidancePrice") /*市场指导价*/,
+                width: 100,
+                align: "center"
+              },
+              {
+                prop: "costPrice",
+                label: this.$t("org.label.costPrice") /*成本价*/,
+                width: 100,
+                align: "center"
+              },
+              {
+                prop: "costPrice",
+                label: this.$t("org.label.sellingPrice") /*销售价*/,
+                width: 100,
+                align: "center"
+              },
+              {
+                prop: "discountAmount",
+                label: this.$t("org.label.salesInvoicingPrice") /*销售进销价*/,
+                width: 100,
+                align: "center"
+              },
+              {
+                prop: "discountAmount",
+                label: this.$t("org.label.minimumSalePrice") /*最低销售价*/,
+                width: 100,
+                align: "center"
+              },
+              {
+                prop: "currentPrice",
+                label: this.$t("org.label.minimumFare") /*最低开票价*/,
+                width: 100,
+                align: "center"
+              },
+              {
+                prop: "packageFare",
+                label: this.$t("org.label.packagePrice") /*包牌价*/,
+                width: 100,
+                align: "center"
+              },
+              {
+                prop: "discountAmount",
+                label: this.$t("org.label.discountAmount1") /*折让金额*/,
+                width: 100,
+                align: "center"
+              },
+              {
+                prop: "discountAmount",
+                label: this.$t("org.label.sendFine") /*送精品额*/,
+                width: 100,
+                align: "center"
+              },
+              {
+                prop: "boutiqueName",
+                label: this.$t("org.label.designatedDelivery") /*指定送精品*/,
+                width: 110,
+                align: "center"
+              },
+              {
+                prop: "insurance",
+                label: this.$t("org.label.insuranceAmount") /*送保险额*/,
+                width: 100,
+                align: "center"
+              },
+              {
+                prop: "insurance",
+                label: this.$t("org.label.DesiInsAmount") /*指定送保险额*/,
+                width: 110,
+                align: "center"
+              },
+              {
+                prop: "estimatedCost",
+                label: this.$t("org.label.estimatedCostPrice") /*估算成本价*/,
+                width: 100,
+                align: "center"
+              },
+              {
+                prop: "estimatedInvoicingSpread",
+                label: this.$t(
+                  "org.label.estimatedInvoicingSpread"
+                ) /*估算进销差价*/,
+                width: 110,
+                align: "center"
+              }
+            ],
+      handleVisibled: this.carColorVisible,
+      //表单查询数据
+      formField: {
+        groupCode: this.$store.getters.orgInfo.GROUP_CODE,
+        oemCode: this.$store.getters.orgInfo.OEM_CODE,
+        dlrId: this.$store.getters.orgInfo.DLR_ID,
+        carBrandCode: this.$store.getters.orgInfo.BRAND_CODE,
+        carSalePriceID: "",
+        carConfigId: "",
+        carColorId: "",
+        carIncolorId: "",
+        choosePartBagID: "1",
+        netSalePrice: "",
+        lowestPrice: "",
+        powerLowestPrice: "",
+        invoiceLimitPrice: "",
+        isPersentAcce: "",
+        accePersent: "",
+        isPersentInsure: "",
+        insurePersent: "",
+        carnoPrice: "",
+        imputedPrice: "",
+        memberPrice: "",
+        beginDate: "",
+        isEnable: "",
+        updateControlId: "",
+        acceNO: "",
+        acceName: "",
+        accePrice: ""
+      },
+      ruleForm: this.initData,
+      rules: {
+        sellingPrice: [
+          { required: true, message: "", trigger: "blur" },
+          { min: 1, message: "", trigger: "blur" }
+        ]
+        // carSeries: [{ required: true, message: '请选择活动区域', trigger: 'change' }],
+        // carTypeConfig: [{ required: true, message: '请选择活动区域', trigger: 'change' }],
+        // carColor: [
+        // 	{ required: true, message: '请选择品牌', trigger: 'blur' },
+        // 	{ min: 1, message: '品牌选择不能为空', trigger: 'blur' },
+        // ],
+        // status: [{ required: true, message: '请选择设置状态', trigger: 'change' }],
+        // isEnable: [{ required: true, message: '请选择启用状态', trigger: 'change' }],
+        // date: [{ type: 'string', required: false, message: '请选择日期', trigger: 'change' }],
+      },
+      //表的值
+      list: null,
+      listLoading: true,
+      //设置网格总共的条数，查询完更改
+      pageTotal: 0,
+      checked: true,
+      listQuery: {
+        pageIndex: 1,
+        pageSize: 10,
+        limit: 20
+      },
+      tableHeaderRowClassName({ row, rowIndex }) {
+        if (rowIndex === 0) {
+          return "background-color:rgb(239, 239, 239);height:32px;";
+        }
+      },
+      tableHeight: 174,
+      tableHeights: 260,
+      tableOtherHeight: 250,
+      priceSettingSelectData: []
+    };
+  },
+  created() {
+    this.queryTable();
+  },
+  watch: {
+    formField(val) {
+      this.carSeriesCode = this.carSeriesCode + 1;
+      this.carSeriesCn = this.carSeriesCn + 1;
+      this.carBrandCn = this.carBrandCn + 1;
+    }
+  },
+  methods: {
+    // 查询网格
+    queryTable(page) {
+      const that = this;
+      that.currentRow = null;
+      that.listLoading = true;
+      let queryObj = {
+        // api配置
+        apiConfig: veApis.veDbCarSalePriceQueryFindAll,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: ["carBrandCn", "carBrandCode", "carSeriesCn"]
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.listQuery.pageSize,
+          pageIndex: page || that.listQuery.pageIndex,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: that.formField
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result === "1" &&
+          response.data[queryObj.apiConfig.ServiceCode].rows
+        ) {
+          if (page) {
+            //查询完返回指定的page页数
+            that.listQuery.pageIndex = page;
+          }
+          that.pageTotal =
+            response.data[queryObj.apiConfig.ServiceCode].records;
+          that.list = response.data[queryObj.apiConfig.ServiceCode].rows;
+          that.listLoading = false;
+        }
+      });
+    },
+    //保存表格
+    save() {
+      const that = this;
+      let selectData = that.$refs.multipleTables.selection;
+      if (selectData.length == 0) {
+        this.$message({
+          message: this.$t("org.message.moreOneData") /*请至少选择一条数据*/,
+          type: "warning"
+        });
+        return false;
+      }
+      let queryObj = {
+        // 保存mutation
+        type: "mutation",
+        // api配置
+        apiConfig: veApis.veDbCarSalePriceMutationSave,
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: that.brandObj
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      requestGraphQL(paramD).then(response => {
+        if (response.data[queryObj.apiConfig.ServiceCode].result === "1") {
+          that.queryTable(1);
+          that.handleVisibled = false;
+          that.$message({
+            message: this.$t("sys.tips.esTip5") /*保存成功*/,
+            type: "success",
+            duration: 2000
+          });
+          this.close();
+        }
+      });
+      this.changecode();
+    },
+    //删除精品
+    deleteBoutique() {
+      if (this.priceSettingSelectData.length < 1) {
+        this.$message({
+          message: this.$t("org.message.moreOneData"),
+          type: "warning",
+          duration: 2000
+        });
+        return;
+      }
+      for (var k in this.priceSettingSelectData) {
+        let obj = {};
+        let queryObj = {
+          //保存需要传 type="mutation"
+          type: "mutation",
+          // api配置
+          apiConfig: veApis.dlrSalesReturn2,
+          // 需要调用的API服务配置
+          apiServices: [
+            {
+              //表格中台返回网格的字段
+              apiQueryRow: []
+            }
+          ],
+          //条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            //  pageSize: 1000,
+            //  pageIndex: 1,
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: obj
+          }
+        };
+        //转换了中台请求格式数据
+        var paramD = this.$getParams(queryObj);
+        this.$requestGraphQL(paramD).then(response => {
+          if (response.data[queryObj.apiConfig.ServiceCode].result === "1") {
+            //通关如果的状态确认是编辑还是添加
+            this.$message({ message: "删除成功", type: "success" });
+            this.queryTable(1);
+          } else {
+            this.$message({
+              message: response.data[queryObj.apiConfig.ServiceCode].msg
+            });
+          }
+        });
+      }
+    },
+    //选择精品
+    selBoutique() {
+      this.chooseSparePartsVisible = true;
+      this.chooseSparePartsKey = this.$utils.generateId();
+    },
+    //动态添加样式
+    addTdClass({ row, column, rowIndex, columnIndex }) {
+      //判断行和列的位置并且动态添加className
+      if (
+        rowIndex % 2 != 0 &&
+        (columnIndex == 5 || columnIndex == 7 || columnIndex == 8)
+      ) {
+        return "inputBackground";
+      }
+    },
+    //改变页现实的条数并重新查询
+    handleSizeChange(val) {
+      this.listQuery.pageSize = val;
+      this.textQuery();
+    },
+    //单击复选框事件
+    select(selection, row) {
+      this.priceSettingSelectData = selection;
+      //  console.log(selection);
+      //  console.log(row)
+    },
+    rowClick(row) {},
+    changecode() {
+      this.$emit("visible", false);
+    },
+    close() {
+      this.handleVisibled = false;
+      this.$emit("close", false);
+    },
+    //把每一行的索引放进row
+    tableRowClassName({ row, rowIndex }) {
+      row.index = rowIndex;
+    },
+    //翻页
+    handleCurrentChange(val) {
+      this.listQuery.pageIndex = val;
+      this.textQuery();
+    },
+    goback() {
+      this.changecode();
+    },
+    sendCodeHandleVisible() {
+      this.$emit("visible", false);
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+/deep/ .filter-params label {
+  margin-right: 0px;
+}
+/deep/ .el-input__inner {
+  height: 28px;
+  line-height: 28px;
+}
+/deep/ .el-input__icon {
+  line-height: 0;
+}
+/deep/ .el-input__prefix {
+  top: 0px;
+}
+/deep/ .filter-params .el-col {
+  margin-bottom: 0px;
+}
+/deep/ .el-dialog__wrapper .el-dialog {
+  height: 466px;
+}
+/deep/ .filter-title {
+  height: 0;
+  border-bottom: none;
+}
+/deep/ .filter-params .el-col .el-input {
+  width: 59%;
+}
+/deep/ .filter-params .el-col label {
+  width: 40%;
+}
+/deep/.filter-container.filter-params {
+  padding: 0;
+}
+/deep/.el-tabs--border-card > .el-tabs__content {
+  padding: 15px 15px 0;
+}
+.padding10 {
+  padding-bottom: 10px;
+}
+</style>
+

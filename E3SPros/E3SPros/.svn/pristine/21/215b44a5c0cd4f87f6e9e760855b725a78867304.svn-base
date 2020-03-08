@@ -1,0 +1,626 @@
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button" ref="searcheHeight">
+      <el-button type="primary" @click="fetchData(1)">查询</el-button>
+      <el-button size="small" @click="openseComQueryChoDlr">增加经销商</el-button>
+      <el-button size="small" @click="delDlr()">删除经销商</el-button>
+      <el-button size="small" @click="save('dataInfo1')" :disabled="isAdd">增加</el-button>
+      <el-button size="small" @click="save('dataInfo1')" :disabled="isSaveBtn">保存</el-button>
+      <el-button @click="resetForm('listQuery')">重置</el-button>
+    </div>
+    <div class="filter-container filter-params" ref="conHeight">
+      <el-row :gutter="26">
+        <el-form :model="listQuery" ref="listQuery" class="demo-listQuery">
+          <el-row>
+            <el-col :span="6">
+              <el-form-item label="日历年月" prop="listQueryYearMonths">
+                <el-date-picker
+                  v-model="listQueryYearMonths"
+                  type="month"
+                  :editable="false"
+                  placeholder="选择日期"
+                ></el-date-picker>
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="日历组名" prop="moduleName">
+                <el-input v-model="listQuery.moduleName" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+            <LookupValue
+                    :span="6"
+                    :isMul="false"
+                    :isShowLabel="true"
+                    :code="isAllEnable"
+                    :lookuptype="lookupIsEnable"
+                    :labelName="labelName"
+                    @changeCode="getIsAllEnable"
+                  />
+          </el-row>
+        </el-form>
+      </el-row>
+    </div>
+    <el-row>
+      <el-col :span="14">
+        <div class="filter-container filter-title">查询结果</div>
+        <el-row>
+          <el-table
+            :data="list"
+            height="230"
+            style="width: 100%"
+            @row-click="rowClick"
+            v-loading="listLoading"
+            element-loading-text="Loading"
+            border
+            fit
+            stripe
+            highlight-current-row
+          >
+            <el-table-column label="序号" width="60" type="index"></el-table-column>
+            <el-table-column label="日历时间">
+              <template slot-scope="scope">{{scope.row.yearMonths}}</template>
+            </el-table-column>
+            <el-table-column label="日历组名称">
+              <template slot-scope="scope">{{scope.row.moduleName}}</template>
+            </el-table-column>
+            <el-table-column label="状态" width="110px" align="center" class-name="editInput">
+              <template slot-scope="scope">{{scope.row.isEnable}}</template>
+            </el-table-column>
+          </el-table>
+        </el-row>
+        <el-row>
+          <el-col>
+            <div class="filter-container filter-title">日历组维护</div>
+            <div class="filter-container filter-params">
+              <el-row :gutter="26">
+                <el-form :model="dataInfo1" :rules="rules" ref="dataInfo1" class="demo-listQuery">
+                  <el-col :span="8">
+                    <el-form-item label="日历年月" prop="yearMonths">
+                      <el-date-picker v-model="dataInfo1.yearMonths" type="month" :editable="false"></el-date-picker>
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="8">
+                    <el-form-item prop="moduleName">
+                      <lableName curLabelName="日历组名称" :isShowLabel="true" :isRequire="true"></lableName>
+                      <el-input v-model="dataInfo1.moduleName" size="small"></el-input>
+                    </el-form-item>
+                  </el-col>
+                  <LookupValue
+                    :span="6"
+                    :isMul="false"
+                    :isShowLabel="true"
+                    :code="isEnable"
+                    :lookuptype="lookupIsEnable"
+                    :labelName="labelName"
+                    @changeCode="getIsEnable"
+                  />
+                </el-form>
+              </el-row>
+              <el-row>
+                <el-col :span="3" v-for="item in 31" :key="item">
+                  <el-checkbox
+                    v-model="checkList[item-1]"
+                  >{{String(item).length==1 ?"0"+item :item}}</el-checkbox>
+                </el-col>
+              </el-row>
+            </div>
+          </el-col>
+        </el-row>
+      </el-col>
+      <el-col :span="10">
+        <div class="filter-container filter-title" ref="resultTitleHeight">日历组使用店清单</div>
+        <el-table
+          ref="calendarGroupUseList"
+          :data="calendDlr"
+          style="width: 100%"
+          v-loading="listLoadingUseList"
+          element-loading-text="Loading"
+          border
+          fit
+          stripe
+          highlight-current-row
+          :height="tableHeight"
+        >
+          <el-table-column fixed label="序号" width="60" type="index"></el-table-column>
+          <el-table-column fixed type="selection" width="55"></el-table-column>
+          <el-table-column fixed prop="replaceCarType1" label="经销商编码">
+            <template slot-scope="scope">{{scope.row.dlrCode}}</template>
+          </el-table-column>
+          <el-table-column label="经销商名称">
+            <template slot-scope="scope">{{scope.row.dlrShortName}}</template>
+          </el-table-column>
+        </el-table>
+        <el-pagination
+          ref="paginationHeight"
+          background
+          layout="prev, pager, next, sizes, ->, total"
+          prev-text="上一页"
+          next-text="下一页"
+          :page-sizes="[10, 20, 30]"
+          :page-size="10"
+          :total="list?list.length:0"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </el-col>
+    </el-row>
+    <!-- 经销商弹窗 -->
+    <seComQueryChoDlrMul ref="seComQueryChoDlrMul" @changeCode="getseComQueryChoDlrMul"></seComQueryChoDlrMul>
+  </div>
+</template>
+<script>
+import { paApis } from "@/api/graphQLApiList/pa";
+import { requestGraphQL } from "@/api/commonRequest";
+import seComQueryChoDlrMul from "@/components/se/seComQueryChoDlrMul";
+import isEnable from "@/components/org/isEnable/isEnable";
+import { doQueryList } from "@/api/pa/calendarGroup.js";
+import lableName from "@/components/lableName";
+import { the_Height } from "@/components/se/seMixins/makeHeight";
+import LookupValue from "@/components/org/LookupValue";
+
+export default {
+  mixins: [the_Height],
+  name: "testTbale",
+  components: {
+    seComQueryChoDlrMul,
+    isEnable,
+    lableName,
+    LookupValue
+  },
+  filters: {
+    statusFilter(status) {
+      const statusMap = {
+        published: "success",
+        draft: "gray",
+        deleted: "danger"
+      };
+      return statusMap[status];
+    }
+  },
+  data() {
+    return {
+      listQuery: {
+        isEnable: this.isEnable,
+        moduleName: "",
+        yearMonths: ""
+      },
+      dataInfo1: {
+        isEnable: "",
+        moduleName: "",
+        yearMonths: "",
+        moduleId: undefined
+      },
+      dataInfo2: [],
+      listQueryYearMonths: "",
+      rules: {
+        moduleName: [
+          { required: true, message: "请输入日历组名称", trigger: "change" }
+        ],
+        yearMonths: [
+          { required: true, message: "请选择日历年月", trigger: "change" }
+        ],
+        isEnable: [{ required: true, message: "请选择状态", trigger: "change" }]
+      },
+      lookupIsEnable: "VE1003",
+      isEnable: "",
+      isAllEnable:'',
+      flag: false,
+      code: "1",
+      list: null,
+      listLoading: false,
+      listLoadingUseList:false,
+      calendDlr: [],
+      deleteSelectData: [],
+      checkList: [],
+      changeDlrlist: [],
+      isSaveBtn: false,
+      isAdd: false,
+      labelName: "状态",
+      dlrListQuery: {
+        // calendDlrId: "",
+        moduleId: undefined
+        // dlrId: ""
+      },
+      pageIndex: 1,
+      pageSize: 10,
+    };
+  },
+  mounted() {
+    this.faultTime();
+    this.listQuery.isEnable = "0";
+    this.dataInfo1.isEnable = "0";
+  },
+  methods: {
+    resetForm(formName, dataInfo1) {
+      const that = this;
+      that.isAdd = false;
+      that.changeDlrlist = [];
+      for (var i in this.checkList) {
+        this.checkList[i] = false;
+      }
+      that.calendDlr = [];
+      that.list = [];
+      that.$refs[formName].resetFields(); //查询条件日历年月不重置
+      that.listQueryYearMonths = that.getNowTime("年月日", new Date());
+      that.dataInfo1 = {
+        isEnable: "",
+        moduleName: "",
+        yearMonths: that.getNowTime("年月日", new Date())
+      };
+      (this.isEnable = ""), (that.listQuery.moduleName = "");
+    },
+    fetchData(page) {
+      this.listLoading = true;
+      for (var i in this.checkList) {
+        this.checkList[i] = false;
+      }
+      this.calendDlr = [];
+      const that = this;
+      if (that.listQueryYearMonths != "") {
+        if (that.listQueryYearMonths instanceof Date) {
+          that.listQueryYearMonths = this.getNowTime(
+            "年月日",
+            that.listQueryYearMonths
+          );
+        }
+        that.listQuery.yearMonths =
+          that.listQueryYearMonths.substring(0, 4) +
+          that.listQueryYearMonths.substring(5, 7); //日历年月
+      }
+      //转换了中台请求格式数据
+      doQueryList(page || that.pageIndex, that.pageSize, that.listQuery).then(
+        response => {
+          if (
+            response.data[paApis.paDbPurCalendModuleQueryFindAll.ServiceCode]
+              .result === "1"
+          ) {
+            if (page) {
+              //查询完返回指定的page页数
+              that.pageIndex = page;
+            }
+            that.pageTotal =
+              response.data[
+                paApis.paDbPurCalendModuleQueryFindAll.ServiceCode
+              ].records;
+            that.list =
+              response.data[
+                paApis.paDbPurCalendModuleQueryFindAll.ServiceCode
+              ].rows;
+            this.calendDlr = [];
+            that.listLoading = false;
+          } else {
+            for (var i in this.checkList) {
+              this.checkList[i] = false;
+            }
+            this.calendDlr = [];
+            that.listLoading = false;
+          }
+          this.flag = 0;
+        }
+      );
+    },
+    handleSizeChange(val) {
+      this.listQuery.pageSize = val;
+      this.fetchData();
+    },
+    handleCurrentChange(val) {
+      this.listQuery.pageIndex = val;
+      this.fetchData();
+    },
+    //设置时间默认为当前时间
+    faultTime() {
+      this.listQueryYearMonths = this.getNowTime("年月日", new Date());
+      this.dataInfo1.yearMonths = this.getNowTime("年月日", new Date());
+    },
+    //Date转string
+    getNowTime: function(str, nowDate) {
+      var Mon =
+        parseInt(nowDate.getMonth()) + 1 < 10
+          ? "0" + (parseInt(nowDate.getMonth()) + 1)
+          : parseInt(nowDate.getMonth()) + 1;
+      var Day =
+        parseInt(nowDate.getDate()) < 10
+          ? "0" + nowDate.getDate()
+          : parseInt(nowDate.getDate());
+      var Hour =
+        parseInt(nowDate.getHours()) < 10
+          ? "0" + nowDate.getHours()
+          : parseInt(nowDate.getHours());
+      var Min =
+        parseInt(nowDate.getMinutes()) < 10
+          ? "0" + nowDate.getMinutes()
+          : parseInt(nowDate.getMinutes());
+      var Sec =
+        parseInt(nowDate.getSeconds()) < 10
+          ? "0" + nowDate.getSeconds()
+          : parseInt(nowDate.getSeconds());
+      if (str == "年月日") {
+        return nowDate.getFullYear() + "-" + Mon + "-" + Day;
+      } else if (str == "年月") {
+        return nowDate.getFullYear() + "-" + Mon;
+      } else {
+        return (
+          nowDate.getFullYear() +
+          "-" +
+          Mon +
+          "-" +
+          Day +
+          " " +
+          Hour +
+          ":" +
+          Min +
+          ":" +
+          Sec
+        );
+      }
+    },
+    //跳转到日历组
+    jumpCalendarGroup() {
+      this.$router.push({
+        path: "/pamodule/orderManage/calendarGroup"
+      });
+    },
+    save(formName) {
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          this.dataInfo2 = [];
+          for (let index = 1; index < 32; index++) {
+            if (this.checkList[index - 1]) {
+              this.dataInfo1["date" + index] = "1";
+            } else {
+              this.dataInfo1["date" + index] = "0";
+            }
+          }
+          if (this.calendDlr.length == 0) {
+            this.$message({
+              message: "请选择日历组使用店",
+              type: "warning",
+              duration: 2000
+            });
+            return false;
+          }
+          for (let index in this.calendDlr) {
+            let info = {
+              dlrId: this.calendDlr[index].dlrId
+            };
+            this.dataInfo2.push(info);
+          }
+          this.savaGrid(this.dataInfo1, this.dataInfo2);
+        } else {
+          return false;
+        }
+      });
+    },
+    savaGrid(dataInfo1, dataInfo2) {
+      const that = this;
+      let queryObj = {
+        //保存需要传 type="mutation"
+        type: "mutation",
+        // api配置
+        // apiConfig: paApis.paDbPurCalendModuleMutationSave,
+        // 需要调用的API服务配置
+        typeParam:
+          "($dataInfo1: InputPaDbPurCalendModule,$dataInfo2:[InputPaDbCalendDlr])",
+        // 请求API
+        apiUrl: paApis.paDbPurCalendModuleMutationSave.APIUrl,
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            // API服务编码&参数
+            apiServiceCode: paApis.paDbPurCalendModuleMutationSave.ServiceCode,
+            apiServiceParam: "(dataInfo:$dataInfo1,dataInfo2:$dataInfo2)"
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          // dataInfo1: [that.dataInfo1, that.checkList]
+          dataInfo1: dataInfo1,
+          dataInfo2: dataInfo2
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[paApis.paDbPurCalendModuleMutationSave.ServiceCode]
+            .result === "1"
+        ) {
+          this.$message({ message: "保存成功", type: "success" });
+          this.isSaveBtn = false;
+          if (this.flag) {
+            this.isAdd = true;
+          }
+          this.changeDlrlist = [];
+          for (var i in this.checkList) {
+            this.checkList[i] = false;
+          }
+          this.calendDlr = [];
+          this.fetchData();
+        } else {
+          this.$message({
+            message:
+              response.data[paApis.paDbPurCalendModuleMutationSave.ServiceCode]
+                .msg,
+            type: "warning",
+            duration: 2000
+          });
+        }
+      });
+    },
+    //查询日历组表格
+    rowClick(row, column, event) {
+      this.dataInfo1.isEnable = row.isEnable; //状态
+      this.dataInfo1.moduleName = row.moduleName; //日历组名称
+      this.dataInfo1.yearMonths =
+        row.yearMonths.substring(0, 4) + "-" + row.yearMonths.substring(4, 6); //日历年月
+      this.checkList = []; //先清空
+      for (let item = 1; item < 32; item++) {
+        this.checkList.push(row["date" + item] == 1 ? true : false);
+      }
+      this.isAdd = true;
+      this.isSaveBtn = false;
+      this.dlrListQuery.moduleId = row.moduleId;
+      this.dataInfo1.moduleId = row.moduleId;
+      this.flag = true;
+      this.getRrightData();
+    },
+
+    //日历组使用店信息
+    getRrightData(page) {
+      this.listLoadingUseList = true;
+      const that = this;
+      let queryObj = {
+        // api配置
+        apiConfig: paApis.paDbCalendDlrQueryFindAll,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: [
+              "calendDlrId",
+              "carBrandName",
+              "column1",
+              "column10",
+              "column2",
+              "column3",
+              "column4",
+              "column5",
+              "column6",
+              "column7",
+              "column8",
+              "column9",
+              "createdDate",
+              "createdName",
+              "creator",
+              "dlrCode",
+              "dlrId",
+              "dlrShortName",
+              "groupCode",
+              "groupId",
+              "isEnable",
+              "isSystem",
+              "lastUpdatedDate",
+              "modifier",
+              "modifyName",
+              "moduleId",
+              "mycatOpTime",
+              "oemCode",
+              "oemId",
+              "orderNo",
+              "partBrandCode",
+              "sdpOrgId",
+              "sdpUserId",
+              "updateControlId"
+            ]
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.listQuery.pageSize,
+          pageIndex: page || that.listQuery.pageIndex,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: that.dlrListQuery
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[paApis.paDbCalendDlrQueryFindAll.ServiceCode].result ===
+            "1" &&
+          response.data[paApis.paDbCalendDlrQueryFindAll.ServiceCode].rows != ""
+        ) {
+          if (page) {
+            //查询完返回指定的page页数
+            that.listQuery.pageIndex = page;
+          }
+          that.pageTotal =
+            response.data[paApis.paDbCalendDlrQueryFindAll.ServiceCode].records;
+          that.calendDlr =
+            response.data[paApis.paDbCalendDlrQueryFindAll.ServiceCode].rows;
+          that.listLoadingUseList = false;
+        }
+      });
+    },
+    open() {
+      const h = this.$createElement;
+      let delArr = [];
+      this.$refs.calendarGroupUseList.selection.forEach((item, index) => {
+        delArr.push(item.dlrShortName);
+      });
+      delArr = delArr.join();
+      this.$msgbox({
+        title: "消息",
+        message: h("p", null, [
+          h("span", null, "是否删除以下使用店 "),
+          h("p", { style: "color: teal" }, delArr)
+        ]),
+        showCancelButton: true,
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        beforeClose: (action, instance, done) => {
+          if (action === "confirm") {
+            instance.confirmButtonLoading = true;
+            instance.confirmButtonText = "执行中...";
+            setTimeout(() => {
+              done();
+              instance.confirmButtonLoading = false;
+              for (let data in this.deleteSelectData) {
+                this.calendDlr.remove(this.deleteSelectData[data]);
+              }
+            }, 100);
+          } else {
+            done();
+          }
+        }
+      }).then(action => {
+        this.$message({
+          type: "success",
+          message: "删除成功"
+        });
+      });
+    },
+    delDlr(list) {
+      this.deleteSelectData = this.$refs.calendarGroupUseList.selection;
+      //静态删除
+      Array.prototype.indexOf = function(val) {
+        for (var i = 0; i < this.length; i++) {
+          if (this[i] == val) return i;
+        }
+        return -1;
+      };
+      Array.prototype.remove = function(val) {
+        var index = this.indexOf(val);
+        if (index > -1) {
+          this.splice(index, 1);
+        }
+      };
+      if (this.deleteSelectData.length == 0) {
+        this.$message({
+          message: "请选择需要删除的使用店",
+          type: "warning",
+          duration: 2000
+        });
+      } else {
+        this.open();
+      }
+    },
+    openseComQueryChoDlr() {
+      //打开弹窗
+      this.$refs.seComQueryChoDlrMul.open();
+    },
+    getseComQueryChoDlrMul(data) {
+      this.calendDlr = data;
+    },
+    getIsEnable(val) {
+      this.isEnable = val;
+    },
+    getIsAllEnable(val){
+      this.isAllEnable = val;
+    }
+  }
+};
+</script>
+

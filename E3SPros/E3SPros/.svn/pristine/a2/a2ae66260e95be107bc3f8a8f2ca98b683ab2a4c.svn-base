@@ -1,0 +1,311 @@
+<!--
+* description: 调拨量设置
+* author: yangsq
+* createdDate: 2019-09-24
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template
+      ref="multipleTable"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="true"
+      :isAbsolute="true"
+    />
+    <edit
+      :dynamicEditRowData="editRowData"
+      :popupsVisible="editPopupsVisible"
+      :key="editPopupsKey"
+      height="780px"
+      :popupsState="editPopupsState"
+      @close="close">
+    </edit>
+       <Edits
+      @changeCode="handDialogVisibleFunc"
+      :dialogVisible="dialogVisible"
+    />
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { veApis } from "@/api/graphQLApiList/ve";
+import OneTableTemplate from "@/components/templates/oneTable";
+import Edit from './edit';
+import Edits from './edits';
+import { CacheConfig } from '@/cache/configCache/index'
+
+export default {
+    name: "veApplicationFiling",
+  // 组件混入对象：{data[listQuery] methods[queryTable]}
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+    Edit,
+    Edits
+  },
+  // 阻塞路由预加载网格中组件的数据
+ beforeRouteEnter(to, from, next) {
+  CacheConfig.initData(to.path, function(){next()})
+ },
+   data() {
+    return {
+      // 网格查询API配置对象
+      editPopupsKe1y: 'a',
+      editPopupsVisibles: false,
+      apiConfig: veApis.veAllocationRule,
+      centerDialogVisible: false,
+      dialogVisible:false,
+
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: this.$t("sys.button.query") //查询
+        },
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.save(),
+          text: this.$t("sys.button.save") //保存
+        },
+        {
+          compKey: "btnKey8",
+          type: "",
+          size: "small",
+          clickEvent: () => this.synchrony("AllocationRate,CrossMarketShare,SameGroup,SameNonGroup"),
+           text: this.$t("sys.button.sync") //同步
+        },
+        {
+          compKey: "btnKey4",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: this.$t("sys.button.reset") //重置
+        },
+        {
+          compKey: "btnKey6",
+          type: "",
+          size: "small",
+          clickEvent: () => this.add(),
+          text: this.$t("ve.label.OverallAllocationAmountSettings") //全局调拨量设置
+        },
+        {
+          compKey: "btnKey7",
+          type: "",
+          size: "small",
+          clickEvent: () => this.add1(),
+          text: this.$t("ve.label.AllocationAmountShareSetings") //调拨量共享设置
+        }
+
+      ],
+      // 动态组件-查询条件
+      tableComponents: CacheConfig.cacheData[this.$route.path] && CacheConfig.cacheData[this.$route.path].tableComponents && CacheConfig.cacheData[this.$route.path].tableComponents.length > 0 ? CacheConfig.cacheData[this.$route.path].tableComponents: [
+        // 显示组件
+        {
+          compKey: "compKey1",
+          labelName: this.$t("ve.label.carBrandCode"),//品牌
+          codeField: "carBrandCode",
+          isMul:true,
+          component: () =>import("@/components/org/carBrand/carBrand"),
+          type: "dropdownList",
+          isMust: true
+        },
+         {
+          compKey: "compKey2",
+          labelName: this.$t("org.label.dlrName"),//经销商
+          codeField: "dlr",
+          component: () => import("@/components/org/orgDlr"),
+          type: "propus",
+          isMul:false,
+          isMust: true
+        },
+         {
+          compKey: "compKey3",
+          labelName: this.$t("ve.label.monthYear"),//年-月
+          codeField: "applyDate",
+          component: () => import("@/components/org/datePicker/datePicker"),
+          type: "datePicker",
+          isMul:false,
+          isMust: true
+        },
+        {
+          compKey: "compKey4",
+          labelName: this.$t("ve.label.groupStore"),//集团店
+          codeField: "custName",
+          clickEvent: () => this.add(),
+          component: () => import("@/components/org/BigCustomers"),
+          type: "propus",
+          isMul:false,
+          isMust: true
+        }
+      ],
+      // 动态生成网格列
+      tableCols: CacheConfig.cacheData[this.$route.path] && CacheConfig.cacheData[this.$route.path].tableCols && CacheConfig.cacheData[this.$route.path].tableCols.length > 0 ? CacheConfig.cacheData[this.$route.path].tableCols: [
+
+        {
+          prop: "carBrandCode",
+          label: this.$t("ve.label.carBrandCode"),//品牌
+          codeField: "carBrandCode",
+          width: 160,
+          align: "center",
+        },
+        {
+          prop: "bigArea",
+          label: this.$t("ve.label.bigarea"),//大区
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "province",
+          label:  this.$t("ve.label.province"),//省份
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "dlr",
+          label: this.$t("ve.label.dlr"),//经销商
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "monthYear",
+          label: this.$t("ve.label.monthYear"),//年月
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "LiftCarTarget",
+          label: this.$t("ve.label.LiftCarTarget"),//提车目标量
+          width: 160,
+          align: "center",
+        },
+        {
+          prop: "AllocationRate",
+          label: this.$t("ve.label.AllocationRate"),//调拨率(%)
+          width: 160,
+          align: "center",
+          isComponent: true,
+          comps: [
+            {
+              compKey: "propKey1",
+              isShowLabel: false,
+              codeField: "AllocationRate",
+              type:"dropdownList",
+              clickEvent:()=> null,
+              component: () => import("@/components/org/commonInput")
+            }
+          ]
+        },
+        {
+          prop: "AllocationAmount",
+          label: this.$t("ve.label.AllocationAmount"),//调拨量
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "AlreadyUsedAlreadyUsedAmount ",
+          label: this.$t("ve.label.AlreadyUsedAlreadyUsedAmount"),//已用挑拨量
+          width: 160,
+          align: "center",
+        },
+        {
+          prop: "SurplusAllocationAmount",
+          label: this.$t("ve.label.SurplusAllocationAmount"),//剩余挑拨量
+          width: 160,
+          align: "center",
+        },
+        {
+          prop: "CrossMarketShare",
+          label: this.$t("ve.label.CrossMarketShare"),//跨市占率
+          width: 160,
+          align: "center",
+          isComponent: true,
+          comps: [
+            {
+              compKey: "propKey2",
+              labelName: "",
+              isShowLabel: false,
+              clickEvent:()=> null,
+              codeField: "CrossMarketShare",
+              component: () => import("@/components/org/isEnable/isEnable")
+            }]
+        },
+        {
+          prop: "SameGroup",
+          label: this.$t("ve.label.SameGroup"),//同市占率且同集团
+          width: 160,
+          align: "center",
+          isComponent: true,
+          comps: [
+            {
+              compKey: "propKey3",
+              labelName: "",
+              isShowLabel: false,
+              codeField: "SameGroup",
+              clickEvent:()=> null,
+              component: () => import("@/components/org/isEnable/isEnable")
+            }]
+        },
+        {
+          prop: "SameNonGroup",
+          label: this.$t("ve.label.SameNonGroup"),//同市占率且非集团
+          width: 160,
+          align: "center",
+          isComponent: true,
+          comps: [
+            {
+              compKey: "propKey4",
+              labelName: "",
+              isShowLabel: false,
+              clickEvent:()=> null,
+              codeField: "SameNonGroup",
+              component: () => import("@/components/org/isEnable/isEnable")
+            }]
+        },
+      ],
+      formField: {
+        carBrandCode: '',
+        dlr: '',
+        applyDate: '',
+        reach: '',
+        custName: '',
+        policyType: ''
+      }
+    };
+
+  },
+    methods: {
+        add1(){
+            this.dialogVisible = true
+        },
+        handDialogVisibleFunc(){
+            this.dialogVisible = false
+        },
+            save() {
+      const that = this;
+
+      if (that.$utils.isEmpty(that.formField.buniessProcess)) {
+        that.$message({
+          message: "保存成功",
+          type: "success",
+          duration: 2000
+        });
+        return;
+      }
+
+
+
+
+      //保存表单
+      this.saveForm();
+    }
+  }
+}
+</script>

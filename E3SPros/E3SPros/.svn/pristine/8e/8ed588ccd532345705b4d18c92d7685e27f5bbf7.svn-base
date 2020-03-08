@@ -1,0 +1,270 @@
+<!--
+* description: 集团信息管理
+* xulfan
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template
+      ref="multipleTable"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="false"
+      :dynamicIsShowMoreBtn="false"
+      :dynamicIsInitTable="true"
+    />
+
+    <edit
+      :dynamicEditRowData="editRowData"
+      :popupsVisible="editPopupsVisible"
+      :userNameShow='userNameShow'
+      :key="editPopupsKey"
+      :popupsState="editPopupsState"
+      :isShowChooes="isShowChooes"
+      @close="close"
+    ></edit>
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { orgApis } from "@/api/graphQLApiList/org";
+import OneTableTemplate from "@/components/templates/oneTable";
+import Edit from "./edit";
+import { CacheConfig } from "@/cache/configCache/index";
+export default {
+  name: "mdmOrgInfoQuery",
+  // 组件混入对象
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+    Edit
+  },
+  // 阻塞路由预加载网格中组件的数据
+  beforeRouteEnter(to, from, next) {
+    CacheConfig.initData(to.path, function() {
+      next();
+    });
+  },
+  data() {
+    return {
+      userNameShow:false,
+      // 网格查询API配置对象
+      apiConfig: orgApis.mdmOrgInfoQueryGroupByPage,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: this.$t("sys.button.query"),
+          name:'queryTable',
+          position:'right'
+        },
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.add(),
+          text: this.$t("sys.button.add"),
+          name:'add',
+          position:'left',
+        },
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: this.$t("sys.button.reset"),
+          name:'reset',
+          position:'right'
+        }
+      ],
+      // 动态组件-查询条件
+      tableComponents:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              {
+                compKey: "compKey1",
+                labelName: this.$t("org.label.orgCode"),
+                codeField: "orgCode",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              } /*集团编码*/,
+              {
+                compKey: "compKey2",
+                labelName: this.$t("org.label.orgName1"),
+                codeField: "orgName",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              } /*集团名称*/
+            ],
+      // 动态生成网格列
+      tableCols: this.getCols(),
+
+      //表单查询数据
+      formField: {
+        orgCode: "",
+        orgName: ""
+      },
+      isShowChooes:false,
+      // 是否使用刷新Key的方式刷新弹窗
+      resetDialogKey: true
+    };
+  },
+  methods: {
+    add() {
+      this.editRowData = {}
+      this.userNameShow = false
+      this.showEdit('add')
+    },
+    edit(index) {
+      var curIndex = index
+      const that = this.$refs.multipleTable
+      if (curIndex === undefined || curIndex === null) {
+        var currentRow
+        if (that.isMul === true) {
+          // 多选
+          var selectData = that.selection
+          if (selectData.length > 0) {
+            currentRow = selectData[0]
+          }
+        } else {
+          // 单选
+          currentRow = that.currentRow
+        }
+        if (currentRow) {
+          curIndex = currentRow.index
+        }
+      }
+
+      if (curIndex === undefined || curIndex === null) {
+        this.$alert('请选择需要修改的数据', '提示')
+        return
+      }
+      this.editRowData = that.list[curIndex]
+      if(this.editRowData.isEnable === '0') {
+        
+        this.isShowChooes = true
+      }else if(this.editRowData.isEnable === '1'){
+      
+        this.isShowChooes = false
+      }
+      if(this.editRowData.userName !=null||this.editRowData.userName !=""){
+        this.userNameShow = true
+      }else{
+        this.userNameShow = false
+      }
+      this.showEdit('edit')
+    },
+    getCols() {
+      var cols = [
+        {
+          prop: "controlBtn",
+          label: this.$t("sys.content.operate") /*操作*/,
+          codeField: "controlBtn",
+          width: 60,
+          align: "center",
+          isComponent: true,
+          comps: [
+            {
+              compKey: "propKey1",
+              labelName: this.$t("sys.button.edit"),
+              codeField: "editControlBtn",
+              clickEvent: this.edit,
+              component: () => import("@/components/org/linkButton")
+            }
+          ]
+        }
+      ];
+      if (
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableCols.length > 0
+      ) {
+        cols = cols.concat(CacheConfig.cacheData[this.$route.path].tableCols);
+      } else {
+        cols = cols.concat([
+          {
+            prop: "orgCode",
+            label: this.$t("org.label.orgCode"),
+            width: null,
+            align: "center"
+          },
+          {
+            prop: "orgName",
+            label: this.$t("org.label.orgName1"),
+            width: null,
+            align: "center"
+          },
+          {
+            prop: "isEnable",
+            label: this.$t("org.label.isEnable"),
+            width: null,
+            align: "center"
+          },
+          // {
+          //   prop: "roleName",
+          //   label: "管理员角色",
+          //   width: null,
+          //   align: "center",
+          //   hidden: true
+          // },
+          // { prop: 'roleCode', label: '管理员角色', width: null, align: 'center', hidden: true },
+          {
+            prop: "userName",
+            label: this.$t("org.label.adminAccount"),
+            width: null,
+            align: "center",
+            hidden: true
+          } /*管理员账号*/,
+          {
+            prop: "password",
+            label: this.$t("org.label.adminPassword"),
+            width: null,
+            align: "center",
+            hidden: true
+          } /*管理员密码*/,
+          {
+            prop: "updateControlId",
+            label: "并发控制",
+            width: null,
+            align: "center",
+            hidden: true
+          },
+          //主键ID
+          {
+            prop: "orgId",
+            label: "并发控制",
+            width: null,
+            align: "center",
+            hidden: true
+          },
+          //主键ID
+          {
+            prop: "roleId",
+            label: "并发控制",
+            width: null,
+            align: "center",
+            hidden: true
+          },
+          //主键ID
+          {
+            prop: "userId",
+            label: "",
+            width: null,
+            align: "center",
+            hidden: true
+          }
+        ]);
+      }
+      return cols;
+    }
+  }
+};
+</script>

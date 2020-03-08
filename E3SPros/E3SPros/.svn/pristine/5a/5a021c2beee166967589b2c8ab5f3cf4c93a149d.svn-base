@@ -1,0 +1,229 @@
+<!--
+* description: 经销商财务扩展信息
+* author: dinggf
+* createdDate: 2019-10-21
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template
+      ref="multipleTable"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicFormFields="formField"
+      :dynamicTableCols="tableCols"
+      :dynamicApiConfig="apiConfig"
+      :dynamicIsShowMoreBtn="isMoreBtn"
+      :dynamicWidth="siderWidth"
+      :dynamicIsShowSelect="false"
+      :dynamicIsInitTable="true"
+      :dynamicIsColumnDrop="true"
+    />
+    
+  </div>
+</template>
+
+<script>
+// import { orgApis } from "@/api/graphQLApiList/org";
+import { veApis } from "@/api/graphQLApiList/ve";
+import { CacheConfig } from "@/cache/configCache/index";
+import OneTableTemplate from "@/components/templates/oneTable";
+import { oneTableWithViewTemplateMixins } from "@/components/mixins/oneTableWithViewTemplateMixins";
+export default {
+  name: "dlrFinance",
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate
+  },
+  mounted() {
+    this.$refs.multipleTable.queryTable(1);
+  },
+  data() {
+    return {
+      //设置菜单栏宽度
+      siderWidth: 250,
+      //设置是否显示更多按钮
+      isMoreBtn: true,
+      // 网格查询API配置对象
+      apiConfig: veApis.veBuAgentProjectTypeMutationSave,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: this.$t("sys.button.query")
+        }, //查询
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.exportExcel(),
+          text: this.$t("sys.button.export")
+        }, //导出
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: this.$t("sys.button.reset")
+        } //重置
+      ],
+      // 动态组件-查询条件
+      tableComponents: [
+        // 组织类型（值列表）
+        {
+          compKey: "compKey1",
+          labelName: this.$t("ve.label.carBrand"),
+          codeField: "carBrandCode",
+          isMul: false,
+          component: () => import("@/components/org/carBrand/carBrand"),
+          type: "dropdownList",
+          isMust: true
+        }, //品牌
+        {
+          compKey: "compKey2",
+          labelName: "经销商",
+          codeField: "dlr",
+          parentFileds: "carBrandCode",
+          component: () => import("@/components/org/orgDlr"),
+          type: "propus",
+          isMust: true
+        }, //经销商
+        {
+          compKey: "compKey3",
+          labelName: "经销商分组",
+          codeField: "dlrGroup",
+          // isMul: false,
+          component: () => import("@/components/org/DlrStatus"),
+          type: "dropdownList",
+          isMust: true
+        }, //经销商分组
+        {
+          compKey: "compKey4",
+          labelName: "经销商编码",
+          codeField: "dlrCode",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        }, //经销商编码
+        {
+          compKey: "compKey5",
+          labelName: "经销商名称",
+          codeField: "dlrName",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: false
+        }, //经销商名称
+        {
+          compKey: "compKey6",
+          labelName: "开票名称",
+          codeField: "kpmc",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: false
+        }, //开票名称
+        {
+          compKey: "compKey7",
+          labelName: "SAP编码",
+          codeField: "SAPCode",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: false
+        }, //SAP编码
+        {
+          compKey: "compKey8",
+          labelName: "含已停用经销商",
+          codeField: "isDisDlr",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: false
+        } //含已停用经销商
+      ],
+      // 动态生成网格列
+      tableCols: [
+        // {
+        //   prop: "controlBtn",
+        //   label: this.$t("sys.content.operate"),
+        //   codeField: "controlBtn",
+        //   width: 60,
+        //   align: "center",
+        //   fixed: true,
+        //   isComponent: true,
+        //   comps: [
+        //     {
+        //       compKey: "propKey0",
+        //       align: "center",
+        //       labelName: this.$t("sys.button.query"),
+        //       codeField: "editControlBtn",
+        //       clickEvent: this.edit,
+        //       component: () => import("@/components/org/linkButton")
+        //     }
+        //   ]
+        // },
+        { prop: "dlrName", label: "经销商名称", width: null, align: "center" },
+        { prop: "dlrCode", label: "经销商编码", width: null, align: "center" },
+        { prop: "bankName", label: "开户银行", width: null, align: "center" },
+        { prop: "bankUserName", label: "开户银行账号", width: null, align: "center" },
+        { prop: "vatInvoiceNum", label: "增值税发票号", width: null, align: "center" },
+        { prop: "kpmc", label: "开票名称", width: null, align: "center" },
+        { prop: "kpAddress", label: "开票地址", width: null, align: "center" },
+        { prop: "SAPCode", label: "SAP编码", width: null, align: "center" },
+        { prop: "DealerCorrelation", label: "经销商关联关系", width: null, align: "center" },
+        { prop: "ANSWERCode", label: "ANSWER编码", width: null, align: "center" },
+        { prop: "carBrandCn", label: "品牌", width: null, align: "center" },
+        { prop: "area", label: "地区", width: null, align: "center" },
+        { prop: "bigArea", label: "大区", width: null, align: "center" },
+        { prop: "mallArea", label: "小区", width: null, align: "center" },
+        { prop: "provinceName", label: "省份", width: null, align: "center" },
+        { prop: "cityName", label: "城市", width: null, align: "center" },
+        { prop: "modifyName", label: "财务联系人", width: null, align: "center" },
+        {
+          prop: "supplierTel",
+          label: "财务联系人电话",
+          width: null,
+          align: "center"
+        },
+        {
+          prop: "supplierPhone",
+          label: "财务联系人手机",
+          width: null,
+          align: "center"
+        },
+        {
+          prop: "supplierEmail",
+          label: "财务联系人Email",
+          width: null,
+          align: "center"
+        },
+        {
+          prop: "supplierZipCode",
+          label: "财务联系人邮编",
+          width: null,
+          align: "center"
+        },
+        {
+          prop: "supplierAdr",
+          label: "财务联系人地址",
+          width: null,
+          align: "center"
+        }
+      ],
+      //查询条件
+      formField: {
+        carBrandCode: "",
+        dlr: "",
+        dlrGroup: "",
+        dlrCode: "",
+        dlrName: "",
+        kpmc: "",
+        SAPCode: "",
+        isDisDlr: ""
+      }
+    };
+  }
+};
+</script>
+
+<style>
+</style>

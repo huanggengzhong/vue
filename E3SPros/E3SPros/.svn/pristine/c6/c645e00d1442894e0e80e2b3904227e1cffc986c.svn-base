@@ -1,0 +1,671 @@
+<!--
+// * description: 汽车销售开票
+// * author: lixb
+// * createdDate: 2019-10-21
+-->
+<template>
+  <div class="app-container app-container-table po-rel">
+    <one-table-template
+      ref="multipleTable"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="false"
+      :dynamicIsShowMoreBtn="false"
+    />
+    <div class="comp-right filter-params">
+      <el-row>
+        <el-col :span="24" class="table-col">
+          <component
+            v-for="comp in tableComponentRight.filter(o => o.isMust === true)"
+            :ref="comp.isRequire ? comp.isRequire+ comp.compKey : comp.compKey"
+            :key="comp.compKey"
+            :codeField="comp.codeField"
+            :textField="comp.textField"
+            :popupsKey="comp.compKey"
+            :is="comp.component"
+            :isShow="comp.isShow || true"
+            :code="formFieldRight[comp.codeField]"
+            :disabled="comp.disabled"
+            :span="comp.span || 20"
+            :labelName="comp.labelName"
+            :lookuptype="comp.lookuptype"
+            :inputType="comp.inputType"
+            :dateOptionsType="comp.dateOptionsType"
+            :dateType="comp.dateType"
+            :clearable="comp.clearable"
+            :filterable="comp.filterable"
+            :parentFileds="comp.parentFileds || ''"
+            :mustFields="comp.mustFields || ''"
+            :returnCodeField="comp.returnCodeField"
+            :returnTextField="comp.returnTextField"
+            :otherField="comp.otherField"
+            :validrule="comp.validrule"
+            :isUseDefault="comp.isUseDefault"
+            :isHost="comp.isHost"
+            :oFields="comp.oFields"
+          ></component>
+        </el-col>
+      </el-row>
+      <div class="filter-container filter-button btnRight" ref="searcheHeight">
+        <el-button
+          v-for="comp in tableButtonRight"
+          :key="comp.compKey"
+          :type="comp.type"
+          @click="comp.clickEvent"
+        >{{comp.text}}</el-button>
+      </div>
+    </div>
+    <!-- <edit
+      :popupsState="editPopupsState"
+      :dynamicEditRowData="editRowData"
+      :popupsVisible="editPopupsVisible"
+      :key="editPopupsKey"
+      @close="close"
+    ></edit> -->
+    <!-- <make-invoice :key="showToView" :handleVisible="toViewd" :clickRows="rowsData"></make-invoice> -->
+    <!-- <ve-open :key="showToView2" :handleVisible="toViewd2" :clickRows="rowsData"></ve-open> -->
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from "@/components/mixins/oneTableWithViewTemplateMixins";
+import { veApis } from "@/api/graphQLApiList/ve";
+import { CacheConfig } from "@/cache/configCache/index";
+import { requestGraphQL } from "@/api/commonRequest";
+import { contsMixins } from "@/components/mixins/contsMixins";
+import { formMixins } from "@/components/mixins/formMixins";
+import OneTableTemplate from "@/components/templates/oneTable";
+// import Edit from "./edit";
+// import makeInvoice from "./makeInvoice";
+// import veOpen from "./veOpen";
+
+export default {
+  name: "carSalesInvoice",
+  // 组件混入对象
+  mixins: [contsMixins, formMixins, oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+    // Edit,
+    // makeInvoice,
+    // veOpen
+  },
+  // 阻塞路由预加载网格中组件的数据
+  beforeRouteEnter(to, from, next) {
+    CacheConfig.initData(to.path, function() {
+      next();
+    });
+  },
+  data() {
+    return {
+      // 网格查询API配置对象
+      apiConfig: veApis.veContractQry,
+      //
+      toViewd: false,
+      toViewd2: false,
+      showToView: "a",
+      showToView2: "b",
+      clickRowsData: {},
+      rowsData: {},
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: this.$t("sys.button.query")
+        },
+        // {
+        //   compKey: "btnKey2",
+        //   type: "",
+        //   size: "small",
+        //   clickEvent: () => this.checkIn(),
+        //   text: this.$t("sys.button.registration")
+        // },
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.cancellation(),
+          text: this.$t("ve.label.cancellation")
+        }, //作废
+        {
+          compKey: "btnKey4",
+          type: "",
+          size: "small",
+          clickEvent: () => this.exportExcel(),
+          text: this.$t("sys.button.export")
+        }
+      ],
+      // 右
+      tableButtonRight: [
+        // {
+        //   compKey: "btnKey5",
+        //   type: "",
+        //   size: "small",
+        //   clickEvent: () => this.showView(),
+        //   text: this.$t("sys.button.addValue")
+        // },
+        // {
+        //   compKey: "btnKey6",
+        //   type: "",
+        //   size: "small",
+        //   clickEvent: () => this.showView2(),
+        //   text: this.$t("sys.button.vehicles")
+        // },
+        {
+          compKey: "btnKey7",
+          type: "",
+          size: "small",
+          clickEvent: () => this.save(),
+          text: this.$t("sys.button.save")
+        } //保存
+      ],
+      tableComponentRight:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              {
+                compKey: "compKey1",
+                labelName: this.$t("ve.label.contractCode"),
+                /* "合同编号", */
+                disabled: true,
+                codeField: "saleContractCode",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              },
+              {
+                compKey: "compKey2",
+                /* "购买车型", */
+                labelName: this.$t("ve.label.buyCarConfigCode"),
+                disabled: true,
+                codeField: "carConfigCode",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              },
+              {
+                compKey: "compKey3",
+                labelName: this.$t("ve.label.clientName"),
+                /* "客户名称", */
+                disabled: true,
+                codeField: "custName",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              },
+              {
+                compKey: "compKey4",
+                labelName: this.$t("ve.label.salePriced"),
+                /*  "整车销售价" */
+                disabled: true,
+                codeField: "salePrice",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              },
+              {
+                compKey: "compKey5" /* 待定 */,
+                labelName: this.$t("ve.label.lowInvoicePrice"),
+                /* "标准开票价" */
+                disabled: true,
+                codeField: "lowInvoicePrice",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              },
+              {
+                compKey: "compKey6",
+                labelName: this.$t("ve.label.vin"),
+                /*  "VIN码", */
+                codeField: "vin",
+                disabled: true,
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              },
+              {
+                compKey: "compKey7",
+                labelName: this.$t("ve.label.invoiceType"),
+                /* "发票类别",  */
+                lookuptype: "DB0057",
+                codeField: "invoiceType",
+                component: () => import("@/components/org/LookupValue"),
+                type: "dropdownList",
+                isMust: true
+              },
+
+              {
+                compKey: "compKey8",
+                labelName: this.$t("ve.label.invoicePrice"),
+                /* "发票价格",  */
+                codeField: "invoicePrice",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              },
+              {
+                compKey: "compKey9",
+                labelName: this.$t("ve.label.saleOrderCoded"),
+                /*  "发票号码", */
+                codeField: "invoiceCode",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              },
+              {
+                compKey: "compKey10",
+                labelName: this.$t("ve.label.invoiceDate"),
+                /* "发票日期", */
+                codeField: "invoiceDate",
+                component: () =>
+                  import("@/components/org/datePicker/dateTimePick"),
+                format: "yyyy-MM-dd HH:mm:ss",
+                type: "datePicker",
+                isMust: true
+              }
+            ],
+      // 动态组件-查询条件
+      tableComponents:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              {
+                compKey: "compKey11",
+                labelName: this.$t("ve.label.clientName"),
+                /* "客户名称", */
+                span: 8,
+                codeField: "buyCustId",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              }, // 客户名称
+              // 待确认
+              {
+                compKey: "compKey12",
+                labelName: this.$t("ve.label.invoiceApplyStatusName"),
+                /*  "发票状态", */
+                span: 8,
+                codeField: "invoiceState",
+                lookuptype: "VE0026",
+                component: () => import("@/components/org/LookupValue"),
+                type: "dropdownList",
+                isMust: true
+              },
+              {
+                compKey: "compKey3",
+                labelName: this.$t("ve.label.vin") /* vin\ */,
+                span: 8,
+                codeField: "vin",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              },
+              {
+                compKey: "compKey4",
+                labelName: this.$t("ve.label.saleContractCode"),
+                /* "销售合同号", */
+                span: 8,
+                codeField: "saleContractCode",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              },
+              {
+                compKey: "compKey5",
+                /* "销售类型", */
+                labelName: this.$t("ve.label.saletype"),
+                span: 8,
+                codeField: "saleTypeId",
+                lookuptype: "VE0026",
+                component: () => import("@/components/org/LookupValue"),
+                type: "dropdownList",
+                isMust: true
+              },
+              // 销售顾问
+              {
+                compKey: "compKey7",
+                labelName: this.$t("ve.label.caEmpId"),
+                /* "销售顾问", */
+                span: 8,
+                codeField: "caEmpId",
+                component: () => import("@/components/org/userSelect"),
+                type: "propus",
+                isMust: true
+              },
+              // 合同日期
+              {
+                compKey: "compKey8",
+                labelName: this.$t("ve.label.gatheringDate"),
+                span: 8,
+                codeField: "saleContractDateBegin",
+                component: () =>
+                  import("@/components/org/datePicker/datePicker"),
+                type: "datePicker",
+                isMust: true
+              },
+              {
+                compKey: "compKey9",
+                labelName: this.$t("ve.label.reach"),
+                span: 8 /* 至 */,
+                codeField: "saleContractDateEnd",
+                component: () =>
+                  import("@/components/org/datePicker/datePicker"),
+                type: "datePicker",
+                isMust: true
+              },
+              //发票号码 待确认
+              {
+                compKey: "compKey10",
+                labelName: this.$t("ve.label.saleOrderCoded"),
+                labelName: "发票号码",
+                span: 8,
+                codeField: "saleOrderCode",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              }
+            ],
+      // 动态生成网格列
+      tableCols:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableCols.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableCols
+          : [
+              {
+                prop: "saleContractCode",
+                label: this.$t("ve.label.saleContractCodeCn"),
+                /* "销售合同", */
+                width: 120,
+                align: "center"
+              },
+              {
+                prop: "isInvoce",
+                label: this.$t("ve.label.isInvoce"),
+                /* "开票状态", */
+                width: 120,
+                align: "center"
+              },
+              {
+                prop: "saleTypeId",
+                label: this.$t("ve.label.saletype"),
+                /* "销售类型", */
+                width: 120,
+                hidden: true,
+                align: "center"
+              },
+              {
+                prop: "saleTypeName",
+                label: this.$t("ve.label.saletype"),
+                /* "销售类型", */
+                width: 120,
+                align: "center"
+              },
+              {
+                prop: "vin",
+                label: this.$t("ve.label.vin"),
+                /* "VIN码", */
+                width: 150,
+                hidden: true,
+                align: "center"
+              },
+              {
+                prop: "carTypeCode",
+                label: this.$t("ve.label.smallCarTypeCode"),
+                /* "车型编码", */
+                width: 120,
+                hidden: true,
+                align: "center"
+              },
+              {
+                prop: "carConfigCode",
+                label: this.$t("ve.label.buyCarConfigCode"),
+                /* "购买车型", */
+                width: 120,
+                align: "center"
+              },
+              {
+                prop: "carConfigName",
+                label: this.$t("ve.label.carConfigCn"),
+                /*  "车型配置名称", */
+                width: 120,
+                hidden: true,
+                align: "center"
+              },
+              {
+                prop: "carConfigId",
+                // label: "车型配置ID",
+                width: 120,
+                hidden: true,
+                align: "center"
+              },
+              {
+                prop: "invoiceType",
+                label: this.$t("ve.label.invoiceTypeS"),
+                /* "发票类型", */
+                width: 120,
+                align: "center"
+              },
+              {
+                prop: "invoiceNo", //缺失
+                label: this.$t("ve.label.saleOrderCoded"),
+                /* "发票号码" */
+                width: 140,
+                align: "center"
+              },
+              {
+                prop: "invoicePrice", //缺失
+                label: this.$t("ve.label.invoicePriced"),
+                /* "发票金额", */
+                width: 120,
+                align: "center"
+              },
+              {
+                prop: "lowInvoicePrice",
+                label: this.$t("ve.label.lowInvoicePricelim"), //缺失
+                /*  "开票限制价", */ width: 120,
+                align: "center"
+              },
+              {
+                prop: "invoiceDate",
+                label: this.$t("ve.label.MakeinvoiceDate"), //缺失
+                /* "开票日期", */ width: 120,
+                align: "center"
+              },
+              {
+                prop: "caEmpId",
+                label: this.$t("ve.label.caEmpIds"),
+                /* "销售顾问ID", */
+                width: 120,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "caEmpName",
+                label: this.$t("ve.label.caEmpIds"),
+                /* "销售顾问ID", */
+                width: 120,
+                align: "center"
+              },
+              {
+                prop: "invoiceEmpName",
+                label: this.$t("ve.label.invoiceEmpName"),
+                /* "开票人", */
+                width: 120,
+                align: "center"
+              },
+              {
+                prop: "proof", //缺失
+                label: this.$t("ve.label.proof") /* "是否转凭证", */,
+                width: 120,
+                align: "center"
+              },
+              {
+                prop: "updateControlId",
+                label: "并发ID",
+                width: 120,
+                align: "center",
+                hidden: true
+              }
+            ],
+
+      //表单查询数据
+      formField: {
+        stationName: ""
+      },
+      formFieldRight: {}
+    };
+  },
+  methods: {
+    cancellation() {
+      const that = this.$refs.multipleTable;
+      let saveState = true;
+      let saveCount = 0;
+      let msg = "";
+      const queryObj = {
+        // 保存mutation
+        type: "mutation",
+        // api配置
+        apiConfig: veApis.veDelorder,
+        variables: {
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {
+            carBrandCode: ""
+          }
+        }
+      };
+      // 转换了中台请求格式数据
+      var paramD = this.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      this.$requestGraphQL(paramD).then(response => {
+        if (response.data.vecldbsqOutConfirm.result === "1") {
+          // 保存成功
+          this.$message({
+            message: "作废成功",
+            type: "success",
+            uration: 2000
+          });
+        } else {
+          // 保存失败
+          this.$message({
+            message: "作废失败",
+            type: "warn",
+            uration: 2000
+          });
+        }
+        this.queryTable(1);
+      });
+    },
+    // checkIn() {
+    //   this.showEdit();
+    // },
+    showView() {
+      // if (
+      //   this.formFieldRight.saleContractCode != "" &&
+      //   this.formFieldRight.saleContractCode != undefined
+      // ) {
+      const that = this.$refs.multipleTable;
+      this.rowsData = this.formFieldRight;
+      this.toViewd = true;
+      this.showToView = this.showToView + "1";
+      // }
+    },
+    showView2() {
+      // if (
+      //   this.formFieldRight.saleContractCode != "" &&
+      //   this.formFieldRight.saleContractCode != undefined
+      // ) {
+      const that = this.$refs.multipleTable;
+      this.rowsData = this.formFieldRight;
+      this.toViewd2 = true;
+      this.showToView2 = this.showToView2 + "1";
+      // }
+    },
+    save() {
+      const that = this.$refs.multipleTable;
+      let saveState = true;
+      let saveCount = 0;
+      let msg = "";
+      const queryObj = {
+        // 保存mutation
+        type: "mutation",
+        // api配置
+        apiConfig: veApis.veDlrInvoiceApplyM,
+        variables: {
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {
+            carBrandCode: ""
+          }
+        }
+      };
+      // 转换了中台请求格式数据
+      var paramD = this.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      this.$requestGraphQL(paramD).then(response => {
+        if (response.data.veDlrInvoiceApplyM.result === "1") {
+          // 保存成功
+          this.$message({
+            message: "保存成功",
+            type: "success",
+            uration: 2000
+          });
+        } else {
+          // 保存失败
+          this.$message({
+            message: "保存失败",
+            type: "warn",
+            uration: 2000
+          });
+        }
+        this.queryTable(1);
+      });
+    }
+  },
+  watch: {
+    clickRowsData(curVal, oldVal) {
+      this.formFieldRight = curVal;
+      this.rowsData = curVal;
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+/deep/.po-rel {
+  position: relative;
+}
+
+/deep/.filter-params {
+  width: 72% !important;
+}
+/deep/.filter-title {
+  width: 72% !important;
+}
+/deep/.el-table {
+  width: 72% !important;
+}
+/deep/.el-pagination.is-background {
+  width: 72% !important;
+}
+/deep/.filter-params .table-col .el-col {
+  margin-bottom: 8px;
+}
+/deep/.comp-right {
+  position: absolute;
+  background: #fff;
+  top: 49px;
+  right: 0px;
+  width: 26.5% !important;
+  overflow: hidden;
+  height: 89.8%;
+  margin-right: 10px;
+}
+
+/deep/.btnRight{
+  text-align: center !important;
+}
+</style>

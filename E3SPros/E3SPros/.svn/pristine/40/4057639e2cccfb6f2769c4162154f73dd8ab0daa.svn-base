@@ -1,0 +1,490 @@
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button">
+      <el-button type="primary" size="small" @click="fetchData()">查询</el-button>
+      <el-button size="small" @click="getExcel()">导出</el-button>
+      <el-button size="small" @click="reset()">重置</el-button>
+    </div>
+    <div class="filter-container filter-params">
+      <el-row :gutter="26">
+        <el-col :span="22">
+          <el-row>
+            <LookupValue :span="6" :isMul="true" :isShowLabel="true" :code="listQuery.orderTypeBrand" :lookuptype="listQuery.lookuptypeBrand" :labelName="labelNameBrand" @changeCode="getLookupValueBrand" />
+            <el-col :span="6">
+              <label>备件编码</label>
+              <el-input v-model="partbrandcodeNameSelectVal" suffix-icon="el-icon-search" placeholder="请选择" size="small" @focus="dialogFormModel" />
+            </el-col>
+            <paChoose :dialogFormVisible="dialogFormVisible" @changeCode="getDialogFormVisible"></paChoose>
+            <el-col :span="6">
+              <label>备件名称</label>
+              <el-input size="small" v-model="partNameSelectVal" />
+            </el-col>
+            <LookupValue :span="6" :isMul="false" :isShowLabel="true" :code="listQuery.orderTypeStatus" :lookuptype="listQuery.lookuptypeStatus" :labelName="labelNameStatus" @changeCode="getLookupValueStatus" />
+          </el-row>
+        </el-col>
+        <el-col :span="2">
+          <el-button :icon="moreBtnIcon" @click="changeToggleParam" class="moreParam">更多</el-button>
+        </el-col>
+        <el-col :span="22" v-show="toggleParam">
+          <!-- class="toggleParam" -->
+          <el-row>
+            <el-col :span="6">
+              <label>备件类别</label>
+              <el-select placeholder="请选择" v-model="partTypeNameSelectVal" size="small">
+                <el-option :label="item.partTypeName" :value="item.partTypeId" v-for="item in partTypeName" :key="item.partTypeId">
+                </el-option>
+              </el-select>
+            </el-col>
+            <LookupValue :span="6" :isMul="false" :isShowLabel="true" :code="listQuery.orderTypeResoce" :lookuptype="listQuery.lookuptypeResoce" :labelName="labelNameResoce" @changeCode="getLookupValueResoce" />
+            <LookupValue :span="6" :isMul="false" :isShowLabel="true" :code="listQuery.orderTypeSStatus" :lookuptype="listQuery.lookuptypeSStatus" :labelName="labelNameSStatus" @changeCode="getLookupValueSStatus" />
+            <el-col :span="6">
+              <label>供应商简称</label>
+              <el-input v-model="supplierShortNameInputVal" suffix-icon="el-icon-search" placeholder="请选择" size="small" @focus="chooseSupplierModel" />
+              <chooseSupplier :supplierChooseVisible="chooseSupplierVisible" @changeCode="getChooseSupplierVisible"></chooseSupplier>
+            </el-col>
+          </el-row>
+          <el-row>
+            <el-col :span="6">
+              <label>启用日期</label>
+              <el-date-picker v-model="beginDateInputVal" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" size="small">
+              </el-date-picker>
+            </el-col>
+            <span style="display: inline-block;float: left;width: 120px;">
+              <el-checkbox label="有库存" v-model="ycheckboxStatus" @change="ygetCheckboxStatus"></el-checkbox>
+            </span>
+            <span style="display: inline-block;float: left;width: 120px;">
+              <el-checkbox label="不合理价格" v-model="ncheckboxStatus" @change="handlengetCheckboxStatus"></el-checkbox>
+            </span>
+            <span style="display: inline-block;float: left;width: 120px;">
+              <el-checkbox label="网点价为零价格" v-model="wcheckboxStatus" @change="wgetCheckboxStatus"></el-checkbox>
+            </span>
+          </el-row>
+        </el-col>
+      </el-row>
+    </div>
+    <div class="filter-container filter-title">查询结果</div>
+    <el-table v-loading="listLoading" :data="list" ref="multipleTable" element-loading-text="Loading" border fit stripe highlight-current-row>
+      <el-table-column label="序号" width="60" type="index">
+      </el-table-column>
+      <el-table-column label="品牌" width="120" align="center" prop="partBrandName">
+        <template slot-scope="scope">{{scope.row.partBrandName}}</template>
+      </el-table-column>
+      <el-table-column label="备件编码" width="150" align="center" prop="partNo">
+        <template slot-scope="scope">{{scope.row.partNo}}</template>
+      </el-table-column>
+      <el-table-column label="备件名称" width="150" align="center" prop="partName">
+        <template slot-scope="scope">{{scope.row.partName}}</template>
+      </el-table-column>
+      <el-table-column label="批发价" width="120" align="center" prop="dlrPrice">
+        <template slot-scope="scope">{{scope.row.dlrPrice}}</template>
+      </el-table-column>
+      <el-table-column label="折扣率" width="120" align="center" prop="userPrice">
+        <template slot-scope="scope">{{scope.row.userPrice}}</template>
+      </el-table-column>
+      <el-table-column label="折扣批发" width="120" align="center" prop="beforeDlrPrice">
+        <template slot-scope="scope">{{scope.row.beforeDlrPrice}}</template>
+      </el-table-column>
+      <el-table-column label="零售指导" width="120" align="center" prop="beforeUserPrice">
+        <template slot-scope="scope">{{scope.row.beforeUserPrice}}</template>
+      </el-table-column>
+      <el-table-column label="备件状态" width="120" align="center" prop="partStatus">
+        <template slot-scope="scope">{{scope.row.partStatus}}</template>
+      </el-table-column>
+      <el-table-column label="启用日期" width="150" align="center" prop="beginDate">
+        <template slot-scope="scope">{{scope.row.beginDate}}</template>
+      </el-table-column>
+      <el-table-column label="备件类别" width="120" align="center" prop="partTypeName">
+        <template slot-scope="scope">{{scope.row.partTypeName}}</template>
+      </el-table-column>
+      <el-table-column label="备件来源" align="center" prop="partSourceName">
+        <template slot-scope="scope">{{scope.row.partSourceName}}</template>
+      </el-table-column>
+    </el-table>
+    <el-pagination background layout="prev, pager, next, sizes, ->, total" prev-text="上一页" next-text="下一页" :page-sizes="[10, 20, 30]" :page-size="10" :total="list?pageTotal:0" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+  </div>
+</template>
+<script>
+import { paApis } from '@/api/graphQLApiList/pa'
+import { requestGraphQL } from '@/api/commonRequest'
+import chooseSupplier from '@/components/pa/chooseSupplier'
+import paChoose from '@/components/pa/paChoose'
+import LookupValue from '@/components/org/LookupValue'
+
+export default {
+  name: 'paDbPriceQuery',
+  components: {
+    chooseSupplier,
+    paChoose,
+    LookupValue
+  },
+  data() {
+    return {
+      chooseSupplierVisible: false,
+      dialogFormVisible: false,
+      toggleParam: false,
+      moreBtnIcon: 'el-icon-plus',
+      ycheckboxStatus: '', //获取有库存复选框的状态
+      ncheckboxStatus: '', //不合理价格复选框的状态
+      wcheckboxStatus: '', //网点价为零价格复选框的状态
+      list: null,
+      listLoading: true,
+      partbrandcodeNameSelectVal: '', //备件编码
+      partNameSelectVal: '',
+      partTypeNameSelectVal: '',
+      supplierShortNameInputVal: '', //供应商简称
+      beginDateInputVal: '',
+      partTypeName: '',
+      labelNameBrand: '备件品牌',
+      labelNameResoce: '备件来源',
+      labelNameStatus: '备件状态',
+      labelNameSStatus: '审核状态',
+      listQuery: {
+        pageIndex: 1,
+        pageSize: 10,
+        limit: 20,
+        lookuptypeBrand: 'PA0008',
+        orderTypeBrand: '',
+        lookuptypeResoce: 'PA0018',
+        orderTypeResoce: '',
+        orderTypeSStatus: '',
+        lookuptypeSStatus: 'PA0029',
+        lookuptypeStatus: 'PA0009',
+        orderTypeStatus: ''
+      },
+      tableHeaderRowClassName({ row, rowIndex }) {
+        if (rowIndex === 0) {
+          return 'background-color:rgb(239, 239, 239);height:32px;'
+        }
+      }
+    }
+  },
+  created() {
+    this.partTypeSelect()
+  },
+  methods: {
+    changeToggleParam() {
+      this.toggleParam = !this.toggleParam
+      if (this.toggleParam) {
+        this.moreBtnIcon = 'el-icon-minus'
+      } else {
+        this.moreBtnIcon = 'el-icon-plus'
+      }
+    },
+    //供应商简称弹窗显示
+    chooseSupplierModel() {
+      this.chooseSupplierVisible = true
+    },
+    getChooseSupplierVisible(val) {
+      this.chooseSupplierVisible = false
+      this.supplierShortNameInputVal = val.supplierShortName
+    },
+
+    //备件编码弹窗显示
+    dialogFormModel() {
+      this.dialogFormVisible = true
+    },
+    getDialogFormVisible(val) {
+      console.log(val)
+      this.dialogFormVisible = false
+      this.partbrandcodeNameSelectVal = val.name
+      this.partNameSelectVal = val.partName
+    },
+    fetchData(
+      page,
+      dataType = '',
+      excelName = '',
+      excelSheetName = '',
+      tableColumns = null
+    ) {
+      this.listLoading = true
+      const that = this
+      let obj = {
+        partBrandCode:
+          this.listQuery.orderTypeBrand == ''
+            ? null
+            : this.listQuery.orderTypeBrand,
+        supplierShortName: this.supplierShortNameInputVal,
+        partTypeId: this.partTypeNameSelectVal,
+        partFlowState: this.listQuery.orderTypeStatus,
+        beginDate: this.beginDateInputVal[0],
+        endDate: this.beginDateInputVal[1],
+        partSourceId: this.listQuery.orderTypeResoce,
+        partName: this.partNameSelectVal,
+        auditStatus: this.listQuery.orderTypeSStatus,
+        partNo: this.partbrandcodeNameSelectVal,
+        isValidPrice: this.ncheckboxStatus,
+        isDlrPriceEqualZero: this.wcheckboxStatus,
+        hasStorage: this.ycheckboxStatus
+      }
+      const queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+          paApis.paDbPriceQueryListForPage.InputType +
+          ')',
+        // 请求API
+        apiUrl: paApis.paDbPriceQueryListForPage.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: paApis.paDbPriceQueryListForPage.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+            // 表格中台返回网格的字段
+            apiQueryRow: [
+              'auditStatus',
+              'auditStatusCn',
+              'batchNo',
+              'beforeDlrPrice',
+              'beforeUserPrice',
+              'beginDate',
+              'bsAduitPersonName',
+              'costPrice',
+              'createdDate',
+              'creator',
+              'dealOpinion',
+              'dlrPrice',
+              'endDate',
+              'fiAduitPersonName',
+              'groupCode',
+              'groupId',
+              'isEnable',
+              'isPrePrice',
+              'lastUpdatedDate',
+              'modifier',
+              'mycatOpTime',
+              'oemCode',
+              'oemId',
+              'partBrandCode',
+              'partBrandName',
+              'partFlowState',
+              'partId',
+              'partName',
+              'partNo',
+              'partSourceName',
+              'partStatus',
+              'partTypeName',
+              'planPrice',
+              'sdpOrgId',
+              'sdpUserId',
+              'supplierShortName',
+              'updateControlId',
+              'userPrice'
+            ]
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.listQuery.pageSize,
+          pageIndex: page || that.listQuery.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: obj
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj)
+      if (dataType === 'excel') {
+        queryObj.variables.pageSize = 99999
+        if (tableColumns == null) tableColumns = []
+        var tmpCols = tableColumns // .filter(o => o.hidden !== true)
+        // 网格列对象转为excel列对象
+        var excelCols = {}
+        for (var i = 0; i < tmpCols.length; i++) {
+          if (tmpCols[i].property != null)
+            excelCols[tmpCols[i].property] = tmpCols[i].label
+        }
+        // 数据类型
+        paramD.dataType = 'excel'
+        // excel文件名称
+        paramD.excelName = excelName
+        // 根据请求API描述excel数据对象
+        paramD.excels = [
+          {
+            // excel sheet名称
+            title: excelSheetName,
+            // 对应API服务编码
+            actionName: queryObj.apiServices[0].apiServiceCode,
+            // excel列
+            columns: excelCols
+          }
+        ]
+      }
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (dataType == 'excel') {
+                    var nowDate = new Date()
+
+          //导出excel查询
+          this.$utils.downloadFile(response, `备件价格查询列表导出${nowDate.getFullYear()}-${nowDate.getMonth() +
+              1}-${nowDate.getDate()}  ${nowDate.getHours()}：${nowDate.getMinutes()}：${nowDate.getSeconds()}.xlsx`)
+          this.listLoading = false
+        } else if (
+          response.data[paApis.paDbPriceQueryListForPage.ServiceCode].result ===
+          '1'
+        ) {
+          if (page) {
+            //查询完返回指定的page页数
+            that.listQuery.pageIndex = page
+          }
+          that.pageTotal =
+            response.data[paApis.paDbPriceQueryListForPage.ServiceCode].records
+          that.list =
+            response.data[paApis.paDbPriceQueryListForPage.ServiceCode].rows
+          that.listLoading = false
+        } else {
+          this.$message({
+            message:
+              '查询失败：' +
+              response.data[paApis.paDbPriceQueryListForPage.ServiceCode].msg,
+            type: 'warn',
+            uration: 2000
+          })
+        }
+      })
+    },
+    //备件类别下拉框
+    partTypeSelect(page) {
+      const that = this
+      this.listLoading = true
+      let obj = {}
+      const queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+          paApis.paDbAttrTypeQueryList.InputType +
+          ')',
+        // 请求API
+        apiUrl: paApis.paDbAttrTypeQueryList.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: paApis.paDbAttrTypeQueryList.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+            // 表格中台返回网格的字段
+            apiQueryRow: [
+              'partTypeId',
+              'partTypeName',
+              'partTypeCode',
+              'isEnable',
+              'isEnableCn',
+              'isRefine',
+              'isRefineCn',
+              'groupFlag',
+              'safeCoefficient',
+              'partPropertyCode',
+              'partPropertyName',
+              'remark',
+              'updateControlId'
+            ]
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.listQuery.pageSize,
+          pageIndex: page || that.listQuery.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: obj
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj)
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[paApis.paDbAttrTypeQueryList.ServiceCode].result === '1'
+        ) {
+          if (page) {
+            //查询完返回指定的page页数
+            that.listQuery.pageIndex = page
+          }
+          that.partTypeName =
+            response.data[paApis.paDbAttrTypeQueryList.ServiceCode].rows
+          that.listLoading = false
+        } else {
+          this.$message({
+            message:
+              '查询失败：' +
+              response.data[paApis.paDbAttrTypeQueryList.ServiceCode].msg,
+            type: 'warn',
+            uration: 2000
+          })
+        }
+      })
+    },
+    //导出
+    getExcel() {
+      var tableColumns = null ? null : this.$refs.multipleTable.columns
+      this.fetchData(
+        1,
+        'excel',
+        '备件价格查询列表导出',
+        '备件价格查询列表',
+        tableColumns
+      )
+    },
+    ygetCheckboxStatus(val) {
+      this.ycheckboxStatus = val
+      if (this.ycheckboxStatus == true) {
+        this.ycheckboxStatus = '1'
+      } else {
+        this.ycheckboxStatus = '0'
+      }
+    },
+    handlengetCheckboxStatus(val) {
+      this.ncheckboxStatus = val
+      if (this.ncheckboxStatus == true) {
+        this.ncheckboxStatus = '1'
+      } else {
+        this.ncheckboxStatus = '0'
+      }
+    },
+    wgetCheckboxStatus(val) {
+      this.wcheckboxStatus = val
+      if (this.wcheckboxStatus == true) {
+        this.wcheckboxStatus = '1'
+      } else {
+        this.wcheckboxStatus = '0'
+      }
+    },
+    reset() {
+      this.listQuery.orderTypeBrand = ''
+      this.listQuery.orderTypeStatus = ''
+      this.listQuery.orderTypeResoce = ''
+      this.listQuery.orderTypeSStatus = ''
+      this.partNameSelectVal = ''
+      this.partTypeNameSelectVal = ''
+      this.supplierShortNameInputVal = ''
+      this.partbrandcodeNameSelectVal = ''
+      this.beginDateInputVal = ''
+      this.ycheckboxStatus = ''
+      this.ncheckboxStatus = ''
+      this.wcheckboxStatus = ''
+    },
+    handleSizeChange(val) {
+      this.listQuery.pageSize = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.listQuery.pageIndex = val
+      this.fetchData()
+    },
+    getLookupValueBrand(val) {
+      this.listQuery.orderTypeBrand = val
+    },
+    getLookupValueResoce(val) {
+      this.listQuery.orderTypeResoce = val
+    },
+    getLookupValueStatus(val) {
+      this.listQuery.orderTypeStatus = val
+    },
+    getLookupValueSStatus(val) {
+      this.listQuery.orderTypeSStatus = val
+    }
+  }
+}
+</script>

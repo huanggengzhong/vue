@@ -1,0 +1,470 @@
+<!--
+* description: 采购单驳回
+* author: luojx
+* createdDate: 2019-07-31
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template
+      ref="multipleTable"
+      :dynamic-buttons="tableButtons"
+      :dynamic-components="tableComponents"
+      :dynamic-api-config="apiConfig"
+      :dynamic-table-cols="tableCols"
+      :dynamic-form-fields="formField"
+      :dynamic-is-init-table="false"
+      :dynamic-is-column-drop="true"
+    />
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from "@/components/mixins/oneTableWithViewTemplateMixins";
+import { veApis } from "@/api/graphQLApiList/ve";
+import OneTableTemplate from "@/components/templates/oneTable";
+import { CacheConfig } from "@/cache/configCache/index";
+export default {
+  name: "VePurchaseReject",
+  components: {
+    OneTableTemplate
+  },
+  // 组件混入对象：{data[listQuery] methods[queryTable]}
+  mixins: [oneTableWithViewTemplateMixins],
+  // 阻塞路由预加载网格中组件的数据
+  beforeRouteEnter(to, from, next) {
+    CacheConfig.initData(to.path, function() {
+      next();
+    });
+  },
+  data() {
+    return {
+      // 网格查询API配置对象
+      apiConfig: veApis.vePurAuditQry,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: this.$t("sys.button.query"),
+          name: "search", //按钮图标样式
+          position: "right",
+          fuzzySearch: true
+        }, // 查询
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.rejectOrder(),
+          text: this.$t("sys.button.reject"),
+          name: "reject",
+          position: "left"
+        }, // 驳回
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: this.$t("sys.button.reset"),
+          name: "reset",
+          position: "right"
+        }, // 重置
+        {
+          compKey: "btnKey4",
+          type: "",
+          size: "small",
+          clickEvent: () => this.exportExcel(),
+          text: this.$t("sys.button.export"),
+          name: "export",
+          position: "left"
+        } // 导出
+      ],
+      // 动态组件-查询条件
+      tableComponents:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              // 显示组件
+              {
+                compKey: "compKey1",
+                labelName: this.$t("org.label.carBrandCn"), // 品牌
+                codeField: "carBrandCode",
+                component: () => import("@/components/org/carBrand/carBrand"),
+                type: "dropdownList",
+                isMust: true
+              },
+              {
+                compKey: "compKey2",
+                labelName: this.$t("ve.label.purOrderCode"), // 采购单号
+                codeField: "purOrderCode",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true,
+                fuzzySearch: true
+              },
+              {
+                compKey: "compKey3",
+                labelName: this.$t("ve.label.vin"), // VIN码
+                codeField: "vin",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              },
+              {
+                compKey: "compKey4",
+                labelName: this.$t("ve.label.cashType"), // 资金类型
+                codeField: "cashTypeCode",
+                component: () => import("@/components/ve/PurcashType"),
+                type: "dropdownList",
+                isMust: true
+              },
+              // 触发弹窗组件（popups：为弹窗组件）
+              {
+                compKey: "compKey5",
+                labelName: this.$t("org.label.dlrName"), // 经销商
+                codeField: "dlr",
+                parentFileds: "carBrandCode",
+                component: () => import("@/components/org/orgDlr"),
+                type: "propus",
+                isMust: false
+              },
+              // {compKey: 'compKey5', labelName: '经销商', codeField: 'dlr', component: () => import('@/components/org/commonInput/searchInput'), type: 'popupsInput', isMust: false,
+              //  popups: {type: 'propus', key: 'key1', state: false, component: () => import('@/components/org/orgDlr')}},
+
+              {
+                compKey: "compKey6",
+                labelName: this.$t("org.label.carConfig"), // 车型配置
+                codeField: "carConfigId",
+                returnCodeField: "carConfigId",
+                parentFileds: "carBrandCode",
+                component: () => import("@/components/org/carTypeConfig"),
+                type: "propus",
+                isMust: false
+              },
+              // {compKey: 'compKey6', labelName: '车型', codeField: 'carConfigId', parentFileds: 'value:carBrandCode,show:carBrandCode--99', component: () => import('@/components/org/commonInput/searchInput'), type: 'popupsInput', isMust: false,
+              //  popups: {type: 'propus', key: 'key2', state: false, component: () => import('@/components/org/carTypeConfig/carTypeConfig')}},
+
+              {
+                compKey: "compKey7",
+                labelName: this.$t("org.label.carColor"),
+                codeField: "carColorId",
+                parentFileds: "carConfigId",
+                mustFields: "carConfigId",
+                component: () =>
+                  import("@/components/org/carColor/carColorSelect"),
+                type: "dropdownList",
+                filterable: true,
+                isMust: false
+              }, // 车身颜色
+              // { compKey: 'compKey7', labelName: this.$t('org.label.carColor'),
+              //  codeField: 'carColorId', parentFileds: 'carConfigId', component: () => import('@/components/org/carColor'), type: 'propus', isMust: false },
+
+              {
+                compKey: "compKey8",
+                labelName: this.$t("org.label.carIncolor"),
+                codeField: "carIncolorId",
+                parentFileds: "carConfigId",
+                mustFields: "carConfigId",
+                component: () =>
+                  import("@/components/org/TrimPopupColor/interiorSelect"),
+                type: "dropdownList",
+                filterable: true,
+                isMust: false
+              }, // 内饰色
+              // { compKey: 'compKey8', labelName: this.$t('org.label.carIncolor'), // 内饰色
+              //   codeField: 'carIncolorId', parentFileds: 'carConfigId', mustFields: 'carConfigId', component: () => import('@/components/org/TrimPopupColor'), type: 'propus', isMust: false },
+
+              // 日期控件
+              {
+                compKey: "compKey9",
+                labelName: this.$t("ve.label.auditDateBegin"), // 审核开始
+                codeField: "auditDateBegin",
+                component: () =>
+                  import("@/components/org/datePicker/datePicker"),
+                type: "datePicker",
+                dateOptionsType: "0",
+                isMust: false
+              },
+              {
+                compKey: "compKey10",
+                labelName: this.$t("ve.label.auditDateEnd"), // 审核结束
+                codeField: "auditDateEnd",
+                component: () =>
+                  import("@/components/org/datePicker/datePicker"),
+                type: "datePicker",
+                dateOptionsType: "0",
+                isMust: false
+              },
+              // 送货方式（值列表）
+              {
+                compKey: "compKey11",
+                labelName: this.$t("ve.label.tranportName"),
+                lookuptype: "VE0079",
+                codeField: "sendTypeCode",
+                component: () => import("@/components/org/LookupValue"),
+                type: "dropdownList",
+                isMust: false
+              }
+            ],
+      // 动态生成网格列
+      tableCols:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableCols.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableCols
+          : [
+              {
+                prop: "carSeriseName",
+                label: this.$t("org.label.carSeriesId"), // 车系
+                width: 130,
+                align: "center"
+              },
+              {
+                prop: "carConfigName",
+                label: this.$t("org.label.carConfig"), // 车型配置
+                width: 120,
+                align: "center"
+              },
+              // { prop: 'carConfigCode', label: '车型配置编码', // 车型配置编码
+              //   width: 120, align: 'center',
+              //   isComponent: true, comps: [{compKey: 'propKey1', isMul: false, isShowLabel: false, rowFileds: 'carBrandCode', codeField: 'carConfigCode', textField: 'carConfigCode', clearable: false, filterable: false, clickEvent: () => null, component: () => import('@/components/org/carTypeConfig')}] },
+              {
+                prop: "carColorName",
+                label: this.$t("org.label.carColor"), // 车身颜色
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "carIncolorName",
+                label: this.$t("org.label.carIncolor"), // 内饰色
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "carIncolorPrice",
+                label: this.$t("org.label.inColorPrice"), // 内饰价
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "carBrandCn",
+                label: this.$t("org.label.carBrandCn"), // 品牌
+                width: 110,
+                align: "center"
+              },
+              {
+                prop: "carBrandCode",
+                label: this.$t("org.label.carBrandCode"), // 品牌编号
+                width: 0,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "dlrShortName",
+                label: this.$t("org.label.dlrName"), // 经销商
+                width: 100,
+                align: "center"
+              },
+              {
+                prop: "purOrderDId",
+                label: this.$t("ve.label.purOrderDId"), // 采购单ID
+                width: 180,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "purOrderCode",
+                label: this.$t("ve.label.purOrderCode"), // 采购单号
+                width: 180,
+                align: "center"
+              },
+              {
+                prop: "purOrderDCode",
+                label: this.$t("ve.label.purOrderDCode"), // 采购子单号
+                width: 200,
+                align: "center"
+              },
+              {
+                prop: "purState",
+                label: this.$t("ve.label.purState"), // 子单状态
+                width: 80,
+                align: "center"
+              },
+              {
+                prop: "purOrderTypeName",
+                label: this.$t("ve.label.carBrandType"), // 采购单类型
+                width: 100,
+                align: "center"
+              },
+              {
+                prop: "purOrderTypeCode",
+                label: this.$t("ve.label.purOrderTypeCode"), // 采购单类型编码
+                width: 0,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "deductCashName",
+                label: this.$t("ve.label.deductibleFundTypeName"), // 扣款资金类型名称
+                width: 0,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "deductCashTypeId",
+                label: this.$t("ve.label.deductibleFundTypeID"), // 扣款资金类型ID
+                width: 0,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "cashTypeName",
+                label: this.$t("ve.label.capitalType"), // 资金类型
+                width: 120,
+                align: "center"
+              },
+              {
+                prop: "configCode",
+                label: this.$t("ve.label.carTypeShortCode"), // 车型简码
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "carColorPrice",
+                label: this.$t("org.label.colorPrice"), // 颜色价
+                width: null,
+                align: "center"
+              },
+
+              {
+                prop: "countrySubsidy",
+                label: this.$t("org.label.subPrice"), // 补贴价
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "carPrice",
+                label: this.$t("org.label.proPrice"), // 产品价格
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "carProductPrice",
+                label: this.$t("org.label.purchasePrcie"), // 采购价格
+                width: null,
+                align: "center"
+              },
+
+              {
+                prop: "deliverModeName",
+                label: this.$t("org.label.tranportName"), // 送货方式
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "receiveShId",
+                label: this.$t("ve.label.receiveShId"), // 搬入地
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "creator",
+                label: this.$t("org.label.creator"), // 下单人
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "confirDate",
+                label: this.$t("ve.label.confirDate"), // 确认日期
+                width: 128,
+                align: "center"
+              },
+              {
+                prop: "updateControlId",
+                label: this.$t("org.label.updateControlId"), // 并发控制
+                width: 0,
+                align: "center",
+                hidden: true
+              }
+            ],
+      // 表单查询数据（查询条件）
+      formField: {
+        carBrandCode: "",
+        purOrderCode: "",
+        vin: "",
+        cashTypeCode: "",
+        dlr: "",
+        carConfigId: "",
+        carColorId: "",
+        carIncolorId: "",
+        auditDateBegin: "",
+        auditDateEnd: "",
+        sendTypeCode: ""
+      }
+    };
+  },
+  created() {},
+  methods: {
+    // 驳回
+    rejectOrder() {
+      const that = this.$refs.multipleTable;
+      let saveState = true;
+      let saveCount = 0;
+      let msg = "";
+
+      const selectData = that.$refs.multipleTable.selection;
+      if (selectData.length < 1) {
+        that.$message({
+          message: "请选择需要驳回的采购单",
+          type: "warning",
+          duration: 2000
+        });
+        return;
+      }
+
+      for (var k in selectData) {
+        const queryObj = {
+          // 保存mutation
+          type: "mutation",
+          // api配置
+          apiConfig: veApis.veRejectOrder,
+          variables: {
+            // 当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: {
+              carBrandCode: selectData[k].carBrandCode,
+              purOrderDId: selectData[k].purOrderDId,
+              updateControlId: selectData[k].updateControlId
+            }
+          }
+        };
+        // 转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        // 调用中台API方法（可复用）
+        that.$requestGraphQL(paramD).then(response => {
+          if (response.data[queryObj.apiConfig.ServiceCode].result === "1") {
+            saveCount++;
+          } else {
+            saveState = false;
+            msg = response.data[queryObj.apiConfig.ServiceCode].msg;
+            that.$message({
+              message: msg,
+              type: "warning",
+              duration: 2000
+            });
+          }
+
+          if (saveCount == selectData.length) {
+            that.$message({
+              message: "驳回成功",
+              type: "success",
+              duration: 2000
+            });
+
+            that.queryTable(1);
+          }
+        });
+      }
+    }
+  }
+};
+</script>

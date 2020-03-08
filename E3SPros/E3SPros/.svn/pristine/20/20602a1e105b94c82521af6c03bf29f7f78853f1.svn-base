@@ -1,0 +1,40 @@
+<template>
+  
+    <el-dialog
+      :visible.sync="isShowdialog"
+      title="结算系数批量维护"
+      center
+      width="70%"
+      :append-to-body="true"
+      @close="closeDialog"
+      :close-on-click-modal="false"
+    >
+    11
+    </el-dialog>
+   
+</template>
+
+<script>
+export default {
+  props:{
+    isDialogVisible:{
+      type:Boolean,
+      default(){return false}
+    }
+  },
+  data(){
+    return {
+      isShowdialog:this.isDialogVisible
+    }
+  },
+  methods:{
+    closeDialog(){
+      let feat = false
+      this.$emit("closeDialogIS",feat)
+    }
+  }
+};
+</script>
+
+<style>
+</style>

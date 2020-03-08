@@ -1,0 +1,512 @@
+<!--
+* description: 销售合同信息管理
+* author: wangcx
+* createdDate: 2019-10-11
+-->
+<template>
+  <div class="app-container app-container-table">
+    <OneTableTemplate
+      ref="multipleTable"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="false"
+      :dynamicIsShowMoreBtn="true"
+    />
+    <edit
+      :dynamicEditRowData="editRowData"
+      :popupsVisible="editPopupsVisible"
+      :key="editPopupsKey"
+      :popupsState="editPopupsState"
+      @close="sendCode"
+    ></edit>
+    <imports @visible="handDialogVisibleFunc" :dialogVisible="dialogVisible" :key="importKey" />
+    <tksq @visible="handDialogVisibleFuncTksq" :dialogVisible="dialogVisibleTksq" :key="tksqkey" />
+    <czbg @visible="handDialogVisibleFuncCzbg" :dialogVisible="dialogVisibleCzbg" :key="czbgkey" />
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from "@/components/mixins/oneTableWithViewTemplateMixins";
+import { veApis } from "@/api/graphQLApiList/ve";
+import OneTableTemplate from "@/components/templates/oneTable";
+import Edit from "./edit";
+import imports from "./import";
+import tksq from "./tksq";
+import czbg from "./czbg";
+
+export default {
+  name: "saleManagementn",
+  // 组件混入对象
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+    Edit,
+    imports,
+    tksq,
+    czbg
+  },
+  data() {
+    return {
+      // 网格查询API配置对象
+      apiConfig: veApis.veAccountQry,
+      dialogVisible: false,
+      dialogVisibleTksq: false,
+      dialogVisibleCzbg: false,
+      //导入key
+      importKey: "importKey",
+      //退款申请key
+      tksqkey: "tksq",
+      czbgkey: "czbg",
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: this.$t("sys.button.query")
+        }, //查询
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: this.$t("sys.button.reset")
+        }, //重置
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.tksqqqq(),
+          text: "退款申请"
+        },
+        {
+          compKey: "btnKey5",
+          type: "",
+          size: "small",
+          clickEvent: ()=>this.czbgqqq(),
+          text: "车主变更"
+        },
+        {
+          compKey: "btnKey6",
+          type: "",
+          size: "small",
+          clickEvent: this.edit,
+          text: "分配销售顾问"
+        },
+        {
+          compKey: "btnKey7",
+          type: "",
+          size: "small",
+          clickEvent: () => this.open(),
+          text: "异店交车确认"
+        },
+        {
+          compKey: "btnKey8",
+          type: "",
+          size: "small",
+          clickEvent: () => this.quxiao(),
+          text: "异店交车取消"
+        },
+        {
+          compKey: "btnKey9",
+          type: "",
+          size: "small",
+          clickEvent: () => this.dayinjcd(),
+          text: "打印交车单"
+        },
+        {
+          compKey: "btnKey10",
+          type: "",
+          size: "small",
+          clickEvent: () => this.dayinhetong(),
+          text: "打印合同"
+        },
+        {
+          compKey: "btnKey",
+          type: "",
+          size: "small",
+          clickEvent: () => this.importTest(),
+          text: "导入"
+        }
+      ],
+      // 动态组件-查询条件
+      tableComponents: [
+        {
+          compKey: "compKey2",
+          labelName: "品牌",
+          codeField: "carBrandCode",
+          component: () => import("@/components/org/carBrand/carBrand"),
+          type: "dropdownList",
+          isMust: true
+        }, //j角色名称
+        // 客户名称
+        {
+          compKey: "compKey3",
+          labelName: "客户名称",
+          codeField: "buyCustId",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey4",
+          labelName: "VIN码",
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey5",
+          labelName: "订单编号",
+          codeField: "roleOrgType",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey6",
+          labelName: "合同编号",
+          codeField: "roleOrgType",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: false
+        },
+        {
+          compKey: "compKey7",
+          labelName: "销售类型",
+          codeField: "roleOrgType",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: false
+        },
+        {
+          compKey: "compKey8",
+          labelName: "采购单状态",
+          codeField: "roleOrgType",
+          component: () => import("@/components/org/isEnable/isEnable"),
+          type: "dropdownList",
+          isMust: false
+        },
+        {
+          compKey: "compKey9",
+          labelName: "收款状态",
+          codeField: "roleOrgType",
+          component: () => import("@/components/org/isEnable/isEnable"),
+          type: "dropdownList",
+          isMust: false
+        },
+        {
+          compKey: "compKey10",
+          labelName: "销售顾问",
+          codeField: "roleOrgType",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: false
+        },
+        {
+          compKey: "compKey11",
+          labelName: "经销商简称",
+          codeField: "roleOrgType",
+          component: () => import("@/components/org/orgDlr"),
+          type: "propus",
+          isMust: false
+        },
+        {
+          compKey: "compKey12",
+          labelName: "车型",
+          codeField: "roleOrgType",
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "propus",
+          isMust: false
+        },
+        {
+          compKey: "compKey13",
+          labelName: "优惠申请状态",
+          codeField: "roleOrgType",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: false
+        },
+        {
+          compKey: "compKey14",
+          labelName: "下单日期",
+          codeField: "assignDateBegin",
+          isRequire: false,
+          component: () => import("@/components/org/datePicker/datePicker"),
+          type: "datePicker",
+          dateOptionsType: "1",
+          isMust: false
+        },
+        {
+          compKey: "compKey15",
+          labelName: "至",
+          codeField: "assignDateBegin",
+          isRequire: false,
+          component: () => import("@/components/org/datePicker/datePicker"),
+          type: "datePicker",
+          dateOptionsType: "1",
+          isMust: false
+        },
+        {
+          compKey: "compKey16",
+          labelName: "车务代办",
+          codeField: "roleOrgType",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: false
+        },
+        {
+          compKey: "compKey17",
+          labelName: "精品业务",
+          codeField: "roleOrgType",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: false
+        },
+        {
+          compKey: "compKey18",
+          labelName: "保险业务",
+          codeField: "roleOrgType",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: false
+        }
+      ],
+      // 动态生成网格列
+      tableCols: this.getCols(),
+
+      //表单查询数据
+      formField: {
+        roleCode: "",
+        roleName: "",
+        roleOrgType: "",
+        carBrandCode: "",
+        buyCustId: ""
+      }
+    };
+  },
+  methods: {
+    open() {
+      this.$confirm("确认进行异店交车确认?", "提示", {
+        confirmButtonText: "是",
+        cancelButtonText: "否",
+        type: "warning"
+      })
+        .then(() => {
+          this.$message({
+            type: "success",
+            message: "确认成功!"
+          });
+        })
+        .catch(() => {
+          // this.$message({
+          //   type: "info",
+          //   message: "已取消删除"
+          // });
+        });
+    },
+    //导入
+    importTest() {
+      this.dialogVisible = true;
+      this.importKey = this.importKey + "1";
+    },
+    handDialogVisibleFunc(val) {
+      this.dialogVisible = val;
+      this.importKey = this.importKey + "1";
+    },
+    //退款申请
+    tksqqqq() {
+      this.dialogVisibleTksq = true;
+      this.tksqkey = this.tksqkey + "1";
+    },
+    handDialogVisibleFuncTksq(val) {
+      this.dialogVisibleTksq = val;
+      this.tksqkey = this.tksqkey + "1";
+    },
+
+    //车主变更
+    czbgqqq() {
+      debugger
+      this.dialogVisibleCzbg = true;
+      this.czbgkey = this.czbgkey + "1";
+    },
+    handDialogVisibleFuncCzbg(val) {
+      this.dialogVisibleCzbg = val;
+      this.czbgkey = this.czbgkey + "1";
+    },
+    quxiao() {
+      this.$confirm("确认进行异店交车取消?", "提示", {
+        confirmButtonText: "是",
+        cancelButtonText: "否",
+        type: "warning"
+      })
+        .then(() => {
+          this.$message({
+            type: "success",
+            message: "取消成功!"
+          });
+        })
+        .catch(() => {
+          // this.$message({
+          //   type: "info",
+          //   message: "取消操作"
+          // });
+        });
+    },
+    dayinhetong() {
+      this.$message({
+        type: "success",
+        message: "打印合同成功!"
+      });
+    },
+    dayinjcd() {
+      this.$message({
+        type: "success",
+        message: "打印交车单成功!"
+      });
+    },
+    getCols() {
+      var cols = [
+        {
+          prop: "controlBtn",
+          label: "操作",
+          codeField: "controlBtn",
+          width: 120,
+          align: "center",
+          fixed: true,
+          isComponent: true,
+          comps: [
+            {
+              compKey: "propKey0",
+              align: "center",
+              labelName: "转合同",
+              codeField: "editControlBtn",
+              clickEvent: this.edit,
+              component: () => import("@/components/org/linkButton")
+            }
+          ]
+        }, //操作
+        {
+          prop: "pvAccount",
+          label: this.$t("ve.label.dlrShortName"),
+          width: 110,
+          align: "center"
+        }, //账户名称
+        {
+          prop: "businessTypeName",
+          label: this.$t("ve.label.businessTypeName"),
+          width: 110,
+          align: "center"
+        }, //账户类型
+        {
+          prop: "amount",
+          label: this.$t("ve.label.amount"),
+          width: 110,
+          align: "center"
+        }, //金额
+        {
+          prop: "businessTypeName",
+          label: this.$t("ve.label.businessTypeName"),
+          width: 110,
+          align: "center"
+        }, //资金操作类型
+        {
+          prop: "businessClassName",
+          label: this.$t("ve.label.bussinessClassName"),
+          width: 110,
+          align: "center"
+        }, //明细类别
+        {
+          prop: "purState",
+          label: this.$t("ve.label.purState"),
+          width: 110,
+          align: "center"
+        }, //单据日期
+        {
+          prop: "pvBandk",
+          label: this.$t("ve.label.pvBandk"),
+          width: 110,
+          align: "center"
+        }, //到款银行
+        {
+          prop: "pvAccount",
+          label: this.$t("ve.label.pvAccount"),
+          width: 110,
+          align: "center"
+        }, //到款账户
+        {
+          prop: "bankNumber",
+          label: this.$t("ve.label.bankNumber"),
+          width: 110,
+          align: "center"
+        }, //银行流水
+        {
+          prop: "ticketNo",
+          label: this.$t("ve.label.ticketNo"),
+          width: 110,
+          align: "center"
+        }, //票据号码
+        {
+          prop: "outTicketDate",
+          label: this.$t("ve.label.outTicketDate"),
+          width: 110,
+          align: "center"
+        }, //出票日
+        {
+          prop: "expireDate",
+          label: this.$t("ve.label.expireDate"),
+          width: 110,
+          align: "center"
+        }, //到期日
+        {
+          prop: "recieveTicketDate",
+          label: this.$t("ve.label.recieveTicketDate"),
+          width: 110,
+          align: "center"
+        }, //收票日
+        {
+          prop: "ticketType",
+          label: this.$t("ve.label.ticketType"),
+          width: 110,
+          align: "center"
+        }, //票据形式
+        {
+          prop: "isOutTicketMan",
+          label: this.$t("ve.label.isOutTicketMan"),
+          width: 110,
+          align: "center"
+        }, //是否出票人
+        {
+          prop: "outTicketManName",
+          label: this.$t("ve.label.outTicketManName"),
+          width: 110,
+          align: "center"
+        }, //出票人
+        {
+          prop: "tickBank",
+          label: this.$t("ve.label.tickBank"),
+          width: 110,
+          align: "center"
+        }, //出票银行
+        {
+          prop: "remark",
+          label: this.$t("ve.label.remark"),
+          width: 110,
+          align: "center"
+        }, //备注
+        {
+          prop: "updateControlId",
+          label: "并发控制",
+          hiddern: true,
+          align: "center"
+        }
+      ];
+      return cols;
+    }
+  }
+};
+</script>

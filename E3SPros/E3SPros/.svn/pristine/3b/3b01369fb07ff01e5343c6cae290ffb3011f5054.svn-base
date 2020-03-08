@@ -1,0 +1,201 @@
+<template>
+  <section class="carType">
+    <el-dialog
+      title="查看替换件"
+      :visible.sync="replacementVisible"
+      width="900px"
+      center
+      :close-on-click-modal="false"
+      :append-to-body="true"
+      @close="sendCode"
+    >
+      <div class="filter-container filter-title">查询条件</div>
+      <div class="filter-container filter-params">
+        <el-row :gutter="26">
+          <el-col :span="8">
+            <label>备件号</label>
+            <el-input
+              v-model="listQuery.partNo"
+              suffix-icon="el-icon-search"
+              placeholder="请选择"
+              size="small"
+              :disabled="true"
+            />
+          </el-col>
+          <el-col :span="8">
+            <label>备件名称</label>
+            <el-input
+              v-model="listQuery.partName"
+              suffix-icon="el-icon-search"
+              placeholder="请选择"
+              size="small"
+              :disabled="true"
+            />
+          </el-col>
+          <el-col :span="8">
+            <el-button type="primary" size="small" @click="fetchData()">查询</el-button>
+            <el-button size="small" @click="quit">退出</el-button>
+          </el-col>
+        </el-row>
+      </div>
+      <div class="filter-container filter-title">设置区</div>
+      <el-table
+        v-loading="listLoading"
+        :data="replacementStockList"
+        element-loading-text="Loading"
+        border
+        stripe
+        :header-cell-style="tableHeaderRowClassName"
+        highlight-current-row
+        height="300"
+      >
+        <el-table-column align="center" label="序号" width="60">
+          <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+        </el-table-column>
+        <el-table-column label="替换件号" width="155">
+          <template slot-scope="scope">{{ scope.row.partNo }}</template>
+        </el-table-column>
+        <el-table-column label="替换件名称" width="155">
+          <template slot-scope="scope">{{ scope.row.partName }}</template>
+        </el-table-column>
+        <el-table-column label="替换件属地" width="155">
+          <template slot-scope="scope">{{ scope.row.partPlaceName }}</template>
+        </el-table-column>
+        <el-table-column label="替代关系" width="155">
+          <template slot-scope="scope">{{ }}</template>
+        </el-table-column>
+        <el-table-column label="替换条件" width="155">
+          <template slot-scope="scope">{{ }}</template>
+        </el-table-column>
+        <el-table-column label="替换件单价" width="155">
+          <template slot-scope="scope">{{ }}</template>
+        </el-table-column>
+        <el-table-column label="主机厂库存状态" width="155">
+          <template slot-scope="scope">{{ scope.row.oemStorageStatus }}</template>
+        </el-table-column>
+        <el-table-column label="订货开关" width="155">
+          <template slot-scope="scope">{{ scope.row.pvPurSwitch }}</template>
+        </el-table-column>
+        <el-table-column label="备注">
+          <template slot-scope="scope">{{ }}</template>
+        </el-table-column>
+      </el-table>
+      <el-pagination
+        background
+        layout="prev, pager, next, sizes, ->, total"
+        prev-text="上一页"
+        next-text="下一页"
+        :page-sizes="[10, 20, 30]"
+        :page-size="10"
+        :total="list?list.length:0"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
+    </el-dialog>
+  </section>
+</template>
+<script>
+import { paDbReplaceListQueryStorage } from "@/api/pa/paBuPurOrder";
+import orderType from "@/views/pa/storepurchaseorder/creatOrder/tradeMark";
+import region from "@/views/pa/storepurchaseorder/creatOrder/region";
+import province from "@/views/pa/storepurchaseorder/creatOrder/province";
+export default {
+  components: {
+    orderType,
+    region,
+    province
+  },
+  props: {
+    replacementVisible: {
+      type: Boolean,
+      default: function() {
+        return false;
+      }
+    },
+    code: {
+      type: String,
+      default: function() {
+        return "";
+      }
+    },
+    sparePartInfo: {
+      type: Object,
+      default: function() {
+        return null;
+      }
+    }
+  },
+  watch: {
+    /* sparePartInfo(newValue, oldValue) {
+      this.listQuery.partNo = this.sparePartInfo.catType;
+      this.listQuery.partName = this.sparePartInfo.carTypeConfig;
+    }, */
+    replacementVisible(newValue, oldValue) {
+      if (newValue) {
+        this.listQuery.partNo = this.sparePartInfo.partNo;
+        this.listQuery.partName = this.sparePartInfo.partName;
+        this.fetchData();
+      }
+    }
+  },
+  data() {
+    return {
+      codeInside: this.code,
+      listLoading: true,
+      list: [],
+      optionDatas: [],
+      isBlockUp: [],
+      listQuery: {
+        partNo: null,
+        partName: null
+      },
+      replacementStockList: [],
+      tableHeaderRowClassName({ row, rowIndex }) {
+        if (rowIndex === 0) {
+          return "background-color:rgb(239, 239, 239);height:32px;";
+        }
+      }
+    };
+  },
+  created() {
+    this.listLoading = false;
+  },
+  methods: {
+    fetchData() {
+      this.listLoading = true;
+      paDbReplaceListQueryStorage(
+        this.pageSize,
+        this.pageIndex,
+        this.listQuery
+      ).then(response => {
+        this.replacementStockList =
+          response.data.items.paDbReplaceListQueryStorage;
+        this.listLoading = false;
+      });
+    },
+    handleSizeChange(val) {
+      this.listQuery.pageSize = val;
+      this.fetchData();
+    },
+    handleCurrentChange(val) {
+      this.listQuery.pageIndex = val;
+      this.fetchData();
+    },
+    sendCode() {
+      this.$emit("changeCode", this.codeInside);
+    },
+    getorderCode(val) {
+      this.listQuery.partName = val;
+    },
+    quit() {
+      this.replacementVisible = false;
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+/deep/ .el-dialog__wrapper .el-dialog {
+  height: 500px;
+}
+</style>

@@ -1,0 +1,576 @@
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button" ref="searcheHeight">
+      <el-button type="primary" size="small" @click.native="fetchData(1)">查询</el-button>
+      <el-button size="small" @click.native="newData('ruleForm')">新增</el-button>
+      <el-button size="small" @click.native="modifyData('ruleForm')">修改</el-button>
+      <el-button size="small" @click.native="resetData()">重置</el-button>
+    </div>
+    <!--************************************ 查询区 *********************************  -->
+    <div class="filter-container filter-params" ref="conHeight">
+      <el-row :gutter="24">
+        <el-col :span="6">
+          <label>备件类型代码</label>
+          <el-input v-model="dataInfo.partTypeCode" clearable size="small"></el-input>
+        </el-col>
+        <el-col :span="6">
+          <label>备件类型名称</label>
+          <el-input v-model="dataInfo.partTypeName" clearable size="small"></el-input>
+        </el-col>
+
+        <el-col :span="6">
+          <label>是否精品</label>
+          <el-select v-model="dataInfo.isRefine" size="small" placeholder="请选择" clearable>
+          <el-option
+            v-for="item in refindOption"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value">
+            </el-option>
+          </el-select>
+        </el-col>
+
+        <el-col :span="6">
+          <label>状态</label>
+          <el-select v-model="dataInfo.isEnable" size="small" placeholder="请选择" clearable>
+          <el-option
+            v-for="item in statusOption"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value">
+            </el-option>
+          </el-select>
+        </el-col>
+      </el-row>
+    </div>
+    <!--*****************************************查询结果************************************-->
+    <div class="filter-container filter-title" ref="resultTitleHeight">查询结果</div>
+    <el-table
+      v-loading="listLoading"
+      :data="list"
+      element-loading-text="Loading"
+      border
+      fit
+      stripe
+      :height="tableHeight"
+      highlight-current-row
+      @row-click="handleRowClick"
+    >
+      <el-table-column align="center" label="序号" width="60">
+        <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+      </el-table-column>
+
+      <el-table-column label="备件类型代码" align="center">
+        <template slot-scope="scope">{{ scope.row.partTypeCode }}</template>
+      </el-table-column>
+
+      <el-table-column label="备件类型名称" align="center">
+        <template slot-scope="scope">{{ scope.row.partTypeName }}</template>
+      </el-table-column>
+
+      <el-table-column label="是否精品" align="center">
+        <template slot-scope="scope">{{ scope.row.isRefineCn }}</template>
+      </el-table-column>
+
+      <el-table-column label="备件属性" align="center">
+        <template slot-scope="scope">{{ scope.row.partPropertyName }}</template>
+      </el-table-column>
+
+      <el-table-column label="状态" align="center">
+        <template slot-scope="scope">{{ scope.row.isEnableCn }}</template>
+      </el-table-column>
+
+      <el-table-column label="备注" align="center">
+        <template slot-scope="scope">{{ scope.row.remark }}</template>
+      </el-table-column>
+    </el-table>
+    <el-pagination
+      background
+      ref="paginationHeight"
+      layout="prev, pager, next, sizes, ->, total"
+      prev-text="上一页"
+      next-text="下一页"
+      :page-sizes="[10, 20, 30]"
+      :page-size="10"
+      :total="list?listRecords:0"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+    />
+    <!-- *******************************弹窗**************************-->
+    <el-dialog
+      title="备件类型信息维护"
+      :visible.sync="dialogVisible"
+      width="70%"
+      :close-on-click-modal="false"
+      :append-to-body="true">
+      <div class="filter-container filter-params">
+        <el-form :model="ruleForm" :rules="rules" ref="ruleForm" class="demo-ruleForm" :inline-message=true>
+          <el-row :gutter="24">
+            <el-col :span="8">
+              <el-form-item  prop="partTypeCode">
+                <lableName curLabelName="备件类型代码" :isShowLabel="true" :isRequire="true"></lableName>
+                <el-input v-model="ruleForm.partTypeCode" clearable size="small"></el-input>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="8">
+              <el-form-item  prop="partTypeName">
+                <lableName curLabelName="备件类型名称" :isShowLabel="true" :isRequire="true"></lableName>
+                <el-input v-model="ruleForm.partTypeName" clearable size="small"></el-input>
+              </el-form-item>
+            </el-col>
+
+             <el-col :span="8">
+              <el-form-item prop="isRefine">
+                <lableName curLabelName="是否精品" :isShowLabel="true" :isRequire="true"></lableName>
+                <el-select v-model="ruleForm.isRefine" size="small" placeholder="请选择" clearable>
+                <el-option
+                  v-for="item in refindOption"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value">
+                  </el-option>
+                </el-select>
+              </el-form-item>  
+            </el-col>
+          </el-row>
+
+          <el-row :gutter="24">
+             <el-col :span="8">
+              <el-form-item prop="partPropertyCode">
+                <lableName curLabelName="备件属性" :isShowLabel="true" :isRequire="true"></lableName>
+                <el-select v-model="ruleForm.partPropertyCode" size="small" placeholder="请选择" clearable>
+                <el-option
+                  v-for="item in spAttrOption"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value">
+                  </el-option>
+                </el-select>
+              </el-form-item>  
+            </el-col>
+           
+            <el-col :span="8">
+              <el-form-item prop="isEnable">
+                <lableName curLabelName="状态" :isShowLabel="true" :isRequire="true"></lableName>
+                <el-select v-model="ruleForm.isEnable" size="small" placeholder="请选择" clearable>
+                <el-option
+                  v-for="item in statusOption"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value">
+                  </el-option>
+                </el-select>
+              </el-form-item>  
+            </el-col>
+          
+            <el-col :span="8">
+              <el-form-item >
+                <lableName curLabelName="备注" 
+                          :isShowLabel="true" 
+                :isRequire="false"></lableName>
+                <el-input v-model="ruleForm.remark" type="textarea" size="small" autosize clearable></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="24">
+              <el-form-item>
+                <el-button type="primary" @click="commitXiuGai('ruleForm')">保存</el-button>
+                <el-button type="primary" @click="deleteXiuGai1('ruleForm')">取消</el-button>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import {
+  doQueryList8,
+  doQueryList5
+} from "@/api/pa/orderAuditItem/orderAuditItem"
+import { paApis } from "@/api/graphQLApiList/pa"
+import { orgApis } from "@/api/graphQLApiList/org"
+import { requestGraphQL } from '@/api/commonRequest'
+import LookupValue from "@/components/org/LookupValue/index"
+import lableName from '@/components/lableName'
+import { the_Height } from "@/views/se/makeHeight"
+export default {
+  mixins: [the_Height],
+  components: {
+    LookupValue,
+    lableName
+  },
+  data() {
+    return {
+      listRecords: 0,
+      labelName1: "是否精品",
+      labelName2: "状态",
+      labelName3: "备件属性",
+      isMul: false, //下拉框是否多选
+      isshow: true, //是否显示lable
+      tableHeight: 360, //首先给定table的默认高度
+      tableMarginHeight: 15,
+      isValiad: false,
+      toggleParam: false,
+      list: [],
+      dialogList: "",
+      dialogVisible: false,
+      listLoading: true,
+      rowDetail: "",
+      rowColumn: "",
+      ruleForm: {
+        pageIndex: "",
+        pageSize: "",
+        mutation: "",
+        oemCode: "",
+        groupCode: "",
+        partTypeId: "",
+        partTypeCode: "",
+        partTypeName: "",
+        isRefine: "",
+        isEnable: "",
+        safeCoefficient: "",
+        partPropertyCode: "",
+        updateControlId: "",
+        remark: ""
+      },
+      statusOption: [],
+      refindOption: [],
+      spAttrOption: [],
+      dataInfo: {
+        pageIndex: 1,
+        pageSize: 10,
+        query: "",
+        oemCode: "",
+        groupCode: "",
+        partTypeId: "",
+        partTypeCode: "",
+        partTypeName: "",
+        isRefine: "",
+        isEnable: ""
+      },
+      rules: {
+        partTypeCode: [
+          { required: true, message: "请输入类型代码", trigger: "change" },
+          // { min: 1, max: 3, message: "1~3个字符", trigger: "change" }
+        ],
+        partTypeName: [
+          { required: true, message: "请输入类型名称", trigger: "change" },
+          // { min: 2, max: 5, message: "2~5个字符", trigger: "change" }
+        ],
+        isRefine: [
+          { required: true, message: "请选择是否精品", trigger: "change" },
+          // { min: 2, max: 5, message: "2~5个字符", trigger: "change" }
+        ],
+        partPropertyCode: [
+          { required: true, message: "请选择备件属性", trigger: "change" },
+          // { min: 2, max: 5, message: "2~5个字符", trigger: "change" }
+        ],
+        isEnable: [
+          { required: true, message: "请选择状态", trigger: "change" },
+          // { min: 2, max: 5, message: "2~5个字符", trigger: "change" }
+        ]
+      },
+      listQuery: {
+        pageIndex: "",
+        pageSize: ""
+      },
+      lookupVari: [
+        "oemCode",
+        "groupCode",
+        "lookupTypeCode",
+        "lookupValueCode",
+        "lookupValueName"
+      ],
+    };
+  },
+  created() {
+    this.fetchData(1);
+    this.initFetchData();
+  },
+  methods: {
+    changeToggleParam() {
+      this.toggleParam = !this.toggleParam;
+    },
+    initFetchData(page) {
+      const that = this
+      let queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+              '($pageIndex: Int, $pageSize: Int, $dataInfoA: '+ orgApis.mdsLookupValueQueryByPage.InputType
+              +', $dataInfoB: ' + orgApis.mdsLookupValueQueryByPage.InputType 
+              +', $dataInfoC: ' + orgApis.mdsLookupValueQueryByPage.InputType + ')',
+        // 请求API
+        apiUrl: paApis.paDbPartListQueryList.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            // API服务编码&参数
+            apiServiceParam:
+              "(dataInfo: $dataInfoA, pageIndex: $pageIndex, pageSize: $pageSize)",
+            // 表格中台返回网格的字段
+            apiQueryRow: that.lookupVari
+          },{
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            apiServiceParam:
+              "(dataInfo: $dataInfoB, pageIndex: $pageIndex, pageSize: $pageSize)",
+            apiQueryRow: that.lookupVari
+          },{
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            apiServiceParam:
+              "(dataInfo: $dataInfoC, pageIndex: $pageIndex, pageSize: $pageSize)",
+            apiQueryRow: that.lookupVari
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.listQuery.pageSize,
+          pageIndex: that.listQuery.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfoA: {
+            "isEnable": "1",
+            "lookupTypeCode": "DB0064"//是否
+          },
+          dataInfoB: {
+            "isEnable": "1",
+            "lookupTypeCode": "DB0052"//是否启用
+          },
+          dataInfoC: {
+            "isEnable": "1",
+            "lookupTypeCode": "PA0030"//备件属性
+          }
+        }
+      }
+      //转换了中台请求格式数据
+      let paramD = that.$getParams(queryObj)
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (response.result === '1'){
+          if (page) {
+            //查询完返回指定的page页数
+            that.listQuery.pageIndex = page
+          }
+         for(let i in response.data){
+            switch(i){
+              case 'A':
+                  var temp_array = [];
+                  response.data.A.rows.forEach(row => {
+                    temp_array.push({
+                      value: row.lookupValueCode,
+                      label: row.lookupValueName,
+                    })
+                  })
+                  that.refindOption = temp_array
+                  console.log("refindOption:"+ JSON.stringify(that.refindOption));
+                break
+              case 'B':
+                 var temp_array = [];
+                  response.data.B.rows.forEach(row => {
+                    temp_array.push({
+                      value: row.lookupValueCode,
+                      label: row.lookupValueName,
+                    })
+                  })
+                that.statusOption = temp_array
+                   console.log("statusOption:"+ JSON.stringify(that.statusOption))
+                break
+              case 'C':
+                 var temp_array = [];
+                  response.data.C.rows.forEach(row => {
+                    temp_array.push({
+                      value: row.lookupValueCode,
+                      label: row.lookupValueName,
+                    })
+                  })
+                that.spAttrOption = temp_array
+                   console.log("spAttrOption:"+ JSON.stringify(that.spAttrOption))
+                break
+            }
+          }
+          that.listLoading = false
+        }else {
+            this.$message({
+                message: '查询失败：' + response.msg,
+                type: 'warn',
+                uration: 2000
+            })
+        }
+      })
+    },
+    fetchData(page) {
+      //查询  备件类型查询
+      this.listLoading = true;
+      let obj = {};
+      obj.oemCode = this.dataInfo.oemCode;
+      obj.groupCode = this.dataInfo.groupCode;
+      obj.partTypeCode = this.dataInfo.partTypeCode;
+      obj.partTypeId = this.dataInfo.partTypeId;
+      obj.isEnable = this.dataInfo.isEnable;
+      obj.partTypeName = this.dataInfo.partTypeName;
+      obj.isRefine = this.dataInfo.isRefine;
+      doQueryList8(this.dataInfo.pageSize, page||this.dataInfo.pageIndex, obj).then(
+        response => {
+          if (response.data[paApis.paDbAttrTypeQueryList.ServiceCode].result === "1") {
+            if(page){
+              this.dataInfo.pageIndex = page;
+            }
+            this.list =
+              response.data[paApis.paDbAttrTypeQueryList.ServiceCode].rows;
+            this.listRecords = parseInt(
+              response.data[paApis.paDbAttrTypeQueryList.ServiceCode].records
+            );
+          }
+          this.listLoading = false;
+        }
+      );
+    },
+    newData(formName) {
+      //新增
+      this.dialogVisible = true;
+       if (this.dialogVisible) {
+        if (this.$refs[formName] !== undefined) {
+          this.$refs[formName].resetFields();
+        }
+          this.ruleForm.partTypeCode = "";
+          this.ruleForm.partTypeName = "";
+          this.ruleForm.isRefine = "";
+          this.ruleForm.partPropertyCode = "";
+          this.ruleForm.isEnable = "";
+          this.ruleForm.remark = "";
+      }
+    },
+    handleRowClick(row, event, column) {
+      //行点击事件
+      this.rowDetail = row;
+      this.rowColumn = column;
+    },
+    modifyData(formName) {
+      //修改(给弹窗中的数据赋值)
+      if (this.rowColumn.isTrusted) {
+        this.dialogVisible = true;
+        if (this.$refs[formName] !== undefined) {
+          this.$refs[formName].resetFields();
+        }
+          this.ruleForm.partTypeCode = this.rowDetail.partTypeCode;
+          this.ruleForm.partTypeName = this.rowDetail.partTypeName;
+          this.ruleForm.isRefine = this.rowDetail.isRefine;
+          this.ruleForm.isEnable = this.rowDetail.isEnable;
+          this.ruleForm.remark = this.rowDetail.remark;
+          this.ruleForm.partPropertyCode = this.rowDetail.partPropertyCode;
+          this.ruleForm.updateControlId = this.rowDetail.updateControlId;
+          this.ruleForm.partTypeId = this.rowDetail.partTypeId;
+      } else {
+        this.$alert("请选择一行进行修改！", "信息提示", {
+          confirmButtonText: "确定",
+          type: "warning",
+          callback: action => {}
+        });
+      }
+    },
+    deleteXiuGai1(formName) {
+      //修改弹窗中取消操作
+      this.ruleForm.partTypeCode = "";
+      this.ruleForm.partTypeName = "";
+
+      if (this.$refs[formName] !== undefined) {
+        this.$refs[formName].resetFields();
+      }
+      this.ruleForm.partTypeCode = "";
+      this.ruleForm.partTypeName = "";
+      this.ruleForm.isRefine = "";
+      this.ruleForm.partPropertyCode = "";
+      this.ruleForm.isEnable = "";
+      this.ruleForm.remark = "";
+      this.dialogVisible = false; //弹窗消失
+    },
+
+    commitXiuGai(formName) {
+      //修改弹窗中的保存操作 备件类型维护
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          let obj = {};
+          obj.partTypeId = this.ruleForm.partTypeId;
+          obj.partTypeCode = this.ruleForm.partTypeCode;
+          obj.partTypeName = this.ruleForm.partTypeName;
+          obj.isRefine = this.ruleForm.isRefine;
+          obj.isEnable = this.ruleForm.isEnable;
+          obj.safeCoefficient = Number(this.ruleForm.safeCoefficient);
+          obj.partPropertyCode = this.ruleForm.partPropertyCode;
+          obj.updateControlId = this.ruleForm.updateControlId;
+          obj.remark = this.ruleForm.remark;
+          doQueryList5(obj).then(response => {
+            if (
+              response.data[paApis.paDbAttrTypeMutationSave.ServiceCode]
+                .result === "1"
+            ) {
+              this.$message({
+                message: "保存成功！",
+                type: "success"
+              });
+              this.dialogVisible = false;
+              this.fetchData();
+            } else {
+              this.$message({
+                message:
+                  "保存失败：" +
+                  response.data[paApis.paDbAttrTypeMutationSave.ServiceCode]
+                    .msg,
+                type: "warn",
+                uration: 2000
+              });
+              this.dialogVisible = false;
+              this.fetchData();
+            }
+          });
+        } else {
+          this.isValiad = true;
+          this.$message({
+            type: "error",
+            message: "保存失败！"
+          });
+        }
+      });
+    },
+    resetData() {
+      //重置
+      this.dataInfo.partTypeCode = "";
+      this.dataInfo.partTypeName = "";
+      this.dataInfo.isRefine = "";
+      this.dataInfo.isEnable = "";
+    },
+    getRepairStatus1(val) {
+      //值列表的code
+      this.ruleForm.isRefine = val;
+    },
+    getRepairStatus2(val) {
+      this.ruleForm.isEnable = val;
+    },
+    getRepairStatus3(val) {
+      this.ruleForm.partPropertyCode = val;
+    },
+    getRepairStatus4(val) {
+      this.dataInfo.isRefine = val;
+    },
+    getRepairStatus5(val) {
+      this.dataInfo.isEnable = val;
+    },
+
+    handleSizeChange(val) {
+      //页数改变重新查找
+      this.dataInfo.pageSize = val;
+      this.fetchData();
+    },
+    handleCurrentChange(val) {
+      this.dataInfo.pageIndex = val;
+      this.fetchData();
+    }
+  }
+};
+</script>

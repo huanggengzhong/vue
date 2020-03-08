@@ -1,0 +1,141 @@
+<!--
+* description: 销售交车-
+* author: dinggf
+* createdDate: 2019-10-23
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template ref="multipleTable"
+     
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowMoreBtn="isMoreBtn"
+      :dynamicIsShowSelect="false"
+      :dynamicIsInitTable="true"
+      :dynamicIsColumnDrop="true"
+    />
+
+  
+  </div>
+</template>
+
+<script>
+import { veApis } from "@/api/graphQLApiList/ve";
+import { requestGraphQL } from "@/api/commonRequest";
+import OneTableTemplate from "@/components/templates/oneTable";
+import { oneTableWithViewTemplateMixins } from "@/components/mixins/oneTableWithViewTemplateMixins";
+import { valueObjectMixins } from '@/components/mixins/valueObjectMixins'
+import { CacheConfig } from "@/cache/configCache/index";
+export default {
+  name: "dlrSales",
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+  },
+  data() {
+    return {
+      //设置是否显示更多按钮
+      isMoreBtn: false,
+      // 网格查询API配置对象
+     
+      apiConfig: veApis.veContractQry,
+
+    
+      // 动态生成网格列
+      tableCols: [
+        {
+          prop: "controlBtn",
+            label: this.$t("ve.label.dateline")
+          ,//操作日期
+          codeField: "controlBtn",
+          width: 180,
+          align: "center",
+          fixed: true,
+          isComponent: true,
+        },
+           {
+          prop: "controlBtn",
+            label: this.$t("ve.label.operatingClass")
+          ,//操作类别
+          codeField: "controlBtn",
+          width: 180,
+          align: "center",
+          fixed: true,
+          isComponent: true,
+        },
+              {
+          prop: "controlBtn",
+            label: this.$t("ve.label.operator")
+          ,//操作人
+          codeField: "controlBtn",
+          width: 190,
+          align: "center",
+          fixed: true,
+          isComponent: true,
+        },
+          {
+          prop: "controlBtn",
+            label: this.$t("ve.label.carSeries")
+          ,//车系
+          codeField: "controlBtn",
+          width: 190,
+          align: "center",
+          fixed: true,
+          isComponent: true,
+        },
+           {
+          prop: "controlBtn",
+            label: this.$t("ve.label.vehicleModel")
+          ,//车型
+          codeField: "controlBtn",
+          width: 200,
+          align: "center",
+          fixed: true,
+          isComponent: true,
+        },
+           {
+          prop: "controlBtn",
+            label: this.$t("ve.label.carColor")
+          ,//车身颜色
+          codeField: "controlBtn",
+          width: 230,
+          align: "center",
+          fixed: true,
+          isComponent: true,
+        },
+           {
+          prop: "controlBtn",
+            label: this.$t("ve.label.inlayColor")
+          ,//内置颜色
+          codeField: "controlBtn",
+          width: 210,
+          align: "center",
+          fixed: true,
+          isComponent: true,
+        },
+
+       
+      ],
+
+      //查询条件
+      formField: {
+        carBrandCode: "",
+        dlrShortName: "",
+        orgType: "",
+        dlrCode: "",
+        dlrFullName: ""
+      },
+    }
+  },
+}
+</script>
+
+<style>
+.filter-title{
+  display: none;
+}
+.app-container{
+  margin-top: 15px;
+}
+</style>

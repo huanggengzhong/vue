@@ -1,0 +1,450 @@
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button" ref="searcheHeight">
+      <el-button type="primary" size="small" @click.native="fetchData(1)">查询</el-button>
+      <el-button size="small" @click.native="modifyData()">修改</el-button>
+      <el-button size="small" @click.native="resetData()">重置</el-button>
+    </div>      
+
+                  <!--************************************ 查询区 *********************************  -->
+    <!-- <div class="filter-container filter-title">查询区</div> -->
+    <div class="filter-container filter-params" ref="conHeight">
+      <el-row :gutter="24">
+        <el-col :span="6" >
+          <label>备件号</label>                  
+          <el-input v-model="listQuery.partNo" size="small" placeholder="请输入内容" suffix-icon="el-icon-search"   @click.native="partNoDialog()">
+          </el-input>
+        </el-col>  
+        <el-col :span="6" >
+          <label>备件名称</label>                     
+          <el-input v-model="listQuery.partName" clearable size="small"></el-input>
+        </el-col>
+
+        <LookupValue 
+              :span="6"
+              :isMul="isMul"
+              :isshow="isshow"
+              :options="refindOption"
+              :code="listQuery.dlrOrderSwitch"
+              labelName="销售开关"
+              @changeCode="getRepairStatus1"
+            />
+
+          <LookupValue  
+              :span="6"
+              :isMul="isMul"
+              :isshow="isshow"
+              :options="statusOption"
+              :code="listQuery.partFlowState"
+              labelName="备件状态"
+              @changeCode="getRepairStatus2"
+            /> 
+      </el-row> 
+    </div>
+                <!--*****************************************查询结果************************************-->
+    <div class="filter-container filter-title" ref="resultTitleHeight">查询结果</div> 
+    <el-table
+      v-loading="listLoading"
+      :data="list"
+      element-loading-text="Loading"
+      border
+      fit
+      stripe
+      :height="tableHeight"
+      highlight-current-row
+      @row-click="handleRowClick"
+    >  
+       
+      <el-table-column align="center" label="序号">
+        <template slot-scope="scope">
+          {{ scope.$index + 1 }}
+        </template>
+      </el-table-column>
+      <el-table-column label="备件Id" align="center" v-if="false">
+        <template slot-scope="scope">
+          {{ scope.row.partId }}
+        </template>
+      </el-table-column>
+
+      <el-table-column label="备件品牌" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.partBrandName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="备件品牌编码" align="center" v-if="false">
+        <template slot-scope="scope">
+          {{ scope.row.partBrandCode }}
+        </template>
+      </el-table-column>
+    <el-table-column label="备件号" align="center" width="150">
+        <template slot-scope="scope">
+          {{ scope.row.partNo }}
+        </template>
+      </el-table-column>
+       <el-table-column label="备件名称" align="center" width="150">
+        <template slot-scope="scope">
+          {{ scope.row.partName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="备件状态" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.partStateName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="备件类别" align="center" v-if="false">
+        <template slot-scope="scope">
+          {{ scope.row.partTypeName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="备件类别" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.partTypeName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="库存开关" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.stockStateName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="采购开关" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.purStateName}}
+        </template>
+      </el-table-column>
+       <el-table-column label="销售开关" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.saleStateName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="适用车型" align="center" width="180">
+        <template slot-scope="scope">
+          {{ scope.row.pubCarTypeName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="适用车型编码" align="center" width="180" v-if="false">
+        <template slot-scope="scope">
+          {{ scope.row.pubCarTypeCode }}
+        </template>
+      </el-table-column>
+      <el-table-column label="并发控制ID" align="center" v-if="false">
+        <template slot-scope="scope">
+          {{ scope.row.updateControlId }}
+        </template>
+      </el-table-column>
+      <el-table-column label="SNP" align="center" v-if="false">
+        <template slot-scope="scope">
+          {{ scope.row.leastPackOut }}
+        </template>
+      </el-table-column>
+      <el-table-column label="计量单位" align="center" v-if="false">
+        <template slot-scope="scope">
+          {{ scope.row.unit }}
+        </template>
+      </el-table-column>
+    </el-table> 
+
+    <el-pagination
+      background
+      ref="paginationHeight"
+      layout="prev, pager, next, sizes, ->, total"
+      prev-text="上一页"
+      next-text="下一页"
+      :page-sizes="[10, 20, 30]"
+      :page-size="10"
+      :total="list?listRecords:0"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+    />
+    <editDialogMaintenance ref="editDialogMaintenance" 
+                :editDialogMaintenanceVisible="editDialogMaintenanceVisible"
+                :editData="gridData"
+                @close1="closeeditDialogMaintenance" />
+    <paChoose ref="partChooseDlrVisible" 
+                :dialogFormVisible="dialogFormVisible"
+                @changeCode="getdialogFormVisible" 
+                />   
+  </div>
+</template>
+
+
+<script>
+ import { the_Height } from "@/components/se/seMixins/makeHeight";
+ import { doQueryList6 } from '@/api/pa/orderAuditItem/orderAuditItem'
+ import { paApis } from '@/api/graphQLApiList/pa'
+ import { orgApis } from "@/api/graphQLApiList/org"
+ import { requestGraphQL } from '@/api/commonRequest'
+ import LookupValue from '@/components/org/LookupValue/index'
+ import editDialogMaintenance from './editDialogMaintenance'
+ //import paChoose from './dialogPaChoose'
+ import paChoose from '@/components/pa/paChoose'
+ import lableName from '@/components/lableName'
+//  import paChoose from '@/components/pa/paChoose'
+                    
+export default {
+  mixins: [the_Height],
+  components:{
+    LookupValue,
+    editDialogMaintenance,
+    paChoose,
+    lableName
+  },
+
+  data(){
+    return{
+      listRecords: 0,
+      isMul: false, //下拉框是否多选
+      isshow: true, //是否显示lable
+      looluptype1: 'PA0007', //值列表查询编码，自行修改成变量  销售开关
+      looluptype2: 'PA0009',  // 备件状态
+      //code1:'1',
+      //code2: '2',
+      tableHeight: "370px",
+      list: [],
+      listLoading: true,
+      rowDetail: '',  //表格中某一行的数据
+      gridData: {}, //给弹窗传值的数组,
+      rowColumn: '',
+      editDialogMaintenanceVisible: false,
+      dialogFormVisible: false,
+      pageSize: 10,
+      pageIndex: 1,
+      listQuery: {
+        oemCode: '',
+        groupCode: '',
+        partBrandCode: '',
+        partNo: '',
+        partName: '',
+        supplierId: '',
+        partFlowState: '',
+        partTypeId: '',
+        //sparePartsCategory: '',
+        //stockSwitch: '',
+        pvPurSwitch: '',
+        dlrOrderSwitch: '',
+        //applicableModels: '',
+        lastUpdatedDateS: '',
+        lastUpdatedDateD: ''
+      },
+       lookupVari: [
+        "oemCode",
+        "groupCode",
+        "lookupTypeCode",
+        "lookupValueCode",
+        "lookupValueName"
+      ],
+       statusOption: [],  // 备件状态
+       refindOption: [],  // 销售开关
+       inventoryOption: [],  // 库存开关
+       procurementOption: [],  // 采购开关
+      //  tableHeaderRowClassName({ row, rowIndex }) {
+      //   if (rowIndex === 0) {
+      //     return "background-color:rgb(239, 239, 239);height:32px;";
+      //   }
+      // }
+    }
+  },
+
+  created(){
+    this.fetchData(1);
+    this.initFetchData();
+  },
+
+  methods:{
+    initFetchData(page) {
+      const that = this
+      let queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+              '($pageIndex: Int, $pageSize: Int, $dataInfoA: '+ orgApis.mdsLookupValueQueryByPage.InputType
+              +', $dataInfoB: ' + orgApis.mdsLookupValueQueryByPage.InputType 
+              +' , $dataInfoC: ' + orgApis.mdsLookupValueQueryByPage.InputType 
+              +', $dataInfoD: ' + orgApis.mdsLookupValueQueryByPage.InputType 
+              +')',
+        // 请求API
+        apiUrl: paApis.paDbPartListQueryList.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            // API服务编码&参数
+            apiServiceParam:
+              "(dataInfo: $dataInfoA, pageIndex: $pageIndex, pageSize: $pageSize)",
+            // 表格中台返回网格的字段
+            apiQueryRow: that.lookupVari
+          },{
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            apiServiceParam:
+              "(dataInfo: $dataInfoB, pageIndex: $pageIndex, pageSize: $pageSize)",
+            apiQueryRow: that.lookupVari
+          },{
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            apiServiceParam:
+              "(dataInfo: $dataInfoC, pageIndex: $pageIndex, pageSize: $pageSize)",
+            apiQueryRow: that.lookupVari
+          },{
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            apiServiceParam:
+              "(dataInfo: $dataInfoD, pageIndex: $pageIndex, pageSize: $pageSize)",
+            apiQueryRow: that.lookupVari
+          },
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.pageSize,
+          pageIndex: that.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfoA: {
+            "isEnable": "1",
+            "lookupTypeCode": "PA0007"// 销售开关
+          },
+          dataInfoB: {
+            "isEnable": "1",
+            "lookupTypeCode": "PA0009"//备件状态
+          },dataInfoC: {
+            "isEnable": "1",
+            "lookupTypeCode": "PA0006"//库存开关
+          }, dataInfoD: {
+            "isEnable": "1",
+            "lookupTypeCode": "PA0005"//采购开关
+          }
+        }
+      }
+      //转换了中台请求格式数据
+      let paramD = that.$getParams(queryObj)
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (response.result === '1'){
+          if (page) {
+            //查询完返回指定的page页数
+            that.listQuery.pageIndex = page
+          }
+         for(let i in response.data){
+            switch(i){
+              case 'A':
+                that.refindOption= response.data.A.rows
+                break
+              case 'B':
+                that.statusOption = response.data.B.rows
+                break
+              case 'C':
+                that.inventoryOption= response.data.C.rows
+                break
+              case 'D':
+                that.procurementOption= response.data.D.rows
+                break    
+            }
+          }
+          that.listLoading = false
+        }else {
+            this.$message({
+                message: '查询失败：' + response.msg,
+                type: 'warn',
+                uration: 2000
+            })
+        }
+      })
+    },
+
+    fetchData(page) {    //查询
+      this.listLoading = true;
+      doQueryList6(this.pageSize,
+      page||this.pageIndex,
+      this.listQuery).then(response => {
+      if (
+          response.data[paApis.paDbPartListQueryFindAll.ServiceCode].result === "1"
+        ) {
+          if(page){ //查询完返回指定的page页数
+            this.pageIndex = page;
+          }
+            this.list = response.data[paApis.paDbPartListQueryFindAll.ServiceCode].rows; 
+            this.listRecords = parseInt(response.data[paApis.paDbPartListQueryFindAll.ServiceCode].records);
+        }
+        // this.$message({
+        //             type: "success", 
+        //             message: "查询成功！"
+        //           });
+       this.listLoading = false;
+    })
+    },
+
+
+    handleRowClick(row,event,column){  //行点击事件
+      this.rowDetail=row;
+      this.rowColumn=column;
+      // console.log("点击行")
+      // console.log(this.rowColumn.isTrusted)
+      // console.log("点击行")
+    },
+
+    modifyData(){  //修改
+      var str = [];
+      str[0] = this.rowDetail;
+      str[1] = this.inventoryOption;
+      str[2] = this.procurementOption;
+      str[3] = this.statusOption; // 备件状态
+      str[4] = this.refindOption; // 销售开关
+      if(this.rowColumn.isTrusted){
+        this.editDialogMaintenanceVisible = true;
+        this.$refs.editDialogMaintenance.setEditData(str);
+        console.log("本页面的值");
+        console.log(this.rowDetail);
+      }else{ 
+        this.$alert('请选择一行进行修改！', '信息提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                callback: action => {
+                }
+            });
+      }
+    },
+
+    resetData(){  //重置
+        this.listQuery.partName='';
+        this.listQuery.partNo='';
+        this.listQuery.dlrOrderSwitch = '';
+        this.listQuery.partFlowState = '';
+    },
+
+    partNoDialog(){  //  备件号弹窗
+        this.listQuery.partNo = '';
+        this.listQuery.partName = '';
+        this.dialogFormVisible=true;
+    },
+
+    closeeditDialogMaintenance(val){  //弹窗关闭
+        this.editDialogMaintenanceVisible = false;
+        if(parseInt(val.split(" ")[1]) == 1){
+          this.fetchData(1);
+        }
+    },
+    // closedialogFormVisible(val){
+    //   this.dialogFormVisible=false;
+    // },
+    getdialogFormVisible(val){    //获取弹窗的值
+      this.dialogFormVisible=false;
+      this.listQuery.partNo =val.name;
+      this.listQuery.partName =val.partName;
+      console.log("111备件号sparePartNo:"+this.listQuery.partNo+","+this.listQuery.partName);
+    },
+     getRepairStatus1(val) {   //值列表的code
+      console.log("1111")
+      this.listQuery.dlrOrderSwitch = val;
+    },
+    getRepairStatus2(val) {  
+      console.log("2222") 
+      this.listQuery.partFlowState = val;
+    },
+
+     handleSizeChange(val) {   //表格页数改变后重新加载页面
+      this.pageSize = val;
+      this.fetchData();
+    },
+    handleCurrentChange(val) {
+      this.pageIndex = val;
+      this.fetchData();
+    },
+}
+}
+</script>

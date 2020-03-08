@@ -1,0 +1,62 @@
+/**
+ *  经销商售后扩展信息
+ */
+import Mock from 'mockjs'
+import { apiMOrgDlr } from '../../../../src/api/graphQLApiList/se'
+const cH = '/'
+
+//查询
+const mdmOrgDlrExtendInfoQueryList = Mock.mock({
+    mdmOrgDlrExtendInfoQueryList: {
+        result: '1',
+        pageindex: '1',
+        pages: '1',
+        records: '30',
+        msg: 'success',
+        'rows|20': [{
+            extendInfoId:"111",
+            smallAreaName:"111",
+            cityName:"111",
+            provinceName:"111",
+            dlrId:"111",
+            dlrCode:"111",
+            dlrShortName:"111",
+            dlrStatus:"111",
+            dlrStatusName:"111",
+            repairQuotiety:"111",
+            preQuotiety:"111",
+            mtainQuotiety:"111",
+            limitJe:"111",
+            squotiety1:"111",
+            squotiety2:"111",
+            modifyName:"111",
+            remark:"111",
+            lastUpdatedDate:"111",
+            modifydateRef:"111",
+            remarkRef:"111",
+            updateControlI:"111"
+        }]
+    }
+})
+
+//保存
+const seDbReplySaveData = Mock.mock({
+    replyContentsSetSave: {
+        result: '1',
+        msg: 'success'
+    }
+})
+
+export default [
+    {
+        url: apiMOrgDlr.mdmOrgDlrExtendInfoQueryList.APIUrl + cH + 'v=' + apiMOrgDlr.mdmOrgDlrExtendInfoQueryList.ServiceCode,
+        type: 'post',
+        response: config => {
+            return {
+               msg:'success',
+                data: mdmOrgDlrExtendInfoQueryList,
+                result: '1'
+            }
+        }
+    }
+]

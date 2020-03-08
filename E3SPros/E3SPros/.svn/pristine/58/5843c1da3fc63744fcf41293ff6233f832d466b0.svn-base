@@ -1,0 +1,1369 @@
+<template>
+  <div>
+    <div class="app-container app-container-table">
+      <div class="filter-container filter-params">
+        <el-form :model="ruleForm">
+          <el-row>
+            <el-col :span="24">
+              <LookupValue :span="6" :options="ruleData.partBrand" :isMul="true" :isShowLabel="true" :code="listQuery.orderTypeBrand" :lookuptype="listQuery.lookuptypeBrand" labelName="备件品牌" @changeCode="getLookupValueBrand" />
+              <el-col :span="6">
+                <label>供应商</label>
+                <el-input @focus="supplierShortNameModel" v-model="ruleForm.supplierId" suffix-icon="el-icon-search" size="small"></el-input>
+              </el-col>
+              <el-col :span="6">
+                <label>备件号</label>
+                <el-input v-model="ruleForm.partNo" suffix-icon="el-icon-search" size="small" @focus="paChooseVisibleModel"></el-input>
+              </el-col>
+              <LookupValue :options="ruleData.partFlowState" :span="6" :isMul="false" :isShowLabel="true" :code="listQuery.orderTypeStatus" :lookuptype="listQuery.lookuptypeStatus" labelName="备件状态" @changeCode="getLookupValueStatus" />
+            </el-col>
+          </el-row>
+          <!-- <transition-group name="search-fade" tag="elRow" v-bind:css="false" @before-enter="beforeEnter" @enter="enter" @leave="leave"> -->
+            <el-row v-show="toggleParam" key="elRow">
+              <el-col :span="24">
+                <el-col :span="6">
+                  <label>备件类别</label>
+                  <el-select size="small" placeholder="请选择" v-model="ruleForm.partTypeId">
+                    <el-option v-for="(item, i) in ruleData.partType" :key="`${item.partTypeId}_${i}`" :label="item.partTypeName" :value="item.partTypeId"></el-option>
+                  </el-select>
+                </el-col>
+                <LookupValue :options="ruleData.storeSwitch" :span="6" :isMul="false" :isShowLabel="true" :code="listQuery.orderTypeSwitch" labelName="采购开关" @changeCode="getLookupValueSwitch" />
+                <LookupValue :options="ruleData.dlrOrderSwitch" :span="6" :isMul="false" :isShowLabel="true" labelName="销售开关" @changeCode="getLookupValueSaleSwitch" />
+                <LookupValue :options="ruleData.storeSwitch" :span="6" :isMul="false" :isShowLabel="true" labelName="库存开关" @changeCode="getLookupValueReserveSwitch" />
+                <el-col :span="6">
+                  <label>起始时间</label>
+                  <el-date-picker type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" v-model="ruleForm.date"></el-date-picker>
+                </el-col>
+              </el-col>
+            </el-row>
+          <!-- </transition-group> -->
+        </el-form>
+        <mix-button v-if="bounce" name="searchBtns" :dynamicButtons="btns" :isShowMore=true @toggle="changeToggleParam"></mix-button>
+      </div>
+      <el-table :data="list" height="370" style="width: 100%" v-loading="listLoading" element-loading-text="Loading" border fit stripe highlight-current-row @cell-click="handleGetRow">
+        <el-table-column label="序号" width="60" type="index" align="center"></el-table-column>
+        <el-table-column label="操作" width="80" align="center">
+          <template slot-scope="{row}">
+            <a @click="openSPInfo({type: 'EDIT', row: row})">修改</a>
+          </template>
+        </el-table-column>
+        <el-table-column v-for="(item, i) in infoColumns.reusltColumn" :key="`col_${i}`" :label="item.label" :show-overflow-tooltip=true align="center">
+          <template slot-scope="{row}">
+            <a v-if="item.comType === 'link'" @click="item.event(row)">{{row[item.fieldName]}}</a>
+            <span v-else>{{row[item.fieldName]}}</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-pagination background layout="prev, pager, next" prev-text="上一页" next-text="下一页" :page-sizes="[10, 20, 30]" :page-size="10" :total="listRecords" @size-change="handleSizeChange" @current-change="handleCurrentChange">
+      </el-pagination>
+    </div>
+    <!-- 新增修改弹窗 -->
+    <el-dialog width="70%" title="备件信息维护" :visible.sync="dialogAddPaVisible" @closed="resetField(maintenanceInfo)" :append-to-body="true" :close-on-click-modal="false" center>
+      <div class="filter-container filter-button">
+        <el-button type="primary" size="small" @click="whSave">保存</el-button>
+        <el-button size="small" :disabled="matainBtn.disable" @click="replaceMutationSave">保存替换</el-button>
+        <!-- <el-button size="small" :disabled="matainBtn.disable" @click="replaceListViModel(maintenanceInfo)">查看替换链
+        </el-button> -->
+        <el-button size="small" :disabled="matainBtn.disable" @click="carTypeModel(maintenanceInfo)">查看适用车型</el-button>
+        <el-button size="small" @click="resetField(maintenanceInfo)">重置</el-button>
+      </div>
+      <div class="filter-container filter-params">
+        <el-form :model="maintenanceInfo" ref="ruleForm" class="demo-ruleForm" :inline-message="true">
+          <el-row>
+            <div class="filter-container filter-title">零件信息</div>
+            <el-col v-for="(item, index) in infoColumns.elemInformation" :key="`elem${index}`" :span="8">
+              <el-form-item :label="item.label" :prop="item.fieldName" :rules="item.rules">
+                <el-select v-if="(item.type === 'select' && item.fieldName !== 'partTypeId')" placeholder="请选择" v-model="maintenanceInfo[item.fieldName]" @focus="item.focus" :multiple="item.multiple" clearable collapse-tags size="small">
+                  <el-option v-for="(obj, i) in item.options" :key="`${item.lookupValueCode}_${i}`" :label="obj.lookupValueName" :value="obj.lookupValueCode">
+                  </el-option>
+                </el-select>
+                <el-select v-if="(item.type === 'select' && item.fieldName === 'partTypeId')" placeholder="请选择" v-model="maintenanceInfo[item.fieldName]" @focus="item.focus" :multiple="item.multiple" clearable collapse-tags size="small">
+                  <el-option v-for="(obj, i) in item.options" :key="`${item.partTypeId}_${i}`" :label="obj.partTypeName" :value="obj.partTypeId"></el-option>
+                </el-select>
+                <el-input v-else v-model="maintenanceInfo[item.fieldName]" @focus="item.focus" :readonly="(item.readonly || false)" :suffix-icon="item.suffixIcon" placeholder="请输入" size="small">
+                </el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <div class="filter-container filter-title">供应商信息</div>
+            <el-col v-for="(item, index) in infoColumns.dlrInformation" :key="`dlr_${index}`" :span="8">
+              <el-form-item :label="item.label" :prop="item.fieldName" :rules="item.rules">
+                <el-select v-if="item.type === 'select'" placeholder="请选择" v-model="maintenanceInfo[item.fieldName]" @focus="item.focus" :multiple="item.multiple" clearable collapse-tags size="small">
+                  <el-option v-for="(obj, i) in item.options" :key="`${item.lookupValueCode}${i}`" v-model="obj.lookupValueCode" :label="obj.lookupValueName"></el-option>
+                </el-select>
+                <el-input v-else @focus="item.focus" v-model="maintenanceInfo[item.fieldName]" :suffix-icon="item.suffixIcon" :readonly="(item.readonly || false)" placeholder="请输入" size="small">
+                </el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <div class="filter-container filter-title">备件信息</div>
+            <el-col v-for="(item, index) in infoColumns.partInformation" :key="`part_${index}`" :span="item.span||8">
+              <el-form-item v-if="(item.fieldName !== 'useCarType' && opType === 'ADD') || opType === 'EDIT'" :label="item.label" :prop="item.fieldName" :rules="item.rules">
+                <el-select v-if="item.type === 'select'" placeholder="请选择" v-model="maintenanceInfo[item.fieldName]" @focus="item.focus" :readonly="item.readonly" :multiple="item.multiple" clearable collapse-tags size="small">
+                  <el-option v-for="(obj, i) in item.options" :key="`${item.lookupValueCode}${i}`" v-model="obj.lookupValueCode" :label="obj.lookupValueName"></el-option>
+                </el-select>
+                <el-date-picker v-else-if="item.type === 'datepicker'" v-model="maintenanceInfo[item.fieldName]" type="date" placeholder="选择日期">
+                </el-date-picker>
+                <el-checkbox v-else-if="item.type === 'checkbox'" v-model="maintenanceInfo[item.fieldName]" :disable="item.disable" size="small"></el-checkbox>
+                <el-input v-else v-model="maintenanceInfo[item.fieldName]" @focus="item.focus" :readonly="item.readonly" :suffix-icon="item.suffixIcon" placeholder="请输入" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row v-show="opType === 'EDIT'" v-model="opType">
+            <div class="filter-container filter-title">替换件信息</div>
+            <el-col v-for="(item, index) in infoColumns.replaceInformation" :key="`replace_${index}`" :span="8">
+              <el-form-item :label="item.label" :prop="item.fieldName" :rules="item.rules">
+                <el-select v-if="item.type === 'select'" placeholder="请选择" v-model="maintenanceInfo[item.fieldName]" @focus="item.focus" :multiple="item.multiple" clearable collapse-tags size="small">
+                  <el-option v-for="(obj, i) in item.options" :key="`${item.lookupValueCode}${i}`" v-model="obj.lookupValueCode" :label="obj.lookupValueName"></el-option>
+                </el-select>
+                <el-input v-else v-model="maintenanceInfo[item.fieldName]" @focus="item.focus" :readonly="item.readonly" :suffix-icon="item.suffixIcon" placeholder="请输入" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row v-show="opType === 'EDIT'" v-model="opType">
+            <div class="filter-container filter-title">操作信息</div>
+            <el-col v-for="(item, index) in infoColumns.createInformation" :key="`create_${index}`" :span="8">
+              <el-form-item :label="item.label" :prop="item.fieldName" :rules="item.rules">
+                <el-select v-if="item.type === 'select'" placeholder="请选择" v-model="maintenanceInfo[item.fieldName]" @focus="item.focus" :multiple="item.multiple" clearable collapse-tags size="small">
+                  <el-option v-for="(obj, i) in item.options" :key="`${item.lookupValueCode}${i}`" v-model="obj.lookupValueCode" :label="obj.lookupValueName"></el-option>
+                </el-select>
+                <el-input v-else v-model="maintenanceInfo[item.fieldName]" @focus="item.focus" :readonly="item.readonly" :suffix-icon="item.suffixIcon" placeholder="请输入" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+      </div>
+    </el-dialog>
+    <!-- 查看替换链按钮弹窗 -->
+    <el-dialog width="60%" title="备件替换链信息" :visible.sync="dialogReplaceListVisible" :append-to-body="true" :close-on-click-modal="false" center>
+      <mix-table ref="replaceListTable" :isDialog="true" :queryParams="repalceQueryParams" :dynamicTableCols="repalceCols" />
+    </el-dialog>
+    <!-- 零件号弹窗 -->
+    <el-dialog width="60%" title="零件选择" :visible.sync="dialogPartVisible" @close="dialogClose" :append-to-body="true" :close-on-click-modal="false" center>
+      <div class="filter-container filter-params">
+        <el-form :model="ljFormData" :rules="rules" class="demo-ruleForm">
+          <el-row>
+            <el-col :span="8" v-for="(item, index) in ljModel" :key="`lj_${index}`">
+              <el-form-item :label="item.label" :prop="item.fieldName">
+                <el-input v-model="ljFormData[item.fieldName]" placeholder="请选择" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row>
+            <div class="filter-container filter-button">
+              <el-button type="primary" size="small" @click="ljData">查询</el-button>
+              <el-button size="small" @click="dialogClose()">选择</el-button>
+              <el-button size="small" @click="resetField(ljModel)">重置</el-button>
+            </div>
+          </el-row>
+        </el-form>
+      </div>
+      <div class="filter-container filter-title">查询结果</div>
+      <el-table :data="ljList" style="width: 100%" v-loading="listLoading" element-loading-text="Loading" border fit stripe highlight-current-row @row-click="handleRow">
+        <el-table-column label="序号" align="center" type="index" width="45"></el-table-column>
+        <el-table-column label="零件号" align="center">
+          <template slot-scope="scope">{{ scope.row.elementCode}}</template>
+        </el-table-column>
+        <el-table-column label="零件中文名称" align="center">
+          <template slot-scope="scope">{{ scope.row.elementNameCn}}</template>
+        </el-table-column>
+        <el-table-column label="零件英文名称" align="center">
+          <template slot-scope="scope">{{ scope.row.elementNameCn}}</template>
+        </el-table-column>
+        <el-table-column label="备件类别" align="center">
+          <template slot-scope="scope">{{ scope.row.partTypeName }}</template>
+        </el-table-column>
+      </el-table>
+      <el-pagination background layout="prev, pager, next" prev-text="上一页" next-text="下一页" :page-sizes="[10, 20, 30]" :page-size="10" :total="pageTotal" @size-change="handleSizeChange" @current-change="handleCurrentChange">
+      </el-pagination>
+    </el-dialog>
+    <!-- 备件信息查询中的供应商弹窗 -->
+    <chooseSupplier :supplierChooseVisible="chooseSupplierVisible" @changeCode="getChooseSupplierVisible">
+    </chooseSupplier>
+    <!-- 备件信息维护中的适用车型信息弹窗 -->
+    <carsModels :dialogFormVisible="carsModelsVisible" :partId="maintenanceInfo.partId" @changeCode="changeUseCarType">
+    </carsModels>
+    <!-- 备件信息维护中的适用车型按钮 -->
+    <userCarType :ceshiVisible="userCarTypeVisible" :carTypeCode="maintenanceInfo.pubCarTypeCode" @changeCode="closedialogUserCar" />
+    <!-- 选择备件弹窗 -->
+    <paChoose :dialogFormVisible="paChooseVisible" @changeCode="getPaChooseVisible"></paChoose>
+  </div>
+</template>
+<script>
+import { paApis } from '@/api/graphQLApiList/pa'
+import { orgApis } from '@/api/graphQLApiList/org'
+import { requestGraphQL } from '@/api/commonRequest'
+import chooseSupplier from '@/components/pa/chooseSupplier'
+import paChoose from '@/components/pa/paChoose'
+import userCarType from '@/views/pa/orderAuditConfigurationItem/ceshi'
+import carsModels from '@/components/pa/carsModels'
+import lableName from '@/components/lableName'
+import LookupValue from '@/components/org/LookupValue'
+import mixTable from '@/components/basicComponent/mixTable'
+import mixButton from '@/components/basicComponent/mixButton'
+export default {
+  name: 'testTbale',
+  components: {
+    chooseSupplier,
+    paChoose,
+    userCarType,
+    carsModels,
+    lableName,
+    LookupValue,
+    mixTable,
+    mixButton
+  },
+  filters: {
+    statusFilter(status) {
+      const statusMap = {
+        published: 'success',
+        draft: 'gray',
+        deleted: 'danger'
+      }
+      return statusMap[status]
+    }
+  },
+  data() {
+    return {
+      opType: 'ADD', //备件信息弹窗状态
+      dialogAddPaVisible: false, //新增按钮弹窗显示
+      dialogReplaceListVisible: false, //查看替换链弹窗显示
+      whDlrVisible: false, //查看新增按钮弹窗里的供应商编码弹窗显示
+      carsModelsVisible: false, //适用车型信息
+      userCarTypeVisible: false, //适用车型按钮
+      dialogPartVisible: false, //零件号弹窗
+      rowInfo: '',
+      toggleParam: false,
+      moreBtnIcon: 'iconfont icon-Group-spread-up',
+      moreLabel: '高级搜索',
+      code: '1',
+      list: null,
+      listRecords: 0,
+      pageTotal: 0,
+      replaceList: null, //查看替换链
+      ljList: null, //零件号
+      listLoading: true,
+      chooseSupplierVisible: false,
+      paChooseVisible: false,
+      paChooseType: 'ADD',
+      infoColumns: {
+        reusltColumn: [
+          { label: '备件品牌', fieldName: 'partBrandName', width: 100 },
+          { label: '备件号', fieldName: 'partNo', width: 150 },
+          { label: '备件名称', fieldName: 'partName', width: 150 },
+          { label: '备件状态', fieldName: 'partStateName', width: 100 },
+          { label: '备件类别', fieldName: 'partTypeId', width: 100 },
+          { label: '库存开关', fieldName: 'stockStateName', width: 100 },
+          { label: '销售开关', fieldName: 'saleStateName', width: 100 },
+          {
+            label: '替换件号',
+            fieldName: 'replacePartNo',
+            comType: 'link',
+            event: this.replaceListViModel,
+            width: 150
+          },
+          { label: '互换码', fieldName: 'replaceCode', width: 120 },
+          {
+            label: '适用车型',
+            fieldName: 'pubCarTypeName',
+            comType: 'link',
+            event: this.carTypeModel,
+            width: 150
+          },
+          { label: '最后修改时间', fieldName: 'lastUpdatedDate', width: 180 }
+        ],
+        elemInformation: [
+          {
+            label: '零件号',
+            fieldName: 'partNo',
+            focus: () => {
+              this.opType === 'ADD' ? (this.dialogPartVisible = true) : false
+            },
+            rules: { required: true, message: '请选择零件', trigger: 'change' },
+            suffixIcon: 'el-icon-search',
+            readonly: true
+          },
+          {
+            label: '备件名称',
+            fieldName: 'partName',
+            focus: () => 0,
+            rules: {
+              required: true,
+              message: '请输入备件名称',
+              trigger: 'change'
+            }
+          },
+          {
+            label: '备件类别',
+            fieldName: 'partTypeId',
+            type: 'select',
+            options: [],
+            focus: () => 0,
+            rules: {
+              required: true,
+              message: '请选择备件类别',
+              trigger: 'change'
+            }
+          },
+          { label: '单位', fieldName: 'unit', focus: () => 0 },
+          { label: '备注', fieldName: 'eRemark', focus: () => 0 }
+        ],
+        dlrInformation: [
+          {
+            label: '供应商编码',
+            fieldName: 'supplierCode',
+            focus: () => {
+              this.chooseSupplierVisible = true
+            },
+            suffixIcon: 'el-icon-search',
+            readonly: true
+          },
+          {
+            label: '供应商简称',
+            fieldName: 'supplierShortName',
+            focus: () => 0
+          }
+        ],
+        partInformation: [
+          {
+            label: '备件品牌',
+            fieldName: 'partBrandCode',
+            type: 'select',
+            options: [],
+            focus: () => 0,
+            rules: {
+              required: true,
+              message: '请选择备件品牌',
+              trigger: 'change'
+            }
+          },
+          {
+            label: '备件状态',
+            fieldName: 'partFlowState',
+            type: 'select',
+            options: [],
+            focus: () => 0,
+            rules: {
+              required: true,
+              message: '请选择备件状态',
+              trigger: 'change'
+            }
+          },
+          {
+            label: '库存开关',
+            fieldName: 'storeSwitch',
+            type: 'select',
+            options: [],
+            focus: () => 0,
+            rules: {
+              required: true,
+              message: '请选择库存开关',
+              trigger: 'change'
+            }
+          },
+          {
+            label: '采购开关',
+            fieldName: 'pvPurSwitch',
+            type: 'select',
+            options: [],
+            focus: () => 0,
+            rules: {
+              required: true,
+              message: '请选择采购开关',
+              trigger: 'change'
+            }
+          },
+          {
+            label: '销售开关',
+            fieldName: 'dlrOrderSwitch',
+            type: 'select',
+            options: [],
+            focus: () => 0,
+            rules: {
+              required: true,
+              message: '请选择销售开关',
+              trigger: 'change'
+            }
+          },
+          { label: '备注', fieldName: 'pRemark', focus: () => 0 },
+          {
+            label: '适用车型',
+            fieldName: 'useCarType',
+            focus: () => {
+              this.carsModelsVisible = true
+            },
+            suffixIcon: 'el-icon-search',
+            readonly: true
+          },
+          { label: '规格样式', fieldName: 'specifyStyle', focus: () => 0 },
+          { label: '毛重(g)', fieldName: 'grossWeight', focus: () => 0 },
+          { label: '净重(g)', fieldName: 'netWeight', focus: () => 0 },
+          { label: '体积(M)', fieldName: 'volume', focus: () => 0 },
+          {
+            label: '采购属性',
+            fieldName: 'purAttr',
+            type: 'select',
+            options: [],
+            focus: () => 0
+            // rules: {
+            //   required: true,
+            //   message: "请选择销售开关",
+            //   trigger: "change"
+            // }
+          },
+          {
+            label: '投产日期',
+            fieldName: 'beginData',
+            type: 'datepicker',
+          },
+          {
+            label: '停产日期',
+            fieldName: 'endData',
+            type: 'datepicker',
+          },
+          {
+            label: '备件速流',
+            fieldName: 'paSpeed',
+            type: 'select',
+            options: [],
+            focus: () => 0
+            // rules: {
+            //   required: true,
+            //   message: "请选择销售开关",
+            //   trigger: "change"
+            // }
+          },
+          {
+            label: '油品备件',
+            fieldName: 'paOli',
+            type: 'checkbox',
+            span: 4
+          },
+          {
+            label: '通用备件',
+            fieldName: 'paPublic',
+            type: 'checkbox',
+            span: 4
+          }
+        ],
+        replaceInformation: [
+          {
+            label: '替换件号',
+            fieldName: 'replacePartNo',
+            focus: () => {
+              this.paChooseVisible = true
+              this.paChooseType = 'REPLACE'
+            },
+            suffixIcon: 'el-icon-search'
+          },
+          {
+            label: '互换码',
+            fieldName: 'replaceCode',
+            type: 'select',
+            options: [],
+            focus: () => 0
+          },
+          { label: '摘要', fieldName: 'summary', focus: () => 0 },
+          { label: '备注', fieldName: 'remark', focus: () => 0 },
+          { label: '操作原因', fieldName: 'reasons', focus: () => 0 }
+        ],
+        createInformation: [
+          { label: '创建人', fieldName: 'creater', focus: () => 0 },
+          { label: '创建时间', fieldName: 'creatTime', focus: () => 0 },
+          { label: '最后修改人', fieldName: 'laseRevisetor', focus: () => 0 },
+          { label: '最后修改时间', fieldName: 'laseReviseTime', focus: () => 0 }
+        ]
+      },
+      matainBtn: {
+        disable: false, //新增按钮
+        reverdisable: false, //修改按钮
+        isShow: true
+      },
+      //备件信息维护相关数据
+      maintenanceInfo: {
+        elementCode: '',
+        partName: '',
+        partId: '',
+        partTypeId: '',
+        unit: '',
+        eRemark: '',
+        supplierCode: '',
+        supplierShortName: '',
+        partBrandCode: '',
+        partFlowState: '',
+        storeSwitch: '',
+        pvPurSwitch: '',
+        dlrOrderSwitch: '',
+        pRemark: '',
+        useCarType: '',
+        replacePartNo: '',
+        remark: '',
+        reasons: '',
+        creater: '',
+        creatTime: '',
+        laseRevisetor: '',
+        laseReviseTime: '',
+        replaceCode: ''
+      },
+      ljFormData: {
+        lj_partNo: '', //供应商编码
+        lj_partName: '',
+        lj_checked: ''
+      },
+      ruleForm: {
+        partBrandCode: '',
+        partNo: '',
+        partTypeId: '',
+        date: '',
+        supplierId: '',
+        storeSwitch: '',
+        pvPurSwitch: '',
+        dlrOrderSwitch: '',
+        partFlowState: ''
+      },
+      rules: {
+        brandName: [
+          { required: true, message: '请选择品牌' },
+          { min: 1, message: '品牌选择不能为空' }
+        ]
+      },
+      ruleData: {
+        partBrand: [],
+        partFlowState: [],
+        pvPurSwitch: [],
+        dlrOrderSwitch: [],
+        storeSwitch: [],
+        partType: []
+      },
+      //零件号弹窗
+      ljModel: [
+        { label: '零件号', fieldName: 'lj_partNo' },
+        { label: '备件名称', fieldName: 'lj_partName' },
+        { label: '未维护过备件', fieldName: 'lj_checked' }
+      ],
+      lookupVari: [
+        'oemCode',
+        'groupCode',
+        'lookupTypeCode',
+        'lookupValueCode',
+        'lookupValueName'
+      ],
+      listQuery: {
+        pageIndex: 1,
+        pageSize: 10,
+        limit: 20,
+        partBrand: '', //备件品牌
+        isCell: '',
+        partStatus: '',
+        kcSwitch: '',
+        orderTypeBrand: ''
+      },
+      //替换链网格配置
+      repalceCols: [
+        { label: '替换链', codeField: 'replaceChainCode', type: 'inputTxt' },
+        { label: '顺序', codeField: 'replaceOrderNo' },
+        { label: '备件编码', codeField: 'partNo' },
+        { label: '互换码名称', codeField: 'replaceCode' },
+        { label: '成套件(数量)', codeField: 'csPartNo' },
+        { label: '备件状态', codeField: 'partFlowState' }
+      ],
+      repalceQueryParams: {
+        APIUrl: paApis.paDbReplaceListQueryFindAll.APIUrl,
+        InputType: paApis.paDbReplaceListQueryFindAll.InputType,
+        ServiceCode: paApis.paDbReplaceListQueryFindAll.ServiceCode,
+        dataInfo: {
+          partId: '',
+          partNo: ''
+        },
+        apiQueryRow: [
+          'csPartId',
+          'csPartNo',
+          'dlrOrderSwitch',
+          'orderNo',
+          'partBrandCode',
+          'partBrandName',
+          'partFlowState',
+          'partId',
+          'partName',
+          'partNo',
+          'partTechSummary',
+          'pvPurSwitch',
+          'remark',
+          'replaceChainCode',
+          'replaceCode',
+          'replaceCondCode',
+          'replaceListId',
+          'replaceListSeqId',
+          'replaceName',
+          'replaceOrderNo',
+          'storeSwitch'
+        ]
+      },
+       btns:[
+         {
+            name: 'add',
+            text: '新增',
+            clickEvent: 'openSPInfo',
+            position:'left',
+           argument: { type: 'ADD' }
+           },
+            { name: 'export', text: '导出', clickEvent: 'export',position:'left', },
+            { name: 'search', text: '查询', clickEvent: 'fetchData',position:'right',},
+          { name: 'reset', text: '重置', clickEvent: 'fetchData',position:'right', }
+      ],
+      bounce: true
+    }
+  },
+  created() {
+    this.initFetchData()
+  },
+  methods: {
+    // beforeEnter: function(el) {
+    //   el.style.opacity = 0
+    //   el.style.height = 0
+    // },
+    // enter: function(el, done) {
+    //   var delay = el.dataset.index * 150
+    //   setTimeout(function() {
+    //     Velocity(el, { opacity: 1, height: '1.6em' }, { complete: done })
+    //   }, delay)
+    // },
+    // leave: function(el, done) {
+    //   var delay = el.dataset.index * 150
+    //   setTimeout(function() {
+    //     Velocity(el, { opacity: 0, height: 0 }, { complete: done })
+    //   }, delay)
+    // },
+    changeToggleParam() {
+      this.toggleParam = !this.toggleParam
+    },
+    initFetchData(page) {
+      const that = this
+      let queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfoA: ' +
+          orgApis.mdsLookupValueQueryByPage.InputType +
+          ', $dataInfoB: ' +
+          orgApis.mdsLookupValueQueryByPage.InputType +
+          ', $dataInfoC: ' +
+          orgApis.mdsLookupValueQueryByPage.InputType +
+          ', $dataInfoD: ' +
+          orgApis.mdsLookupValueQueryByPage.InputType +
+          ', $dataInfoE: ' +
+          orgApis.mdsLookupValueQueryByPage.InputType +
+          ', $dataInfoF: ' +
+          paApis.paDbAttrTypeQueryList.InputType +
+          ', $dataInfoG: ' +
+          orgApis.mdsLookupValueQueryByPage.InputType +
+          ')',
+        // 请求API
+        apiUrl: paApis.paDbPartListQueryList.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            // API服务编码&参数
+            apiServiceParam:
+              '(dataInfo: $dataInfoA, pageIndex: $pageIndex, pageSize: $pageSize)',
+            // 表格中台返回网格的字段
+            apiQueryRow: that.lookupVari
+          },
+          {
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfoB, pageIndex: $pageIndex, pageSize: $pageSize)',
+            apiQueryRow: that.lookupVari
+          },
+          {
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfoC, pageIndex: $pageIndex, pageSize: $pageSize)',
+            apiQueryRow: that.lookupVari
+          },
+          {
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfoD, pageIndex: $pageIndex, pageSize: $pageSize)',
+            apiQueryRow: that.lookupVari
+          },
+          {
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfoE, pageIndex: $pageIndex, pageSize: $pageSize)',
+            apiQueryRow: that.lookupVari
+          },
+          {
+            apiServiceCode: paApis.paDbAttrTypeQueryList.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfoF, pageIndex: $pageIndex, pageSize: $pageSize)',
+            apiQueryRow: ['partTypeCode', 'partTypeId', 'partTypeName']
+          },
+          {
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfoG, pageIndex: $pageIndex, pageSize: $pageSize)',
+            apiQueryRow: that.lookupVari
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.listQuery.pageSize,
+          pageIndex: that.listQuery.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfoA: {
+            isEnable: '1',
+            lookupTypeCode: 'PA0008'
+          },
+          dataInfoB: {
+            isEnable: '1',
+            lookupTypeCode: 'PA0009'
+          },
+          dataInfoC: {
+            isEnable: '1',
+            lookupTypeCode: 'PA0005'
+          },
+          dataInfoD: {
+            isEnable: '1',
+            lookupTypeCode: 'PA0007'
+          },
+          dataInfoE: {
+            isEnable: '1',
+            lookupTypeCode: 'PA0006'
+          },
+          dataInfoF: {
+            isEnable: '1'
+          },
+          dataInfoG: {
+            isEnable: '1',
+            lookupTypeCode: 'PA0003'
+          }
+        }
+      }
+      //转换了中台请求格式数据
+      let paramD = that.$getParams(queryObj)
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (response.result === '1') {
+          if (page) {
+            //查询完返回指定的page页数
+            that.listQuery.pageIndex = page
+          }
+          for (let i in response.data) {
+            switch (i) {
+              case 'A':
+                that.ruleData.partBrand = that.ruleData.partBrand.concat(
+                  response.data.A.rows
+                )
+                that.infoColumns.partInformation[0].options =
+                  response.data.A.rows
+                that.infoColumns.elemInformation[2].options =
+                  response.data.A.rows
+                break
+              case 'B':
+                that.ruleData.partFlowState = that.ruleData.partFlowState.concat(
+                  response.data.B.rows
+                )
+                that.infoColumns.partInformation[1].options =
+                  response.data.B.rows
+                break
+              case 'C':
+                that.ruleData.pvPurSwitch = that.ruleData.pvPurSwitch.concat(
+                  response.data.C.rows
+                )
+                that.infoColumns.partInformation[2].options =
+                  response.data.C.rows
+                break
+              case 'D':
+                that.ruleData.dlrOrderSwitch = that.ruleData.dlrOrderSwitch.concat(
+                  response.data.D.rows
+                )
+                that.infoColumns.partInformation[4].options =
+                  response.data.D.rows
+                break
+              case 'E':
+                that.ruleData.storeSwitch = that.ruleData.storeSwitch.concat(
+                  response.data.E.rows
+                )
+                that.infoColumns.partInformation[3].options =
+                  response.data.E.rows
+                break
+              case 'F':
+                that.ruleData.partType = that.ruleData.partType.concat(
+                  response.data.F.rows
+                )
+                this.infoColumns.elemInformation[2].options =
+                  response.data.F.rows
+                break
+              case 'G':
+                this.infoColumns.replaceInformation[1].options =
+                  response.data.G.rows
+                break
+              case 'H':
+                that.ruleData.purAttr = that.ruleData.pvPurSwitch.concat(
+                  response.data.H.rows
+                )
+                that.infoColumns.partInformation[2].options =
+                  response.data.H.rows
+                break
+            }
+          }
+          that.listLoading = false
+        } else {
+          this.$message({
+            message: '查询失败：' + response.msg,
+            type: 'warn',
+            uration: 2000
+          })
+        }
+      })
+    },
+    fetchData(page) {
+      const that = this
+      that.listLoading = true
+      let formData = that.ruleForm
+      let date = formData.date
+      formData.lastUpdatedDateS = date ? date.split(' - ')[0] : ''
+      formData.lastUpdatedDateD = date ? date.split(' - ')[1] : ''
+      delete formData.date
+      const queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfoF: ' +
+          paApis.paDbPartListQueryList.InputType +
+          ')',
+        // 请求API
+        apiUrl: paApis.paDbPartListQueryList.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: paApis.paDbPartListQueryList.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfoF, pageIndex: $pageIndex, pageSize: $pageSize)',
+            apiQueryRow: [
+              'costPrice',
+              'dlrLeastSaleQty',
+              'dlrOrderSwitch',
+              'dlrPrice',
+              'elementCode',
+              'elementId',
+              'elementNameCn',
+              'emphasisFlag',
+              'emphasisFlagName',
+              'fitCarTypeId',
+              'isPvRequired',
+              'isPvRequiredName',
+              'lastUpdatedDate',
+              'leastPackIn',
+              'leastPackOut',
+              'logisticsFlag',
+              'logisticsFlagName',
+              'partBrandCode',
+              'partBrandName',
+              'partFlowState',
+              'partId',
+              'partName',
+              'partNo',
+              'partStateName',
+              'partTypeCode',
+              'partTypeId',
+              'partTypeName',
+              'partVarietyCode',
+              'partVarietyName',
+              'partWeight',
+              'planPrice',
+              'purStateName',
+              'pubCarTypeCode',
+              'pubCarTypeName',
+              'pvPurSwitch',
+              'remark',
+              'replaceCode',
+              'replaceId',
+              'replacePartNo',
+              'saleStateName',
+              'stockStateName',
+              'storeSwitch',
+              'supplierCode',
+              'supplierId',
+              'transitLimit',
+              'transitLimitName',
+              'unit',
+              'updateControlId'
+            ]
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.listQuery.pageSize,
+          pageIndex: that.listQuery.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfoF: formData
+        }
+      }
+      //转换了中台请求格式数据
+      let params = that.$getParams(queryObj)
+      // 调用中台API方法（可复用）
+      requestGraphQL(params).then(response => {
+        if (response.result === '1') {
+          if (page) {
+            //查询完返回指定的page页数
+            that.listQuery.pageIndex = page
+          }
+          that.list = response.data.paDbPartListQueryFindAll.rows
+          that.listRecords = response.data.paDbPartListQueryFindAll.records
+          that.listLoading = false
+        } else {
+          this.$message({
+            message: '查询失败：' + response.msg,
+            type: 'warn',
+            uration: 2000
+          })
+        }
+      })
+    },
+    replaceListData(data) {
+      let dataInfo = {
+        partId: data.partId,
+        partNo: data.partNo
+      }
+      const that = this
+      const queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+          paApis.paDbReplaceListQueryFindAll.InputType +
+          ')',
+        // 请求API
+        apiUrl: paApis.paDbReplaceListQueryFindAll.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: paApis.paDbReplaceListQueryFindAll.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+            // 表格中台返回网格的字段
+            apiQueryRow: [
+              'csPartId',
+              'csPartNo',
+              'dlrOrderSwitch',
+              'orderNo',
+              'partBrandCode',
+              'partBrandName',
+              'partFlowState',
+              'partId',
+              'partName',
+              'partNo',
+              'partTechSummary',
+              'pvPurSwitch',
+              'remark',
+              'replaceChainCode',
+              'replaceCode',
+              'replaceCondCode',
+              'replaceListId',
+              'replaceListSeqId',
+              'replaceName',
+              'replaceOrderNo',
+              'storeSwitch'
+            ]
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.listQuery.pageSize,
+          pageIndex: that.listQuery.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: dataInfo
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj)
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[paApis.paDbReplaceListQueryFindAll.ServiceCode]
+            .result === '1'
+        ) {
+          that.pageTotal =
+            response.data[
+              paApis.paDbReplaceListQueryFindAll.ServiceCode
+            ].records
+          that.replaceList =
+            response.data[paApis.paDbReplaceListQueryFindAll.ServiceCode].rows
+          that.listLoading = false
+        }
+      })
+    },
+    //零件号弹窗查询
+    ljData() {
+      const that = this
+      let queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+          paApis.paDbElementQueryList.InputType +
+          ')',
+        // 请求API
+        apiUrl: paApis.paDbElementQueryList.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: paApis.paDbElementQueryList.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+            apiQueryRow: [
+              'elementId',
+              'elementCode',
+              'elementNameCn',
+              'partTypeName',
+              'partTypeId',
+              'unit',
+              'partBrandCode',
+              'remark'
+            ]
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.listQuery.pageSize,
+          pageIndex: that.listQuery.pageIndex,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: that.formField
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj)
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[paApis.paDbElementQueryList.ServiceCode].result ===
+            '1' &&
+          response.data[paApis.paDbElementQueryList.ServiceCode].rows != ''
+        ) {
+          that.pageTotal =
+            response.data[paApis.paDbElementQueryList.ServiceCode].records
+          that.ljList =
+            response.data[paApis.paDbElementQueryList.ServiceCode].rows
+          that.listLoading = false
+        }
+      })
+    },
+    reset() {
+      this.listQuery = {
+        pageIndex: 1,
+        pageSize: 10,
+        limit: 20,
+        partBrand: '', //备件品牌
+        isCell: '',
+        partNo: '',
+        supplierShortName: '',
+        partStatus: '',
+        partType: '',
+        limits: '',
+        date: '',
+        orderTypeStatus: '',
+        orderTypeSaleSwitch: '',
+        orderTypeSwitch: '',
+        orderTypeBrand: '',
+        orderTypeReserveSwitch: ''
+      }
+    },
+    //备件信息维护-重置
+    resetField(param) {
+      this.$refs['ruleForm'].resetFields()
+      if (param instanceof Array) {
+        param.forEach(function(i, item) {
+          if (item) {
+            item = ''
+          }
+        })
+      } else if (param instanceof Object) {
+        for (var i in param) {
+          if (param[i]) {
+            param[i] = ''
+          }
+        }
+      }
+    },
+    //备件信息维护-保存
+    whSave() {
+      const that = this
+      that.$refs['ruleForm'].validate(valid => {
+        if (valid) {
+          let dataInfo = {
+            partName: that.maintenanceInfo.partName,
+            partName: that.maintenanceInfo.partName,
+            elementId: that.maintenanceInfo.elementId,
+            elementCode: that.maintenanceInfo.elementCode,
+            supplierId: that.maintenanceInfo.supplierId,
+            supplierCode: that.maintenanceInfo.supplierCode,
+            unit: that.maintenanceInfo.unit,
+            partFlowState: that.maintenanceInfo.partFlowState,
+            partTypeId: that.maintenanceInfo.partTypeId,
+            pvPurSwitch: that.maintenanceInfo.pvPurSwitch,
+            storeSwitch: that.maintenanceInfo.storeSwitch,
+            dlrOrderSwitch: that.maintenanceInfo.dlrOrderSwitch,
+            eRemark: that.maintenanceInfo.eRemark,
+            pRemark: that.maintenanceInfo.pRemark,
+            partBrandCode: that.maintenanceInfo.partBrandCode,
+            updateControlId: that.maintenanceInfo.updateControlId
+          }
+          const queryObj = {
+            // 请求类型&参数 保存mutation  查询query
+            type: 'mutation',
+            typeParam:
+              '($dataInfo: ' + paApis.paDbPartListMutationSave.InputType + ')',
+            // 请求API
+            apiUrl: paApis.paDbPartListMutationSave.APIUrl,
+            // 需要调用的API服务配置
+            apiServices: [
+              {
+                // API服务编码&参数
+                apiServiceCode: paApis.paDbPartListMutationSave.ServiceCode,
+                apiServiceParam: '(dataInfo: $dataInfo)',
+                // 表格中台返回网格的字段
+                apiQueryRow: []
+              }
+            ],
+            // 条件/实体参数（变量），根据typeParam中的定义配置
+            variables: {
+              // 当前中台使用的名称有dataInfo、info，具体查看API文档
+              dataInfo: dataInfo
+            }
+          }
+          //转换了中台请求格式数据
+          var paramD = that.$getParams(queryObj)
+          requestGraphQL(paramD).then(response => {
+            if (
+              response.data[paApis.paDbPartListMutationSave.ServiceCode]
+                .result === '1'
+            ) {
+              this.$message({ message: '保存成功', type: 'success' })
+              that.$refs.multipleTable.clearSelection()
+            } else {
+              this.$message({
+                message:
+                  '查询失败：' +
+                  response.data[paApis.paDbPartListMutationSave.ServiceCode]
+                    .msg,
+                type: 'warn',
+                uration: 2000
+              })
+            }
+          })
+        } else {
+          return false
+        }
+      })
+      if (that.valid) {
+      }
+    },
+    //备件信息维护-保存替换
+    replaceMutationSave() {
+      const that = this
+      const queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'mutation',
+        typeParam:
+          '($dataInfo: ' + paApis.paDbReplaceMutationSave.InputType + ')',
+        // 请求API
+        apiUrl: paApis.paDbReplaceMutationSave.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: paApis.paDbReplaceMutationSave.ServiceCode,
+            apiServiceParam: '(dataInfo: $dataInfo)',
+            // 表格中台返回网格的字段
+            apiQueryRow: []
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {
+            partId: this.maintenanceInfo.partId,
+            replacePartId: this.maintenanceInfo.replacePartNo,
+            replaceCode: this.maintenanceInfo.replaceCode,
+            summary: this.maintenanceInfo.summary,
+            remark: this.maintenanceInfo.remark
+          }
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj)
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[paApis.paDbReplaceMutationSave.ServiceCode].result ===
+          '1'
+        ) {
+          this.$message({ message: '保存成功', type: 'success' })
+          // that.$refs.multipleTable.clearSelection()
+        } else {
+          this.$message({
+            message:
+              '查询失败：' +
+              response.data[paApis.paDbReplaceMutationSave.ServiceCode].msg,
+            type: 'warn',
+            uration: 2000
+          })
+        }
+      })
+    },
+    handleSizeChange(val) {
+      this.listQuery.pageSize = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.listQuery.pageIndex = val
+      this.fetchData()
+    },
+    //传值给供应商简称公共弹窗
+    getChooseSupplierVisible(val) {
+      this.chooseSupplierVisible = false
+      this.maintenanceInfo = Object.assign({}, this.maintenanceInfo, val)
+    },
+    //传值给备件选择公共弹窗
+    getPaChooseVisible(val) {
+      this.paChooseVisible = false
+      if (val === '!**!') {
+        return false
+      }
+      if (this.paChooseType !== 'REPLACE') {
+        this.listQuery.partNo = val.name[0]
+      } else {
+        this.maintenanceInfo.replacePartNo = val.code
+      }
+    },
+    //备件信息维护弹窗关闭
+    closeMaintenanceModel() {
+      this.dialogAddPaVisible = false
+    },
+    //点击供应商简称弹窗
+    supplierShortNameModel() {
+      this.chooseSupplierVisible = true
+    },
+    closedialogUserCar() {
+      this.userCarTypeVisible = false
+    },
+    //零件号弹窗传值
+    handleRow(row, column, event) {
+      this.rowInfo = row
+    },
+    dialogClose(val) {
+      debugger
+      if (!val) {
+        this.maintenanceInfo = Object.assign(
+          {},
+          this.maintenanceInfo,
+          this.rowInfo
+        )
+        this.maintenanceInfo.eRemark = this.rowInfo.remark
+        this.maintenanceInfo.partName = this.rowInfo.elementNameCn
+        this.maintenanceInfo.partNo = this.rowInfo.elementCode
+        this.ljModel.elementId = this.rowInfo.elementId
+      }
+      this.dialogPartVisible = false
+    },
+    //点击表格传值给修改弹窗
+    handleGetRow(row, column, cell, event) {},
+    //点击新增按钮弹出备件信息维护弹窗
+    openSPInfo(args) {
+      this.opType = args.type
+      this.dialogAddPaVisible = true
+      switch (this.opType) {
+        case 'ADD':
+          this.matainBtn.disable = true
+          this.matainBtn.isShow = false
+          this.matainBtn.reverdisable = false
+          break
+        case 'EDIT':
+          this.maintenanceInfo = Object.assign(
+            {},
+            this.maintenanceInfo,
+            args.row
+          )
+          // partTypeId赋值给partTypeId
+          this.maintenanceInfo.partTypeId = this.maintenanceInfo.partTypeId
+          this.matainBtn.disable = false
+          this.matainBtn.reverdisable = true
+          this.matainBtn.isShow = true
+          break
+      }
+    },
+    getwhDlrVisible(val) {
+      this.whDlrVisible = false
+      this.maintenanceForm.WDlrCode = val.name[0]
+    },
+    //零件号弹窗显示
+    partVisibleModel() {
+      this.dialogPartVisible = true
+    },
+    //点击查看替换链按钮弹窗
+    replaceListViModel(row) {
+      this.dialogReplaceListVisible = true
+      this.repalceQueryParams.dataInfo = {
+        partId: row.partId,
+        partNo: row.partNo
+      }
+      this.$refs.replaceListTable.queryList()
+    },
+    //点击查看适用车型按钮弹窗
+    carTypeModel(row) {
+      this.maintenanceInfo.pubCarTypeCode = row.pubCarTypeCode
+      this.userCarTypeVisible = true
+    },
+    //点击备件编码弹窗
+    paChooseVisibleModel() {
+      this.paChooseType = 'ADD'
+      this.paChooseVisible = true
+    },
+    changeUseCarType(val) {
+      this.carsModelsVisible = false
+      val !== '!**!' ? (this.maintenanceInfo.useCarType = val) : false
+    },
+    getLookupValueBrand(val) {
+      this.listQuery.orderTypeBrand = val
+    },
+    getLookupValueStatus(val) {
+      this.listQuery.orderTypeStatus = val
+    },
+    getLookupValueSwitch(val) {
+      this.listQuery.orderTypeSwitch = val
+    },
+    getLookupValueSaleSwitch(val) {
+      this.listQuery.orderTypeSaleSwitch = val
+    },
+    getLookupValueReserveSwitch(val) {
+      this.listQuery.orderTypeReserveSwitch = val
+    },
+    getLookupValueExchangeCode(val) {
+      this.replaceInformation.orderTypeExchangeCode = val
+    }
+  }
+}
+</script>
+<style>
+.enter-active-right {
+  transform: translateY(0);
+  transition: all 1s ease;
+}
+.leave-active-right {
+  transform: translateY(100%);
+  transition: all 1s ease;
+}
+.enter-right {
+  transform: translateY(-100%);
+}
+.leave-right {
+  transform: translateY(0);
+}
+</style>

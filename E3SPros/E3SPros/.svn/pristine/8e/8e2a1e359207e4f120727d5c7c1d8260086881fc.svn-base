@@ -1,0 +1,509 @@
+<!--
+* description: 备件客户维护
+* author: chchhui
+* createdDate: 2019-10-15
+* logs：
+*  20191015 新增页面功能
+-->
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button">
+      <el-button type="primary"
+                 size="small"
+                 @click="fetchData">查询</el-button>
+      <el-button size="small"
+                 @click="construction">新增</el-button>
+      <el-button size="small"
+                 @click="reset">重置</el-button>
+    </div>
+
+    <div class="filter-container filter-params">
+      <el-row :gutter="26">
+        <el-col :span="22">
+          <el-row>
+            <el-col :span="6">
+              <label>客户编码</label>
+              <el-input v-model="queryParams.dataInfo.inCode"
+                        suffix-icon="el-icon-search"
+                        placeholder="请输入"
+                        size="small" />
+            </el-col>
+            <el-col :span="6">
+              <label>经销商简称</label>
+              <el-input v-model="queryParams.dataInfo.inStoreCode"
+                        suffix-icon="el-icon-search"
+                        placeholder="请输入"
+                        size="small" />
+            </el-col>
+            <LookupValue :span="6"
+                         :code="queryParams.dataInfo.billType"
+                         lookuptype="PA10010"
+                         label-name="经销商类别"
+                         @changeCode="getBillType" />
+          </el-row>
+        </el-col>
+
+      </el-row>
+    </div>
+
+    <!-- <mix-Button :dynamic-Buttons="dynamicButtons"> -->
+
+    <mix-table ref="tableList"
+               :query-params="queryParams"
+               :dynamic-table-cols="cols"
+               :is-show-select="false"
+               :is-paging="true"
+               :is-dialog="false" />
+
+    <el-dialog title="备件客户详细信息维护"
+               :visible.sync="dialogDetailHistoryVisible"
+               width="80%"
+               :append-to-body="true"
+               :close-on-click-modal="false">
+      <div class="filter-container filter-button">
+        <el-button size="small"
+                   type="primary"
+                   @click="preserve">保存</el-button>
+        <el-button size="small"
+                   @click="resetDialog">重置</el-button>
+
+        <mix-form ref="list"
+                  :dynamic-form-fields="dynamicFormFields"
+                  :dynamicFieldsData="dynamicFieldsData"
+                  :is-paging="true"
+                  :is-dialog="false" />
+      </div>
+    </el-dialog>
+    <Ling :seComQueChoDlrVisible="seComQueChoDlrVisible" />
+  </div>
+</template>
+
+<script>
+import { paApis } from '@/api/graphQLApiList/pa'
+import LookupValue from '@/components/org/LookupValue'
+import mixForm from '@/components/basicComponent/mixForm'
+import mixTable from '@/components/basicComponent/mixTable'
+import mixButton from '@/components/basicComponent/mixButton'
+import { log } from 'util'
+import Ling from '@/components/se/seCommonQueryChooseDlr'
+import { basename } from 'path'
+export default {
+  components: {
+    mixForm,
+    mixTable,
+    LookupValue,
+    Ling,
+    mixButton
+  },
+
+  data () {
+    return {
+      dialogDetailHistoryVisible: false,
+      seComQueChoDlrVisible: false,
+      row: {
+        category: '',
+        clientcode: '',
+        abbreviation: '',
+        dealer: '',
+        territory: '',
+        organization: '',
+        province: '',
+        city: '',
+        district: '',
+        linkman: '',
+        contactNumber: '',
+        businessPhone: '',
+        facsimile: '',
+        email: '',
+        status: '',
+        depositbank: '',
+        accountOpening: '',
+        invoiceApplicationName: '',
+        companyIdNumber: '',
+        theInvoiceAddress: '',
+        settlementPeriod: '',
+        creditLine: '',
+        markupPercentage: '',
+        referencePrice: '',
+        agreementPeriod: '',
+        to: '',
+        note: ''
+      },
+      //表格的配置
+      cols: [
+        {          label: '客户编码', codeField: 'inStoreCode', comps: { type: 'link', event: this.linkDialog }
+        },
+        { label: '经销商简称', codeField: 'abbreviation', width: 100 },
+        { label: '经销商类别', codeField: 'category', width: 100 },
+        { label: '联系人', codeField: 'linkman', width: 100 },
+        { label: '联系电话', codeField: 'contactNumber', width: 100 },
+        { label: '状态', codeField: 'status', width: 100 },
+        { label: '协议开始时间', codeField: 'settlementPeriod', width: 150 },
+        { label: '协议截止时间', codeField: 'to', width: 150 },
+        { label: '结算周期(月)', codeField: 'yue', width: 100 },
+        { label: '信用额度(元)', codeField: 'creditLine', width: 100 },
+        { label: '欠款金额', codeField: 'amountSowed', width: 100 },
+        { label: '经销商地址', codeField: 'organization', width: 100 },
+        { label: '邮政编码', codeField: 'sourceOrderCode', width: 100 },
+        { label: '传真', codeField: 'facsimile', width: 100 },
+        { label: 'email', codeField: 'email', width: 100 },
+        { label: '备注', codeField: 'note', width: 100 }
+      ],
+      queryParams: {
+        APIUrl: paApis.SparePartsCustomerMaintenance.APIUrl,
+        InputType: paApis.SparePartsCustomerMaintenance.InputType,
+        ServiceCode: paApis.SparePartsCustomerMaintenance.ServiceCode,
+        dataInfo: {
+          inCode: '',
+          billType: '',
+          inStoreCode: ''
+        },
+        apiQueryRow: [
+          'inStoreCode',
+          'abbreviation',
+          'category',
+          'linkman',
+          'contactNumber',
+          'status',
+          'settlementPeriod',
+          'to',
+          'yue',
+          'creditLine',
+          'amountSowed',
+          'organization',
+          'sourceOrderCode',
+          'facsimile',
+          'email',
+          'note'
+        ]
+      },
+      dynamicFormFields: [
+        {
+          label: '经销商类别',
+          codeField: 'category',
+          isShowLabel: true,
+          lookuptype: 'PA0043',
+          span: 8,
+          sendCode: () => null,
+          focusCode: () => null,
+          changeCode: val => {
+            this.dynamicFormFields.flitType = val
+          },
+          isComponent: true,
+          component: () => import('@/components/org/LookupValue')
+        },
+        {
+          label: '客户编码',
+          codeField: 'clientcode',
+          type: 'inputTxt',
+          span: 8,
+          event: this.handleClientcode
+        },
+        {
+          label: '经销商简称',
+          codeField: 'abbreviation',
+          type: 'inputTxt',
+          span: 8,
+          readonly: true
+        }, {
+          label: '经销商全称',
+          codeField: 'dealer',
+          type: 'inputTxt',
+          span: 8,
+          readonly: true
+        }, {
+          label: '经销商区域',
+          codeField: 'territory',
+          type: 'inputTxt',
+          span: 8,
+          readonly: true
+        }, {
+          label: '机构代码',
+          codeField: 'organization',
+          type: 'inputTxt',
+          span: 8,
+          readonly: true
+        },
+        {
+          label: '省',
+          codeField: 'province',
+          isShowLabel: true,
+          lookuptype: 'PA0043',
+          span: 8,
+          sendCode: () => null,
+          focusCode: () => null,
+          changeCode: val => {
+            this.dynamicFieldsData.province = val
+          },
+          isComponent: true,
+          component: () => import('@/components/org/LookupValue')
+        },
+        {
+          label: '市',
+          codeField: 'city',
+          isShowLabel: true,
+          lookuptype: 'PA0043',
+          span: 8,
+          sendCode: () => null,
+          focusCode: () => null,
+          changeCode: val => {
+            this.dynamicFieldsData.city = val
+          },
+          isComponent: true,
+          component: () => import('@/components/org/LookupValue')
+        }, {
+          label: '区(县)',
+          codeField: 'district',
+          isShowLabel: true,
+          lookuptype: 'PA0043',
+          span: 8,
+          sendCode: () => null,
+          focusCode: () => null,
+          changeCode: val => {
+            this.dynamicFieldsData.district = val
+          },
+          isComponent: true,
+          component: () => import('@/components/org/LookupValue')
+        },
+        {
+          label: '经销商地址',
+          codeField: 'organization',
+          type: 'inputTxt',
+          span: 24,
+          readonly: true
+        },
+        {
+          label: '联系人',
+          codeField: 'linkman',
+          type: 'inputTxt',
+          span: 8,
+          readonly: true
+        },
+        {
+          label: '联系电话',
+          codeField: 'contactNumber',
+          type: 'inputTxt',
+          span: 8,
+          readonly: true
+        },
+        {
+          label: '办公电话',
+          codeField: 'businessPhone',
+          type: 'inputTxt',
+          span: 8,
+          readonly: true
+        },
+        {
+          label: '传真',
+          codeField: 'facsimile',
+          type: 'inputTxt',
+          span: 8,
+          readonly: true
+        },
+        {
+          label: 'email',
+          codeField: 'email',
+          type: 'inputTxt',
+          span: 8,
+          readonly: true
+        },
+        {
+          label: '状态',
+          codeField: 'status',
+          isShowLabel: true,
+          lookuptype: 'PA0043',
+          span: 8,
+          sendCode: () => null,
+          focusCode: () => null,
+          changeCode: val => {
+            this.dynamicFieldsData.status = val
+          },
+          isComponent: true,
+          component: () => import('@/components/org/LookupValue')
+        }, {
+          label: '开户银行',
+          codeField: 'depositbank',
+          type: 'inputTxt',
+          span: 8,
+          rules: ''
+        }, {
+          label: '开户账号',
+          codeField: 'accountOpening',
+          type: 'inputTxt',
+          span: 8,
+          rules: { required: true, message: '开户账号', trigger: 'blur' }
+        },
+        {
+          label: '发票申请名',
+          codeField: 'invoiceApplicationName',
+          type: 'inputTxt',
+          span: 8,
+          rules: { required: true, message: '发票申请名', trigger: 'blur' }
+        },
+        {
+          label: '公司税号',
+          codeField: 'companyIdNumber',
+          type: 'inputTxt',
+          span: 8,
+          rules: { required: true, message: '公司税号', trigger: 'blur' }
+        },
+        {
+          label: '发票地址',
+          codeField: 'theInvoiceAddress',
+          type: 'inputTxt',
+          span: 8,
+          rules: { required: true, message: '发票地址', trigger: 'blur' },
+          readonly: true
+        },
+        {
+          label: '结算周期(月)',
+          codeField: 'yue ',
+          type: 'inputTxt',
+          span: 8,
+          rules: { required: true, message: '结算周期(月)', trigger: 'blur' }
+        }, {
+          label: '信用额度(元)',
+          codeField: 'creditLine  ',
+          type: 'inputTxt',
+          span: 8,
+          rules: { required: true, message: '信用额度(元)', trigger: 'blur' }
+        },
+        {
+          label: '加价率(%)',
+          codeField: 'markupPercentage ',
+          type: 'inputTxt',
+          span: 8,
+          rules: { required: true, message: '加价率(%)', trigger: 'blur' }
+        }, {
+          label: '参考基价',
+          codeField: ' referencePrice',
+          isShowLabel: true,
+          lookuptype: 'PA0043',
+          span: 8,
+          sendCode: () => null,
+          focusCode: () => null,
+          changeCode: val => {
+            this.dynamicFieldsData.flitType = val
+          },
+          isComponent: true,
+          component: () => import('@/components/org/LookupValue')
+        },
+        {
+          label: '协议期限',
+          codeField: 'agreementPeriod ',
+          type: 'inputDate',
+          span: 8,
+          rules: { required: true, message: '协议期限', trigger: 'blur' }
+        },
+
+        {
+          label: '至',
+          codeField: 'to ',
+          type: 'inputDate',
+          span: 8,
+          rules: { required: true, message: '至', trigger: 'blur' }
+        },
+        {
+          label: '备注',
+          codeField: 'note',
+          type: 'inputTxt',
+          span: 24
+        }
+
+      ],
+      dynamicFieldsData: {
+        category: '',
+        clientcode: '',
+        abbreviation: '',
+        dealer: '',
+        territory: '',
+        organization: '',
+        province: '',
+        city: '',
+        district: '',
+        linkman: '',
+        contactNumber: '',
+        businessPhone: '',
+        facsimile: '',
+        email: '',
+        status: '',
+        depositbank: '',
+        accountOpening: '',
+        invoiceApplicationName: '',
+        companyIdNumber: '',
+        theInvoiceAddress: '',
+        settlementPeriod: '',
+        creditLine: '',
+        markupPercentage: '',
+        referencePrice: '',
+        agreementPeriod: '',
+        to: '',
+        note: ''
+      }
+
+    }
+  },
+  methods: {
+    // 查询
+    fetchData () {
+      this.$refs.tableList.queryList()
+    },
+    //  赋值 
+    linkDialog (row) {
+      this.row = row
+      this.dialogDetailHistoryVisible = true
+      this.seComQueChoDlrVisible = false
+      for (let i in this.dynamicFieldsData) {
+        this.dynamicFieldsData[i] = row[i]
+      }
+    },
+    closeDialog () {
+      this.dialogFormVisible = false
+    },
+    getBillType (val) {
+      console.log(val)
+      this.queryParams.dataInfo.billType = val
+    },
+    reset () {
+      this.queryParams.dataInfo.inStoreCode = ''
+      this.queryParams.dataInfo.billType = ''
+      this.queryParams.dataInfo.relateOrderCode = ''
+    },
+    handleClientcode () {
+
+      this.seComQueChoDlrVisible = true
+      this.dialogDetailHistoryVisible = false
+    },
+    // 弹框保存
+    preserve () {
+      basename
+      for (let i in this.dynamicFieldsData) {
+        if (this.dynamicFieldsData[i] == "") {
+          console.log(this.dynamicFieldsData[i])
+
+        }
+      }
+      // let dynamicFieldsData = this.dynamicFieldsData
+
+
+
+
+
+
+
+    },
+    // 弹框重置
+    resetDialog () {
+      for (let i in this.dynamicFieldsData) {
+        this.dynamicFieldsData[i] = this.row[i]
+      }
+    },
+    // 新建跳转
+    construction () {
+      this.$router.push({ name: 'paNewFlitOrder' })
+    }
+
+  }
+
+}
+</script>

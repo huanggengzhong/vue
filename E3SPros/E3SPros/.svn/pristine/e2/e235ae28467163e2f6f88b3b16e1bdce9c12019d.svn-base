@@ -1,0 +1,644 @@
+<!--
+* 
+* 创建人: xgz
+* modify:xgz 2019年10月18日11:18:42
+*  
+-->
+<template>
+  <div class="app-container app-container-table">
+    <el-steps :active="active" finish-status="success">
+      <el-step title="建单"></el-step>
+      <el-step title="派单"></el-step>
+      <el-step title="处理"></el-step>
+      <el-step title="审批"></el-step>
+      <el-step title="回访"></el-step>
+      <el-step title="结案"></el-step>
+    </el-steps>
+
+    <crmGroupSubmit :formSubmitButton="formSubmitButton" />
+    <el-form class="editPer filter-params-crm-scroll crm-s-scroll edit">
+
+      <div class="filter-container-crm filter-title-crm">{{infoComponents[0].title}}</div>
+      <div class="filter-container-crm filter-params-crm">
+        <crmGroupForm :dynamicComponentss="infoComponents[0].tableComponents" :values="formField" />
+      </div>
+
+      <div class="filter-container-crm filter-title-crm">{{infoComponents[1].title}}</div>
+      <div class="filter-container-crm filter-params-crm">
+        <crmGroupForm :dynamicComponentss="infoComponents[1].tableComponents" :values="formField" />
+      </div>
+
+      <div class="filter-container-crm filter-title-crm">{{infoComponents[2].title}}</div>
+      <div class="filter-container-crm filter-params-crm">
+        <crmGroupForm :dynamicComponentss="infoComponents[2].tableComponents" :values="formField" />
+      </div>
+
+      <edit :dynamicEditRowData="editRowData" :popupsVisible="editPopupsVisible" :key="editPopupsKey" :popupsState="editPopupsState" @close="close"></edit>
+    </el-form>
+  </div>
+</template>
+<script>
+import { formMixins } from "@/components/mixins/formMixins";
+import { crmApis } from "@/api/graphQLApiList/crm";
+import { requestGraphQL } from "@/api/commonRequest";
+import crmGroupForm from "@/components/crm/commonComponents/crmGroupForm";
+import crmGroupSubmit from "@/components/crm/commonComponents/crmGroupSubmit";
+import edit from "@/views/crm/cu/CustInfo/keyInfo";
+//客户车辆信息
+
+export default {
+  name: "AddConsultOrder",
+  components: {
+    crmGroupForm,
+    crmGroupSubmit,
+    edit
+  },
+  data() {
+    return {
+      keyInfo: false,
+      ismore: false,
+      ismutiple: false,
+      action: "", //证件上传地址
+      accepttype:
+        ".jpg,.jpeg,.png,.gif,.bmp,.pdf,.JPG,.JPEG,.PBG,.GIF,.BMP,.PDF", //上传文件类型
+      text1: "选择文件",
+      limit: 1,
+      showedit: false,
+      params: {},
+      nagflag: true,
+      posflag: false,
+      flag: true,
+      editPopupsKey: "",
+      editPopupsState: "",
+      editPopupsVisible: false,
+      infoComponents: [
+        {
+          title: "客户车辆信息",
+          tableComponents: [
+            {
+              compKey: "compKey1",
+              labelName: "客户名称",
+              codeField: "custName",
+              isRequire: false,
+              disabled: true,
+              isMust: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            // 非值列表  需处理
+            {
+              compKey: "compKey2",
+              labelName: "性别",
+              codeField: "genderName", //genderCode
+              isMust: true,
+              disabled: true,
+              isMul: false,
+              lookuptype: "DB0022",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            //
+            {
+              compKey: "compKey3",
+              labelName: "电话",
+              codeField: "contactTel",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            // 下面这个字段没有，拿上面的字段
+            {
+              compKey: "compKey4",
+              labelName: "备用电话",
+              codeField: "backupTel",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey5",
+              labelName: "客户名称",
+              codeField: "useCustName",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            // 非值列表  需处理
+            {
+              compKey: "compKey6",
+              labelName: "性别",
+              codeField: "useGenderName", //genderCode
+              isMul: false,
+              isMust: true,
+              disabled: true,
+              lookuptype: "DB0022",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            {
+              compKey: "compKey7",
+              labelName: "用车人电话",
+              codeField: "usePhone",
+              isRequire: false,
+              disabled: true,
+              isMust: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey8",
+              labelName: "备用电话",
+              codeField: "useBackupTel",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey9",
+              labelName: "车系",
+              codeField: "vCarseriesDesc",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey10",
+              labelName: "车牌号",
+              codeField: "carLicense",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey11",
+              labelName: "VIN码",
+              codeField: "vin",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey12",
+              labelName: "发动机号",
+              codeField: "engineNo",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey13",
+              labelName: "车辆品牌",
+              codeField: "carBrandCn",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey14",
+              labelName: "车型",
+              codeField: "vCartypeDesc",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            }
+
+            //   {
+            //     compKey: "compKey5",
+            //     labelName: "省份",
+            //     codeField: "provinceId",
+            //     textField: "addrProvince",
+            //     isRequire: false,
+            //     isMust: true,
+            //     isMul: false,
+            //     lookuptype: crmApis.mdmOrgProvinceQueryFindAll,
+            //     changeCode: this.changeCityByProvince,
+            //     component: () =>
+            //       import("@/components/crm/lookupValue/singleDropList")
+            //   },
+            //   {
+            //     compKey: "compKey6",
+            //     labelName: "城市",
+            //     codeField: "cityId",
+            //     textField: "addrCity",
+            //     isRequire: false,
+            //     isMust: true,
+            //     isMul: false,
+            //     lookuptype: crmApis.mdmOrgCityQueryFindAll,
+            //     changeCodeArray: [
+            //       { provinceId: this.formField ? this.formField.provinceId : "" }
+            //     ],
+            //     changeCode: this.changeCityByProvince,
+            //     component: () =>
+            //       import("@/components/crm/lookupValue/secondDropList")
+            //   },
+            //   {
+            //     compKey: "compKey7",
+            //     labelName: "区县",
+            //     codeField: "countyId",
+            //     textField: "addrCounty",
+            //     isRequire: false,
+            //     isMust: true,
+            //     isMul: false,
+            //     lookuptype: crmApis.mdmOrgCommunityQueryFindAll,
+            //     component: () =>
+            //       import("@/components/crm/lookupValue/singleDropList")
+            //   },
+            //   {
+            //     compKey: "compKey8",
+            //     labelName: "类别",
+            //     codeField: "classLevel",
+            //     isRequire: false,
+            //     isMust: true,
+            //     isMul: false,
+            //     lookuptype: "DB0026",
+            //     component: () =>
+            //       import("@/components/crm/lookupValue/lookupvalue")
+            //   },
+            //   {
+            //     compKey: "compKey9",
+            //     labelName: "民族",
+            //     codeField: "nationCode",
+            //     isRequire: false,
+            //     isMust: true,
+            //     isMul: false,
+            //     lookuptype: "DB0026",
+            //     component: () =>
+            //       import("@/components/crm/lookupValue/lookupvalue")
+            //   },
+            //   {
+            //     compKey: "compKey17",
+            //     labelName: "详细地址",
+            //     codeField: "addrStreet",
+            //     isRequire: false,
+            //     isMust: true,
+            //     span: 12,
+            //     component: () => import("@/components/crm/textbox/crmTextInput")
+            //   }
+          ]
+        },
+        {
+          title: "单据信息",
+          tableComponents: [
+            {
+              compKey: "compKey15",
+              labelName: "服务单号",
+              codeField: "serverOrder",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey16",
+              labelName: "咨询日期",
+              codeField: "createdDate",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/Time/crmdatePicker")
+            },
+            // 费值列表，编码有问题
+            {
+              compKey: "compKey17",
+              labelName: "信息来源",
+              codeField: "serverSourceName", //genderCode
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              isMul: false,
+              lookuptype: "DB0022",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            {
+              compKey: "compKey18",
+              labelName: "咨询次数",
+              codeField: "addQty",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            // 弹窗需修改
+            {
+              compKey: "compKey23",
+              labelName: "服务类别",
+              codeField: "serverFullClassName",
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            // 弹窗需修改
+            {
+              compKey: "compKey24",
+              labelName: "相关基准车系",
+              codeField: "baseSeriesName",
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            // 弹窗需修改
+            {
+              compKey: "compKey27",
+              labelName: "责任网点",
+              codeField: "dutyDlrName",
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            // 弹窗需修改
+            {
+              compKey: "compKey28",
+              labelName: "责任部门",
+              codeField: "nextDealOrgName",
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            // 弹窗需修改
+            {
+              compKey: "compKey29",
+              labelName: "责任人",
+              codeField: "nextDealEmpName",
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey30",
+              labelName: "责任人电话",
+              codeField: "nextDealPhone",
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey31",
+              labelName: "派工说明",
+              codeField: "distRemark",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              span: 12,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey32",
+              labelName: "备注",
+              codeField: "remark",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              span: 12,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            }
+          ]
+        },
+        {
+          title: "追加内容",
+          tableComponents: [
+            {
+              compKey: "compKey32",
+              labelName: "摘要",
+              codeField: "remark",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              span: 12,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey32",
+              labelName: "客户要求",
+              codeField: "remark",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              span: 12,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey32",
+              labelName: "处理内容",
+              codeField: "remark",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              span: 12,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey32",
+              labelName: "坐席回答",
+              codeField: "remark",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              span: 12,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            }
+          ]
+        },
+        {
+          title: "",
+          tableComponents: [
+            {
+              compKey: "compKey14",
+              labelName: "导入",
+              codeField: "photo1",
+              isMust: true,
+              fileList: [],
+              buttonText: "选择文件",
+              isRequireUpload: true,
+              isUpload: true,
+              component: () => import("@/components/crm/EjectWindows/UpLoad")
+            }
+          ]
+        }
+      ],
+      formSubmitButton: [
+        {
+          compKey: "buttonKey1",
+          text: "暂存",
+          size: "small",
+          type: "",
+          clickEvent: () => this.save(),
+          isShow: true
+        },
+        {
+          compKey: "buttonKey2",
+          text: "追加",
+          size: "small",
+          type: "",
+          clickEvent: () => this.commit(),
+          isShow: true
+        },
+        {
+          compKey: "buttonKey2",
+          text: "追加结案",
+          size: "small",
+          type: "",
+          clickEvent: () => this.appendOver(),
+          isShow: true
+        }
+      ],
+
+      formField: {
+        custName: "",
+        genderName: "",
+        contactTel: "",
+        backupTel: "",
+
+        useCustName: "",
+        useGenderName: "",
+        usePhone: "",
+        useBackupTel: "",
+
+        vCarseriesDesc: "",
+        carLicense: "",
+        vin: "",
+        engineNo: "",
+        carBrandCn: "",
+        vCartypeDesc: "",
+
+        serverOrder: "",
+        createdDate: "",
+        serverSourceName: "",
+        addQty: "",
+
+        linkBillCode: "",
+        faultDate: "",
+        faultMileage: "",
+        mileage: "",
+
+        serverFullClassName: "",
+        baseSeriesName: "",
+        serverLevelName: "",
+        serverUrgencyName: "",
+
+        dutyDlrName: "",
+        nextDealOrgName: "",
+        nextDealEmpName: "",
+        nextDealPhone: "",
+
+        distRemark: "",
+        remark: "",
+        // 追加内容
+        xx1: "", //摘要
+        xx2: "", //客户要求
+        xx3: "", //处理内容
+        xx4: "" //坐席回答
+      }
+    };
+  },
+  mounted() {
+    let serverOrderLink = this.$route.params.serverOrder;
+    alert(serverOrderLink);
+    let applyDelayReasonLink = this.$route.params.delayReson;
+    let applyTimeLink = this.$route.params.applyTime;
+
+    this.$nextTick(() => {
+      this.initData(serverOrderLink, applyDelayReasonLink); //父页面拿过来
+    });
+  },
+  methods: {
+    initData: function(serverOrderLink, applyDelayReasonLink, applyTimeLink) {
+      let that = this;
+      debugger;
+      that.formField.delayReson = applyDelayReasonLink;
+      that.formField.applyTime = applyTimeLink;
+      let queryObj = {
+        // api配置
+        apiConfig: crmApis.csBuComplaintOrderQueryFindAll,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: [
+              "serverOrder",
+              "createdDate",
+              "serverSourceName",
+              "addQty",
+              "linkBillCode",
+
+              "faultDate",
+              "faultMileage",
+              "mileage",
+
+              "serverFullClassName",
+              "baseSeriesName",
+              "serverLevelName",
+              "serverUrgencyName",
+
+              "dutyDlrName",
+              "nextDealOrgName",
+              "nextDealEmpName",
+              "nextDealPhone",
+
+              "distRemark",
+              "remark",
+              // 客户信息
+              "custName",
+              "genderName",
+              "contactTel",
+              "backupTel",
+
+              "vCarseriesDesc",
+              "carLicense",
+              "vin",
+              "engineNo",
+              "carBrandCn",
+              "vCartypeDesc",
+
+              "useCustName",
+              "useGenderName",
+              "usePhone",
+              "useBackupTel"
+            ]
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: 10,
+          pageIndex: 1,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {
+            oemCode: "1",
+            groupCode: "1",
+            serverOrder: serverOrderLink //带单号查询
+          }
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (response.data[queryObj.apiConfig.ServiceCode].result == "1") {
+          let results = response.data[queryObj.apiConfig.ServiceCode].rows[0];
+          for (let key in that.formField) {
+            if (results.hasOwnProperty(key)) {
+              that.formField[key] = results[key];
+            }
+          }
+        }
+      });
+    },
+    save() {},
+    commit() {},
+    appendOver() {}
+  }
+};
+</script>
+<style>
+.app-main[data-v-078753dd] {
+  overflow: scroll;
+}
+</style>

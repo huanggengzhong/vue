@@ -1,0 +1,860 @@
+<template>
+    <section class="carType">
+        <el-dialog
+        :title="thimeTitle"
+        :visible.sync="paChoosePartVisible"
+        @close="close"
+        :append-to-body="true" 
+        :close-on-click-modal="false" 
+        width="80%"
+        @open="initFetchData"
+        >
+            <el-row>
+                <el-col :span="type === 0 ? 24: 16" >
+                        <div class="filter-container filter-params">
+                            <el-row >
+                                <el-col :span="8">
+                                <label>备件编码</label>
+                                <el-input
+                                    v-model="listQuery.dataInfo.partNo"
+                                    size="small"
+                                />
+                                </el-col>
+                                <el-col :span="8">
+                                <label>备件名称</label>
+                                <el-input
+                                    v-model="listQuery.dataInfo.partName"
+                                    size="small"
+                                />
+                                </el-col>
+                                <el-col :span="8">
+                                <label>备件类别</label>
+                                    <el-select
+                                    v-model="listQuery.dataInfo.partTypeId"
+                                    placeholder="请选择"
+                                    clearable
+                                    size="small">
+                                    <el-option v-for="(item, i) in paType" :key="`paType_${item.partTypeId}${i}`" :label="item.partTypeName" :value="item.partTypeId"></el-option>
+                                    </el-select>
+                                </el-col>
+                                <!-- <carTypeConfig :carTypeVisible="carTypeVisible" @changeCode="getCarTypeCode"></carTypeConfig> -->
+                                <el-col :span="8">
+                                    <label>备件属性</label>
+                                    <el-select
+                                    v-model="listQuery.dataInfo.partPropertyCode"
+                                    placeholder="请选择"
+                                    clearable
+                                    size="small">
+                                    <el-option v-for="(item, i) in partProperty" :key="`partProperty${item.lookupValueCode}${i}`" :label="item.lookupValueName" :value="item.lookupValueCode"></el-option>
+                                    </el-select>
+                                </el-col>
+                                 <el-col :span="8">
+                                <label>备件车系</label>
+                                    <el-select
+                                    v-model="listQuery.dataInfo.pubSeriesCode"
+                                    @change="getPubCarTypeCode"
+                                    placeholder="请选择"
+                                    clearable
+                                    size="small">
+                                    <el-option v-for="(item, i) in pubSeries" :key="`pubSeries_${item.carSeriesCode}${i}`" :label="item.carSeriesCn" :value="item.carSeriesCode"></el-option>
+                                    </el-select>
+                                </el-col>
+                                 <el-col :span="8">
+                                <label>备件车型</label>
+                                    <el-select
+                                    v-model="listQuery.dataInfo.pubCarTypeCode"
+                                    placeholder="请选择"
+                                    clearable
+                                    size="small">
+                                    <el-option v-for="(item, i) in pubCar" :key="`pubCar_${item.carTypeCode}${i}`" :label="item.label" :value="item.carTypeCode"></el-option>
+                                    </el-select>
+                                </el-col>
+                                <el-col :span="8">
+                                    <el-checkbox
+                                    v-model="listQuery.dataInfo.isRefine"
+                                    size="small"
+                                    >精品</el-checkbox>
+                                </el-col>
+                                <el-col :span="8">
+                                    <el-checkbox
+                                    v-model="listQuery.dataInfo.appendcondition"
+                                    size="small"
+                                    >显示已选备件</el-checkbox>
+                                </el-col>
+                                <el-col :span="8">
+                                    <el-checkbox
+                                    v-model="listQuery.dataInfo.notShowZero"
+                                    size="small"
+                                    >显示库存数量为0的备件</el-checkbox>
+                                </el-col>
+                                <el-col :span="24">
+                                    <div class="filter-container filter-button">
+                                        <el-upload
+                                            class="upload-demo el-upload-btn"
+                                            action="https://jsonplaceholder.typicode.com/posts/"
+                                            :show-file-list="false"
+                                            :limit="1"
+                                            :file-list="fileList">
+                                            <a size="small">导入模板下载</a>
+                                        </el-upload>
+                                        <el-button type="primary" size="small" @click="fetchData()">查询</el-button>
+                                        <!-- <el-upload
+                                            class="upload-demo el-upload-btn"
+                                            action="https://jsonplaceholder.typicode.com/posts/"
+                                            :show-file-list="false"
+                                            :on-success="inputSelect"
+                                            :limit="1"
+                                            :file-list="inputSelectFileList">
+                                            <el-button size="small" >导入查询</el-button>
+                                        </el-upload> -->
+
+   <el-upload 
+       class="upload-demo" 
+       ref="upload"
+       style="width:68px;display:inline-block;"
+       :file-list="fileList"
+       name="excelFile"
+       action=""
+       :headers="uploadHeaders"
+       :http-request="handleChange"
+       :on-preview="handlePreview"
+       :on-remove="handleRemove"
+       :on-error="uploadFalse"
+       :on-success="uploadSuccess"
+       :auto-upload="true"
+       :before-upload="beforeAvatarUpload"
+       :before-remove="beforeRemove"
+       :on-exceed="handleExceed"
+       :on-change="handFileListChange"
+       :limit="1"
+       :show-file-list="false"
+       list-type="text">
+        <el-button size="small">导入查询</el-button>
+      </el-upload>
+
+                                        <el-upload
+                                        class="upload-demo el-upload-btn"
+                                        action="https://jsonplaceholder.typicode.com/posts/"
+                                        :show-file-list="false"
+                                        multiple
+                                        :limit="3"
+                                        :on-success="peplaceFile"
+                                        :file-list="peplaceFileList">
+                                        <el-button size="small" >替换件选择</el-button>
+                                        </el-upload>
+                                        <el-button size="small" v-show="type === 0" @click="sendData">选择</el-button>
+                                        <el-button size="small" @click="reset">重置</el-button>
+                                    </div>
+                                </el-col>
+                            </el-row>
+                        </div>
+                        <div class="filter-container filter-title">查询结果</div>
+                        <el-table
+                        :data="spList"
+                        element-loading-text="Loading"
+                        border
+                        stripe
+                        max-height="280"
+                        style="width: 100%"
+                        highlight-current-row
+                        @selection-change="tableListSelect"
+                        ref="chooseSPTable"
+                        @select-all="tableListSelect"
+                        @current-change="currentRow">
+                            <el-table-column align="center" label="序号" width="60">
+                                <template slot-scope="scope">
+                                {{ scope.$index + 1 }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column v-if="type === 1" type="selection" width="60" align="center"/>
+                            <el-table-column label="备件编码" width="150" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.partNo }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="备件名称" width="150" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.partName }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="备件类别" width="80" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.partTypeName }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="备件车系" width="80" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.pubSeriesName }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="备件车型" width="80" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.pubCarTypeCode }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="实际库存" width="80" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.storeQty }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="采购包装含量" width="110" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.purPackQty }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="最小销售数量" width="110" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.dlrLeastSaleQty }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="销售价" width="80" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.salePrice }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="可用库存" width="80" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.canUseQty }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="订货开关" width="80" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.dlrOrderSwitchName }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="备件状态" width="80" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.partFlowStateName }}
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <el-pagination
+                        background
+                        layout="prev, pager, next, sizes, ->, total"
+                        prev-text="上一页"
+                        next-text="下一页"
+                        :page-sizes="[10, 20, 30]"
+                        :page-size="10"
+                        :total="spRecords"
+                        @size-change="handleSizeChange"
+                        @current-change="handleCurrentChange"
+                        />
+                </el-col>
+                <el-col v-show="type === 1" :span="8">
+                    <div class="filter-container filter-title">选择信息
+                        <span style="float:right;margin-right: -8px;">
+                            <el-button size="small" type="primary" @click="affirm">确认</el-button>
+                            <el-button size="small" @click="cutOff">删除</el-button>
+                        </span>
+                    </div>
+                    <el-table
+                        :data="tableList"
+                        ref="selectTable"
+                        element-loading-text="Loading"
+                        max-height="350"
+                        border
+                        stripe
+                        highlight-current-row
+                        @selection-change="handleSelectionChange"
+                        >
+                            <el-table-column align="center" label="序号" width="55">
+                                <template slot-scope="scope">
+                                {{ scope.$index + 1 }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column type="selection" width="60" align="center"/>
+                            <el-table-column label="备件编码" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.partNo }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="备件名称" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.partName }}
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                </el-col>
+            </el-row>
+        </el-dialog>
+    </section>
+ </template>
+<script>
+import { doPaChoosePartQuery,doFetchPaType,paChoosePartImport} from '@/api/se/paChoosePart'
+import carTypeConfig from '@/components/org/carTypeConfig'
+import { requestGraphQL } from '@/api/commonRequest'
+import { seApis } from '@/api/graphQLApiList/se'
+import { paApis } from '@/api/graphQLApiList/pa'
+import { orgApis } from '@/api/graphQLApiList/org'
+import config from '@/utils/config'
+export default {
+ components: {
+    carTypeConfig,
+    config
+  },
+  props:{
+    paChoosePartVisible: {
+      type: Boolean,
+      default: function(){
+        return false
+      }
+    },
+    code:{
+      type: String,
+      default: function(){
+        return ''
+      }
+    },
+    type:{
+      type: Number,
+      default: function(){
+        return 1 //多选是1 ，单选是0
+      }
+    },
+    initData:{
+        type: Object,
+        default: function(){
+        return {}
+      }
+    },
+  },
+  data() {
+    return {
+        importQuery:{},
+        uploadHeaders: {
+        Authorization: this.$store.getters.token
+      },
+      codeInside: this.code,
+      thimeTitle:'工时多选',
+      listLoading: true,
+      carTypeVisible:false,
+      list: [],
+      spList: [],
+      spRecords: 0,
+      inputSelectFileList:[],
+      inputSelectQuery:{
+        pageIndex: 1,
+        pageSize: 10,
+        dataInfo:
+         {
+            oemcode:null,
+            groupCode:null,
+            dlrId:null,
+            parentDlrId:null,
+            ownerType:null,
+            partNo:null,
+            isMuilty:null,
+            partName:null,
+            partPropertyCode:null,
+            partTypeCode:null,
+            pubCarTypeCode:null,
+            notShowZero:null,
+            isRefine:null,
+            inputSelectFileList:null
+        }
+      },
+      peplaceFileList:[],
+      peplaceQuery:{
+        pageIndex: 1,
+        pageSize: 10,
+        dataInfo: {
+        oemcode:null,
+        groupCode:null,
+        dlrId:null,
+        parentDlrId:null,
+        ownerType:null,
+        partNo:null,
+        isMuilty:null,
+        partName:null,
+        partPropertyCode:null,
+        partTypeCode:null,
+        pubCarTypeCode:null,
+        notShowZero:null,
+        isRefine:null,
+        peplaceFileList:null
+        }
+      },
+      fileList:[],
+      tableList:[],
+      rowData: {},
+      tableChooseList:[],
+      paType:[],
+      partProperty:[],
+      pubSeries:[],
+      dataInfo:"",
+      pubCar:[],
+      listQuery: {
+        pageIndex: 1,
+        pageSize: 10,
+        dataInfo: {
+            partName: '',
+            partNo: '',
+            partTypeId: '',
+            isRefine: '',//精品
+            // storeSwitch: '',//备件开关
+            dlrOrderSwitch: '',//销售开关
+            // partPropertyCode: '',//备件状态
+            // lastUpdatedDateS: '',
+            // lastUpdatedDateD: ''
+        }
+      }
+    }
+  },
+  created() {
+    this.type === 1 ? this.thimeTitle='备件多选': this.thimeTitle='备件单选'
+    // this.initFetchData()
+  },
+  methods: {
+      //上传成功
+    uploadSuccess(response) {
+    // debugger
+        //if(response.data[apiSeDbWiPriceModel.seDbWiPriceModelMutationDlrImport.ServiceCode].rows) {
+        if(response.data.result === '1' && response.data.rows != null && response.data.rows.length > 0) {
+          var tempList = response.data.rows;
+          var implistTemp = [];
+          //导入Excel模块列头、数据是否必填
+          var excelCols = [
+            {name:'备件编号',required:true},
+            
+          ]
+          var isErrorTemplate = false // 模版错误
+          var firstRow = tempList[0]
+          this.importQuery.partNo = '';
+          var list = tempList;
+          for(var i=0;i<(list.length-1);i++){
+              this.importQuery.partNo = this.importQuery.partNo+list[i]['备件编号']+',';
+          }
+           this.importQuery.partNo = this.importQuery.partNo+list[list.length-1]['备件编号'];
+           this.importQuery.dlrId = this.$store.getters.orgInfo.DLR_ID;
+        //    if(list.length>1){
+        //        this.importQuery.isMuilty = '1';
+        //    }
+          
+          excelCols.forEach(col => {// 检查模版是否错误
+            if(!firstRow.hasOwnProperty(col.name)) isErrorTemplate = true
+                
+          })
+          if (isErrorTemplate) {
+          this.$alert('Excel模版错误', '提示', {
+            confirmButtonText: '确定',
+            type: 'warning'
+          })
+          
+          this.$refs.upload.clearFiles()
+          this.dlrList = []
+          return
+        }
+        var dataNullErrorMsg = ''
+        for(var i = 0; i < tempList.length; i++) { // 检查数据是否为空
+          if(!this.$utils.isEmpty(dataNullErrorMsg)) break
+          var row = tempList[i]
+          for(var j = 0; j < excelCols.length; j++) {
+            var col = excelCols[j];
+            if(col.required == true && this.$utils.isEmpty(row[col.name])) {
+              dataNullErrorMsg = `Excel第${i+2}行“${col.name}”不能为空`
+              break
+            }
+          } 
+       
+        }
+         
+          
+        
+        if (!this.$utils.isEmpty(dataNullErrorMsg)) {
+          this.$alert(dataNullErrorMsg, '提示', {
+            confirmButtonText: '确定',
+            type: 'warning'
+          })
+          this.$refs.upload.clearFiles()
+          this.dlrList = []
+          return
+        }
+        tempList.forEach(row => {
+          var newRow = {
+            partNo: row.车辆品牌,
+            
+          }
+          implistTemp.push(newRow)
+        })
+        //debugger
+        this.list = implistTemp
+         //调用查询方法
+         
+         doPaChoosePartQuery(this.listQuery.pageSize,this.listQuery.pageIndex,this.importQuery).then(response => {
+            
+            this.listLoading = false
+            this.spList = response.data.paDbDlrPartListQueryList.rows
+            this.spRecords = response.data.paDbDlrPartListQueryList.records
+        })
+        // this.$alert('文件导入成功', '提示', {
+        //      confirmButtonText: '确定',
+        //      type:'success',
+        //    });
+           
+        // } else {
+        //    this.$alert('文件导入失败', '提示', {
+        //      confirmButtonText: '确定',
+        //      type:'warning',
+        //     });
+         //   this.queryParameters();
+        }
+        this.$refs.upload.clearFiles();
+      },
+      //上传前对文件进行判断
+      beforeAvatarUpload(file) {
+          const extension = file.name.split(".")[1] === "xls";
+          const extension2 = file.name.split(".")[1] === "xlsx";
+          if(!extension && !extension2){
+             this.$alert('上传文件只能为Excel文件', '提示', {
+               confirmButtonText: '确定',
+               type:'warning',
+             });
+          }
+          return extension || extension2;
+      },
+     beforeRemove(file, fileList) {
+        this.$alert(`选择文件类型或大小不符，已移除 ${ file.name }，请重新选择`,'提示',{
+          confirmButtonText:'确定',
+          type:'warning'
+        });
+      },
+      uploadUrl() {
+     //return ('mock' + apiSeDbWiPriceModel.seDbWiPriceModelMutationDlrImport.APIUrl + '/' + 'v=' + apiSeDbWiPriceModel.seDbWiPriceModelMutationDlrImport.ServiceCode);
+     //return ('dev-api' + seApis.resolve.APIUrl + '/' + 'v=' + seApis.resolve.ServiceCode);
+    //  return seApis.seDbMaintainConfigMutationImport.APIUrl + config.cH + 'v=' + seApis.seDbMaintainConfigMutationImport.ServiceCode;
+      return seApis.resolve.APIUrl + config.cH + 'v=' + seApis.resolve.ServiceCode;
+   }, 
+   handFileListChange(file, fileList) {},
+      handleExceed(files, fileList) {
+        this.$message.warning(`当前限制选择 1 个文件，本次选择了 ${files.length} 个文件，共选择了 ${files.length + fileList.length} 个文件`);
+      },
+      handleRemove(file, fileList) {},
+    uploadFalse(response, file, fileList) {
+      this.$alert('文件上传失败', '提示', {
+        confirmButtonText: '确定',
+        type:'warning',
+      });
+      this.$refs.upload.clearFiles();
+    },
+      handlePreview(file) {
+      if(file.response.status) {
+       this.$alert('此文件导入成功', '提示', {
+          confirmButtonText: '确定',
+          type:'success',
+        });
+      } else {
+        this.$alert('此文件导入失败', '提示', {
+         confirmButtonText: '确定',
+        type:'warning',
+        });
+      }   
+    },
+      //处理文件选择器改变事件
+    handleChange(param) {
+    
+      var url = this.uploadUrl()  // API根据不同功能url不同，请配置到对应模块配置
+      var that = this
+      this.$requestImport(url, param, function(response) {
+        //debugger
+        console.info(response)
+        that.uploadSuccess(response)
+      })
+    },
+    getBrandCode(val) {
+      this.listQuery.brandCode = val
+    },
+    initFetchData(){
+        // PA0030 备件属性
+        //paDbAttrTypeQueryList 备件类别   
+        const that = this
+        let queryObjA = {
+            // 请求类型&参数 保存mutation  查询query
+            type: 'query',
+            typeParam:
+                '($pageIndex: Int, $pageSize: Int, $dataInfoA: '+ orgApis.mdsLookupValueQueryByPage.InputType
+                + ', $dataInfoB: ' + paApis.paDbAttrTypeQueryList.InputType  + ')',
+            // 请求API
+            apiUrl: paApis.paDbPartListQueryList.APIUrl,
+            // 需要调用的API服务配置
+            apiServices: [
+            {
+                // API服务编码&参数
+                apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+                // API服务编码&参数
+                apiServiceParam:
+                "(dataInfo: $dataInfoA, pageIndex: $pageIndex, pageSize: $pageSize)",
+                // 表格中台返回网格的字段
+                apiQueryRow: [
+                    "lookupTypeCode",
+                    "lookupValueCode",
+                    "lookupValueName"
+                ]
+            },{
+                apiServiceCode: paApis.paDbAttrTypeQueryList.ServiceCode,
+                apiServiceParam:
+                "(dataInfo: $dataInfoB, pageIndex: $pageIndex, pageSize: $pageSize)",
+                apiQueryRow: [
+                    'partTypeId',
+                    'partTypeName'
+                ]
+            }
+            ],
+            // 条件/实体参数（变量），根据typeParam中的定义配置
+            variables: {
+                pageSize: 1000,
+                pageIndex: 1,
+                // 当前中台使用的名称有dataInfo、info，具体查看API文档
+                dataInfoA: {
+                    "isEnable": "1",
+                    "lookupTypeCode": "PA0030"
+                },
+                dataInfoB: {
+                    'isEnable': '1'
+                },
+            }
+        }
+        //转换了中台请求格式数据
+        let param = that.$getParams(queryObjA)
+        // 调用中台API方法（可复用）
+        requestGraphQL(param).then(response => {
+            if (response.result === '1' && response.data.A.result === '1'){
+            for(let i in response.data){
+                switch(i){
+                case 'A':
+                    that.partProperty = response.data.A.rows
+                    break
+                case 'B':
+                    that.paType = response.data.B.rows
+                    break
+                }
+            }
+            } else {
+                this.$message({
+                    message: '查询失败：' + response.msg,
+                    type: 'warn',
+                    uration: 2000
+                })
+            }
+        })
+
+        //备件车系
+        let queryObjB = {
+            // 请求类型&参数 保存mutation  查询query
+            type: 'query',
+            typeParam:
+                '($pageIndex: Int, $pageSize: Int, $dataInfo: '+ seApis.seChooseCarSeriesQueryFind.InputType + ')',
+            // 请求API
+            apiUrl: seApis.seChooseCarSeriesQueryFind.APIUrl,
+            // 需要调用的API服务配置
+            apiServices: [
+            {
+                // API服务编码&参数
+                apiServiceCode: seApis.seChooseCarSeriesQueryFind.ServiceCode,
+                // API服务编码&参数
+                apiServiceParam:
+                "(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)",
+                // 表格中台返回网格的字段
+                apiQueryRow: [
+                "carSeriesCn",
+                "carSeriesCode",
+                ]
+            }
+            ],
+            // 条件/实体参数（变量），根据typeParam中的定义配置
+            variables: {
+            pageSize: that.listQuery.pageSize,
+            pageIndex: that.listQuery.pageIndex,
+            // 当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: {
+                "carBrandCode":  '',
+                "isEnable": "1"
+            }
+            }
+        }
+        //转换了中台请求格式数据
+        let params = that.$getParams(queryObjB)
+        // 调用中台API方法（可复用）
+        requestGraphQL(params).then(response => {
+            if (response.result === '1' && response.data[seApis.seChooseCarSeriesQueryFind.ServiceCode].result === '1'){
+            that.pubSeries = response.data[seApis.seChooseCarSeriesQueryFind.ServiceCode].rows
+            }else {
+                this.$message({
+                    message: '查询失败：' + response.msg,
+                    type: 'warn',
+                    uration: 2000
+                })
+            }
+        })
+    },
+    fetchData() {
+        
+        this.listLoading = true
+        
+        this.dataInfo =  this.listQuery.dataInfo;
+       
+        this.dataInfo.pubSeriesCode = undefined;
+        doPaChoosePartQuery(this.listQuery.pageSize,this.listQuery.pageIndex,this.dataInfo).then(response => {
+            //debugger
+            this.listLoading = false
+            this.spList = response.data.paDbDlrPartListQueryList.rows
+            this.spRecords = response.data.paDbDlrPartListQueryList.records
+        })
+    },
+    //替换件选择
+    fetchPeplace(){
+        this.peplaceQuery.dataInfo = this.listQuery.dataInfo
+        this.peplaceQuery.dataInfo.peplaceFileList = this.peplaceFileList
+        doFetchPeplace(this.peplaceQuery).then(response => {
+            this.list = response.data.rows
+        })
+    },
+    // inputSelect(response, file, fileList){
+    //     this.inputSelectFileList = fileList
+    // },
+    peplaceFile(response, file, fileList){
+        this.peplaceFileList = fileList
+    },
+    handleSizeChange(val) {
+      this.listQuery.pageSize = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+       this.listQuery.pageIndex = val
+       this.fetchData()
+    },
+    getCarTypeCode(val) {
+      this.carTypeVisible = false
+      this.listQuery.isEnable = val
+    },
+    currentRow(c, o){
+        this.rowData = c;
+    },
+    sendData() {
+        if(!this.rowData){
+            this.$alert('请选择一条备件信息！', '信息提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                callback: action => {
+                }
+            });
+            return false;
+        }
+        this.$emit("seChoosePartData", this.rowData)
+    },
+    carTypeModal() {
+      this.carTypeVisible = true
+    },
+    tableListSelect(selection){
+        this.tableList = selection
+    },
+    close(){
+        this.$emit("close", false)
+    },
+    reset(){
+        this.listQuery={
+            pageIndex: 1,
+            pageSize: 10,
+            dataInfo: {
+            oemcode:null,
+            groupCode:null,
+            dlrId:null,
+            parentDlrId:null,
+            ownerType:null,
+            partNo:null,
+            isMuilty:null,
+            partName:null,
+            partPropertyCode:null,
+            partTypeCode:null,
+            pubCarTypeCode:null,
+            notShowZero:null,
+            isRefine:null
+        }
+        }
+    },
+    getPubCarTypeCode(val){
+       
+        const that = this
+        const queryObj = {
+				// api配置
+				apiConfig: seApis.seChooseCarTypeQueryFind,
+				// 需要调用的API服务配置
+				apiServices: [{
+                    // API服务编码&参数
+                    apiServiceCode: seApis.seChooseCarTypeQueryFind.ServiceCode,
+                    apiServiceParam:
+                    '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+                    // 表格中台返回网格的字段
+                    apiQueryRow: [
+                        'carSeriesCn',
+                        'carSeriesCode',
+                        'carTypeCn',
+                        'carTypeCode'
+                    ]
+                }],
+				// 条件/实体参数（变量），根据typeParam中的定义配置
+				variables: {
+                    dataInfo: {
+                        carSeriesCode: val,
+                        carTypeCode: ''
+                    },
+                    pageIndex: 0,
+                    pageSize: -1
+                }
+			}
+			// 转换了中台请求格式数据
+			var paramD = this.$getParams(queryObj)
+			// 调用中台API方法（可复用）
+			requestGraphQL(paramD).then(response => {
+				if (response.data[seApis.seChooseCarTypeQueryFind.ServiceCode].result === '1') {
+                    
+                    this.pubCar = '';
+                    this.pubCar = response.data[seApis.seChooseCarTypeQueryFind.ServiceCode].rows
+                 //   this.listQuery.dataInfo.pubCarTypeCode = '';
+                 //    this.listQuery.dataInfo.pubCarTypeCode = null;
+				}
+			})
+    },
+    affirm(){
+        if(this.tableList.length === 0){
+            this.$alert('未选中备件数据！', '信息提示', {
+                    confirmButtonText: '确定',
+                    type: 'warning',
+                    callback: action => {
+                    }
+                });
+                
+        }else{
+            this.$emit("seChoosePartData", this.tableList) 
+            this.paChoosePartVisible = false;
+        }
+    },
+    cutOff(){
+        const that = this
+        let selection = this.$refs['selectTable'].selection
+        if(this.tableList.length === 0){
+            this.$alert('请选择要删除的数据！', '信息提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                callback: action => {
+                }
+            });
+        }else{
+            this.tableChooseList.map(function(item, i){
+                let index = null
+                that.tableList.map(function(obj, j){
+                    if(item.partNo === obj.partNo){
+                        index = j
+                    }
+                })
+                if(index || index === 0){
+                    that.tableList.splice(index, 1)
+                }
+            })
+        }
+    },
+    handleSelectionChange(val){
+        this.tableChooseList = val
+    }
+  }
+}
+</script>

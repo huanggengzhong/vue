@@ -1,0 +1,641 @@
+<!--
+* description: 个人客户信息维护
+* author: laimzh
+* createdDate: 2019-08-14
+-->
+<template>
+  <div class="app-container app-container-table">
+    <crmGroupSubmit :formSubmitButton="formSubmitButton" />
+    <el-form class="editPer filter-params-crm-scroll crm-s-scroll edit">
+      <!-- <div class="filter-container filter-button"> -->
+
+      <!-- <el-button size="small" type="primary" @click="save()">保存</el-button> -->
+      <!-- <el-button type="primary" size="small" @click="manage()">管理信用记录</el-button> -->
+      <!-- </div> -->
+      <div class="filter-container-crm filter-title-crm">{{infoComponents[0].title}}</div>
+      <div class="filter-container-crm filter-params-crm">
+        <crmGroupForm :dynamicComponentss="infoComponents[0].tableComponents" :values="formField" />
+        <crmGroupForm :dynamicComponentss="infoComponents[1].tableComponents" :values="formField" />
+      </div>
+      <div class="filter-container-crm filter-title-crm">{{infoComponents[2].title}}</div>
+      <div class="filter-container-crm filter-params-crm">
+        <crmGroupForm :dynamicComponentss="infoComponents[2].tableComponents" :values="formField" />
+      </div>
+      <div class="filter-container-crm filter-title-crm">{{infoComponents[3].title}}</div>
+      <div class="filter-container-crm filter-params-crm">
+        <crmGroupForm :dynamicComponentss="infoComponents[3].tableComponents" :values="formField" />
+      </div>
+      <edit
+        :dynamicEditRowData="editRowData"
+        :popupsVisible="editPopupsVisible"
+        :key="editPopupsKey"
+        :popupsState="editPopupsState"
+        @close="close"
+      ></edit>
+    </el-form>
+  </div>
+</template>
+<script>
+import { formMixins } from "@/components/mixins/formMixins";
+import { crmApis } from "@/api/graphQLApiList/crm";
+import { requestGraphQL } from "@/api/commonRequest";
+import crmGroupForm from "@/components/crm/commonComponents/crmGroupForm";
+import crmGroupSubmit from "@/components/crm/commonComponents/crmGroupSubmit";
+import edit from "@/views/crm/cu/CustInfo/keyInfo";
+export default {
+  name: "editPer",
+  // 组件混入对象
+  mixins: [formMixins],
+  components: {
+    crmGroupForm,
+    crmGroupSubmit,
+    edit
+  },
+  props: {},
+  data() {
+    return {
+      keyInfo: false,
+      ismore: false,
+      ismutiple: false,
+      action: "", //证件上传地址
+      accepttype:
+        ".jpg,.jpeg,.png,.gif,.bmp,.pdf,.JPG,.JPEG,.PBG,.GIF,.BMP,.PDF", //上传文件类型
+      text1: "选择文件",
+      limit: 1,
+      showedit: false,
+      params: {},
+      nagflag: true,
+      posflag: false,
+      flag: true,
+      editPopupsKey: '',
+      editPopupsState:"",
+      editPopupsVisible:false,
+      infoComponents: [
+        {
+          title: "基本信息",
+          tableComponents: [
+            {
+              compKey: "compKey1",
+              labelName: "UID",
+              codeField: "uid",
+              code: "",
+              isRequire: true,
+              isMust: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey2",
+              labelName: "客户名称",
+              codeField: "custName",
+              isRequire: true,
+              isMust: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey3",
+              labelName: "性别",
+              codeField: "genderCode",
+              isMul: false,
+              lookuptype: "DB0022",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            {
+              compKey: "compKey4",
+              labelName: "出生日期",
+              codeField: "birthDate",
+              isRequire: false,
+              isMust: true,
+              component: () => import("@/components/crm/Time/crmdatePicker")
+            },
+            {
+              compKey: "compKey5",
+              labelName: "省份",
+              codeField: "provinceId",
+              textField: "addrProvince",
+              isRequire: false,
+              isMust: true,
+              isMul: false,
+              lookuptype: crmApis.mdmOrgProvinceQueryFindAll,
+              changeCode: this.changeCityByProvince,
+              component: () =>
+                import("@/components/crm/lookupValue/singleDropList")
+            },
+            {
+              compKey: "compKey6",
+              labelName: "城市",
+              codeField: "cityId",
+              textField: "addrCity",
+              isRequire: false,
+              isMust: true,
+              isMul: false,
+              lookuptype: crmApis.mdmOrgCityQueryFindAll,
+              changeCodeArray: [
+                { provinceId: this.formField ? this.formField.provinceId : "" }
+              ],
+              changeCode: this.changeCityByProvince,
+              component: () =>
+                import("@/components/crm/lookupValue/secondDropList")
+            },
+            {
+              compKey: "compKey7",
+              labelName: "区县",
+              codeField: "countyId",
+              textField: "addrCounty",
+              isRequire: false,
+              isMust: true,
+              isMul: false,
+              lookuptype: crmApis.mdmOrgCommunityQueryFindAll,
+              component: () =>
+                import("@/components/crm/lookupValue/singleDropList")
+            },
+            {
+              compKey: "compKey8",
+              labelName: "类别",
+              codeField: "classLevel",
+              isRequire: false,
+              isMust: true,
+              isMul: false,
+              lookuptype: "DB0026",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            {
+              compKey: "compKey9",
+              labelName: "民族",
+              codeField: "nationCode",
+              isRequire: false,
+              isMust: true,
+              isMul: false,
+              lookuptype: "DB0026",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            {
+              compKey: "compKey10",
+              labelName: "银行卡号",
+              codeField: "bankCardNo",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey11",
+              labelName: "开户行",
+              codeField: "bankCode",
+              isRequire: false,
+              isMust: true,
+              isMul: false,
+              lookuptype: "DB0026",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            {
+              compKey: "compKey12",
+              labelName: "证件类型",
+              codeField: "credTypeCode",
+              isRequire: false,
+              isMust: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey13",
+              labelName: "证件号码",
+              codeField: "credNo",
+              isRequire: false,
+              isMust: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey17",
+              labelName: "详细地址",
+              codeField: "addrStreet",
+              isRequire: false,
+              isMust: true,
+              span: 12,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            }
+          ]
+        },
+        {
+          title: "",
+          tableComponents: [
+            {
+              compKey: "compKey14",
+              labelName: "证件照1",
+              codeField: "photo1",
+              isMust: true,
+              fileList: [],
+              buttonText: "选择文件1",
+              isRequireUpload: true,
+              isUpload: true,
+              component: () => import("@/components/crm/EjectWindows/UpLoad")
+            },
+            {
+              compKey: "compKey15",
+              labelName: "证件照2",
+              codeField: "photo2",
+              isMust: true,
+              fileList: [],
+              buttonText: "选择文件2",
+              isRequireUpload: true,
+              isUpload: true,
+              component: () => import("@/components/crm/EjectWindows/UpLoad")
+            },
+            {
+              compKey: "compKey16",
+              labelName: "证件照3",
+              codeField: "photo3",
+              isMust: true,
+              fileList: [],
+              buttonText: "选择文件3",
+              isRequireUpload: true,
+              isUpload: true,
+              component: () => import("@/components/crm/EjectWindows/UpLoad")
+            }
+          ]
+        },
+        {
+          title: "联系信息",
+          tableComponents: [
+            {
+              compKey: "compKey18",
+              labelName: "电话",
+              codeField: "phone",
+              isRequire: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey19",
+              labelName: "备用电话",
+              codeField: "backupPhone",
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey20",
+              labelName: "家庭电话",
+              codeField: "homeTel",
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey21",
+              labelName: "办公电话",
+              codeField: "officeTel",
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey22",
+              labelName: "QQ号",
+              codeField: "qq",
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey23",
+              labelName: "微信号",
+              codeField: "webchat",
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey24",
+              labelName: "电子邮箱",
+              codeField: "email",
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey25",
+              labelName: "方便联系方式",
+              codeField: "convTimeCode",
+              isMul: false,
+              lookuptype: "DB0022",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            {
+              compKey: "compKey26",
+              labelName: "首选联系时段",
+              codeField: "contactTypeCode",
+              isMul: false,
+              lookuptype: "DB0022",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            }
+          ]
+        },
+        {
+          title: "客户特征",
+          tableComponents: [
+            {
+              compKey: "compKey27",
+              labelName: "收入",
+              codeField: "familyIncomeCode",
+              isMul: false,
+              lookuptype: "DB0027",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            {
+              compKey: "compKey28",
+              labelName: "学历",
+              codeField: "degreeCode",
+              isMul: false,
+              lookuptype: "DB0044",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            {
+              compKey: "compKey29",
+              labelName: "是否网点VIP",
+              codeField: "isVip",
+              isMul: false,
+              lookuptype: "DB0044",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            {
+              compKey: "compKey30",
+              labelName: "关注点",
+              codeField: "focuseNameList",
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey31",
+              labelName: "职务",
+              codeField: "jobCode",
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey32",
+              labelName: "客户属性",
+              codeField: "custPropertyName",
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey33",
+              labelName: "婚姻状况",
+              codeField: "marriagedCode",
+              isMul: false,
+              lookuptype: "VE0502",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            {
+              compKey: "compKey34",
+              labelName: "是否有子女",
+              codeField: "isHaveChild",
+              isMul: false,
+              lookuptype: "DB0044",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            {
+              compKey: "compKey35",
+              labelName: "兴趣爱好",
+              codeField: "interestsNameList",
+              isMul: false,
+              lookuptype: "DB0044",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            }
+          ]
+        }
+        // {
+        //   title: "信用记录",
+        //   tableComponents: [
+        //     {
+        //       compKey: "compKey36",
+        //       labelName: "类型",
+        //       codeField: "isHaveChild",
+        //       isMul: false,
+        //       lookuptype: "DB0027",
+        //       component: () =>
+        //         import("@/components/crm/lookupValue/lookupvalue")
+        //     },
+        //     {
+        //       compKey: "compKey37",
+        //       labelName: "标签类型",
+        //       codeField: "isHaveChild",
+        //       isMul: false,
+        //       lookuptype: "DB0044",
+        //       component: () =>
+        //         import("@/components/crm/lookupValue/lookupvalue")
+        //     },
+        //     {
+        //       compKey: "compKey38",
+        //       labelName: "负面内容",
+        //       inputType: "textarea",
+        //       codeField: "backMoney",
+        //       disabled: true,
+        //       span: 12,
+        //       component: () => import("@/components/crm/textbox/crmTextInput")
+        //     },
+        //     {
+        //       compKey: "compKey39",
+        //       labelName: "正面内容",
+        //       inputType: "textarea",
+        //       codeField: "backMoney",
+        //       disabled: true,
+        //       span: 12,
+        //       component: () => import("@/components/crm/textbox/crmTextInput")
+        //     }
+        //   ]
+        // }
+      ],
+      isdisplay: {
+        ismuti: false
+      },
+      credit: false,
+      // 保存API配置对象
+      apiConfig: crmApis.createdOneIdMutationSaveCust, //客户信息-修改客户信息
+      formSubmitButton: [
+        {
+          compKey: "buttonKey1",
+          text: "修改关键信息",
+          size: "small",
+          type: "",
+          clickEvent: () => this.editInfo(),
+          isShow: true
+        },
+        {
+          compKey: "buttonKey2",
+          text: "保存",
+          size: "small",
+          type: "",
+          clickEvent: () => this.save(),
+          isShow: true
+        }
+      ],
+      tabledata: {
+        colnames: [
+          { value: "uid", label: "标签类别", width: null, align: "center" },
+          {
+            value: "carBrandName",
+            label: "备注",
+            width: null,
+            align: "center"
+          },
+          { value: "custName", label: "添加人", width: null, align: "center" },
+          {
+            value: "phone",
+            label: "最后更新时间",
+            width: null,
+            align: "center"
+          }
+        ],
+        tableDatas: [],
+        pagesize: 10,
+        pageindex: 1
+      },
+      // 标题
+      textMap: {
+        edit: "维护个人客户",
+        add: "新建个人客户"
+      },
+      formField: {
+        uid: "",
+        custName: "",
+        genderCode: "",
+        birthDate: "",
+        provinceId: "",
+        cityId: "",
+        countyId: "",
+        nationCode: "",
+        jobCode: "",
+        bankCardNo: "",
+        bankCode: "",
+        credTypeCode: "",
+        credNo: "",
+        addrStreet: "",
+        phone: "",
+        backupPhone: "",
+        homeTel: "",
+        officeTel: "",
+        qq: "",
+        webchat: "",
+        email: "",
+        convTimeCode: "",
+        contactTypeCode: "",
+        familyIncomeCode: "",
+        degreeCode: "",
+        isVip: "",
+        // focuseNameList: "",
+        // custPropertyName: "",
+        marriagedCode: "",
+        isHaveChild: ""
+        // interestsNameList: ""
+      }
+    };
+  },
+  mounted() {
+    this.$nextTick(() => {
+      this.initdata();
+    });
+  },
+  methods: {
+    manage() {
+      this.credit = true;
+    },
+
+    // 关键信息修改
+    editInfo(type) {
+      debugger
+      this.editPopupsState = type;
+      this.editPopupsVisible = true;
+      this.editPopupsKey = this.$utils.generateId();
+    },
+    initdata() {
+      debugger;
+      if (this.$route.params.status == "edit") {
+        let formvalue = this.$route.params;
+        for (let key in this.formField) {
+          if (formvalue.hasOwnProperty(key)) {
+            this.formField[key] = formvalue[key];
+          }
+        }
+      } else if (this.$route.params.status == "add") {
+        this.reset();
+      }
+    },
+    edit(inde, row) {
+      this.showedit = true;
+    },
+    //保存
+    save() {
+      // validpopup  弹窗  validpage 页面
+      this.$utils.validataMoth(this, "validpopup");
+      if (this.valid) {
+        this.saveForm();
+      }
+    },
+    saveForm() {
+      //保存表单
+      let that = this;
+      this.formField.custClassCode = "0";
+      this.formField.custFullName = this.formField.custName;
+      debugger;
+      this.formField.custNo = this.$route.params.custNo;
+      this.formField.dlrCustNo = this.$route.params.dlrCustNo;
+      let queryObj = {
+        // api配置
+        type: "mutation",
+        apiConfig: crmApis.createdOneIdMutationSaveCust, //客户信息-修改
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.tabledata.pagesize,
+          pageIndex: that.tabledata.pageindex,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {
+            custModifyScence: "203", //场景编码--修改客户信息
+            custInfo: this.formField
+          }
+        }
+      };
+
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result == "1"
+          // &&response.data[queryObj.apiConfig.ServiceCode].rows != ""
+        ) {
+          that.$crmcf.showMessages(that, "success", "保存成功！");
+          that.$crmcf.crmcloseView(that);
+        } else {
+          that.$crmcf.showMessages(
+            that,
+            "error",
+            response.data[queryObj.apiConfig.ServiceCode].msg
+          );
+        }
+      });
+    },
+    // 联动
+    prochange(val) {
+      let that = this;
+      that.City.pcode = val;
+      if (that.$refs.city == undefined) {
+      } else {
+        that.$refs.city.getData();
+      }
+    },
+    citychange(val) {
+      let that = this;
+      that.District.pcode = val;
+      if (that.$refs.district == undefined) {
+      } else {
+        that.$refs.district.getData();
+      }
+    }
+  }
+};
+</script>
+<style scoped>
+.choosefile {
+  float: left;
+  text-align: left;
+}
+</style>

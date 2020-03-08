@@ -1,0 +1,407 @@
+<!--
+* description: 车系排序
+* author: linzewen
+* createdDate: 2019-08-06
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template
+      ref="multipleTable"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="false"
+      :dynamicIsShowMoreBtn="false"
+      :dynamicIsColumnDrop="true"
+      :dynamicSortable="true"
+      :isShowPagination="false"
+      :dynamicPageSize=20000
+    />
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from "@/components/mixins/oneTableWithViewTemplateMixins";
+import { orgApis } from "@/api/graphQLApiList/org";
+import { requestGraphQL } from "@/api/commonRequest";
+import OneTableTemplate from "@/components/templates/oneTable";
+import { CacheConfig } from "@/cache/configCache/index";
+export default {
+  name: "vecarSeriesSortMaintain",
+  // 组件混入对象：{data[listQuery] methods[queryTable]}
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate
+  },
+  // 阻塞路由预加载网格中组件的数据
+  beforeRouteEnter(to, from, next) {
+    CacheConfig.initData(to.path, function() {
+      next();
+    });
+  },
+  data() {
+    return {
+      // 网格查询API配置对象
+      currentRow: null,
+      index: 0,
+      outPut: [],
+      apiConfig: orgApis.mdmVeCarSeriesQueryListForPage,
+      formField: {
+        carSeriesId: "",
+        carBrandCode: ""
+      },
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: this.$t("sys.button.query"), /*查询*/
+          name:'search',
+          position:'right',
+          fuzzySearch:true
+        },
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.moveTop(),
+          text: this.$t("sys.button.moveTop"), /*置顶*/
+          name:'moveTop',
+          position:'left'
+        },
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.moveUp(),
+          text: this.$t("sys.button.moveUp"), /*上移*/
+          name:'moveTop',
+          position:'left'
+        },
+        {
+          compKey: "btnKey4",
+          type: "",
+          size: "small",
+          clickEvent: () => this.moveDown(),
+          text: this.$t("sys.button.moveDown"), /*下移*/
+          name:'moveDown',
+          position:'left'
+        },
+        {
+          compKey: "btnKey5",
+          type: "",
+          size: "small",
+          clickEvent: () => this.moveBottom(),
+          text: this.$t("sys.button.moveBottom"), /*置底*/
+          name:'moveBottom',
+          position:'left'
+        },
+        {
+          compKey: "btnKey6",
+          type: "",
+          size: "small",
+          clickEvent: () => this.saveNew(),
+          text: this.$t("sys.button.save"), /*保存*/
+          name:'save',
+          position:'left'
+        }
+      ], // 动态组件-查询条件
+      tableComponents:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              {
+                compKey: "compKey1",
+                labelName: this.$t("org.label.carBrandCn") /*品牌*/,
+                codeField: "carBrandCode",
+                component: () => import("@/components/org/carBrand/carBrand"),
+                type: "dropdownList",
+                isRequire:true,
+                isMul: false,
+                isMust: true
+              }
+            ],
+      // 动态生成网格列
+      tableCols:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableCols.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableCols
+          : [
+              {
+                prop: "mdmCarBrandExtend.carBrandCn",
+                label: this.$t("org.label.carBrandCn") /*品牌*/,
+                width: 110,
+                align: "center"
+              },
+              {
+                prop: "carBrandCode",
+                label: "品牌编码",
+                width: 110,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "carSeriesCode",
+                label: this.$t("ve.label.carSeriesCode") /*车系编码*/,
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "carSeriesId",
+                label: this.$t("ve.label.carSeriesId") /*车系Id*/,
+                width: null,
+                hidden: true,
+                align: "center"
+              },
+              {
+                prop: "sapCarseriesCode",
+                label: "SAP车系编码",
+                width: 110,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "partSeriesCode",
+                label: "备件车系编码",
+                width: 110,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "sCarseriesCode",
+                label: "售后车系编码",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "sCarseriesDesc",
+                label: "售后车系名称",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "carSeriesCn",
+                label: this.$t("org.label.carSeriesCn") /*车系名称*/,
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "carSeriesEn",
+                label: this.$t("org.label.carSeriesEn") /*车系英文*/,
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "orderNo",
+                label: this.$t("ve.label.orderNo") /*排列顺序*/,
+                width: null,
+                hidden:false,
+                align: "center"
+              },
+              {
+                prop: "isEnable",
+                label: this.$t("org.label.isEnable") /*启用状态*/,
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "updateControlId",
+                label: this.$t("org.label.isEnable") /*并发控制Id*/,
+                width: null,
+                hidden: true,
+                align: "center"
+              }
+            ]
+    };
+  },
+  methods: {
+    moveUp() {
+      const that = this.$refs.multipleTable;
+      var currentRow;
+      if (that.isMul === true) {
+        // 多选
+        var selectData = that.selection;
+        currentRow = selectData[0];
+      } else {
+        // 单选
+        currentRow = that.currentRow;
+      }
+      if (!currentRow) {
+        this.$alert(this.$t("org.label.choose"), this.$t("org.label.warnning"));
+        return;
+      }
+      var sele = that.currentRow.index;
+      //    sele--;
+      that.index = sele;
+      var nindex = that.index;
+      if (nindex != 0) {
+        let upDate = that.list[nindex - 1];
+        that.list.splice(nindex - 1, 1);
+        that.list.splice(nindex, 0, upDate);
+        if (that.list[nindex - 1].orderNo != that.list[nindex].orderNo) {
+          var tempArr = that.list[nindex - 1].orderNo;
+          that.list[nindex - 1].orderNo = that.list[nindex].orderNo;
+          that.list[nindex].orderNo = tempArr;
+          that.index -= 1;
+        }
+      }
+      // 重置索引
+      that.initListIndex();
+    },
+    moveTop() {
+      const that = this.$refs.multipleTable;
+      var currentRow;
+      if (that.isMul === true) {
+        // 多选
+        var selectData = that.selection;
+        currentRow = selectData[0];
+      } else {
+        // 单选
+        currentRow = that.currentRow;
+      }
+      if (!currentRow) {
+        this.$alert(this.$t("org.label.choose"), this.$t("org.label.warnning"));
+        return;
+      }
+      var sele = that.currentRow.index;
+      // sele--;
+      that.index = sele;
+      var nindex = that.index;
+      var count = that.index;
+      if (nindex != 0) {
+        let upDatenow = that.list[nindex];
+        that.list.splice(nindex, 1);
+        that.list.unshift(upDatenow);
+        for (var i = 0; i <= count; i++) {
+          that.list[i].orderNo = i + 1;
+        }
+        that.index = 0;
+      }
+      // 重置索引
+      that.initListIndex();
+    },
+    moveDown() {
+      const that = this.$refs.multipleTable;
+      var currentRow;
+      if (that.isMul === true) {
+        // 多选
+        var selectData = that.selection;
+        currentRow = selectData[0];
+      } else {
+        // 单选
+        currentRow = that.currentRow;
+      }
+      if (!currentRow) {
+        this.$alert(this.$t("org.label.choose"), this.$t("org.label.warnning"));
+        return;
+      }
+      var sele = that.currentRow.index;
+      //  sele--;
+      that.index = sele;
+      var nindex = that.index;
+      var arrLength = that.list.length;
+      arrLength -= 1;
+      if (nindex != arrLength) {
+        let upDate = that.list[nindex + 1];
+        that.list.splice(nindex + 1, 1);
+        that.list.splice(nindex, 0, upDate);
+        that.list[nindex].orderNo -= 1;
+        ++that.list[nindex + 1].orderNo;
+        that.index++;
+      }
+      // 重置索引
+      that.initListIndex();
+    },
+    moveBottom() {
+      const that = this.$refs.multipleTable;
+      var currentRow;
+      if (that.isMul === true) {
+        // 多选
+        var selectData = that.selection;
+        currentRow = selectData[0];
+      } else {
+        // 单选
+        currentRow = that.currentRow;
+      }
+      if (!currentRow) {
+        this.$alert(this.$t("org.label.choose"), this.$t("org.label.warnning"));
+        return;
+      }
+      var sele = that.currentRow.index;
+      //   sele--;
+      that.index = sele;
+      var nindex = that.index;
+      var count = that.index;
+      var arrLength = that.list.length;
+      arrLength -= 1;
+      if (nindex != arrLength) {
+        let upDatenow = that.list[nindex];
+        that.list.splice(nindex, 1);
+        that.list.push(upDatenow);
+        for (var i = nindex; i <= arrLength; i++) {
+          that.list[i].orderNo = i + 1;
+        }
+        that.index = arrLength;
+      }
+      // 重置索引
+      that.initListIndex();
+    },
+    saveNew() {
+      const that = this.$refs.multipleTable;
+      const saveData = [];
+      for (var k in that.list) {
+        const saveForm = {};
+        saveForm.carSeriesId = that.list[k].carSeriesId;
+        saveForm.updateControlId = that.list[k].updateControlId;
+        saveForm.orderNo = that.list[k].orderNo;
+        saveData.push(saveForm);
+      }
+      that.listLoading = true;
+      let queryObj = {
+        // 保存mutation
+        type: "mutation",
+        // api配置
+        apiConfig: orgApis.mdmVeCarSeriesMutationSortSave,
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: saveData
+        }
+      };
+      //转换了中台请求格式数据
+
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+
+        if (response.data[queryObj.apiConfig.ServiceCode].result === "1") {
+          // that.queryTable(1);
+          that.listLoading = false;
+          that.dialogFormVisible = false;
+
+          that.$message({
+            message: "保存成功",
+            type: "success",
+            duration: 2000
+          });
+          this.queryTable(1);
+        }
+      });
+    },
+    
+  }
+};
+</script>
+<style scoped>
+/*按钮列移动到面包屑重合位置*/
+
+.editSysPosition {
+  height: 600px;
+}
+</style>

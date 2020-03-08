@@ -1,0 +1,45 @@
+import Mock from 'mockjs'
+import {
+    apiMaintain
+} from '../../../../src/api/graphQLApiList/se'
+const cH = '/'
+
+const queryData = Mock.mock({
+    seDbNewCarReadyQueryFind: {
+      result: '1',
+      pageindex: 1,
+      pages: 1,     
+      records: 1,
+      msg: 'success',
+      'rows|10': [{
+        carSeriescn: 'carSeriescn',
+        carSeriesCode: 'carSeriesCode',
+        carTypecn: 'carTypecn',
+        carTypeCode: 'carTypeCode',
+        newCarReadyId: 'newCarReadyId',
+        updateControlId: 'updateControlId',
+        maintainPrice: 'maintainPrice',
+        evalidDate: 'evalidDate',
+        modifier: 'modifier',
+        lastUpdateDate: 'lastUpdateDate',
+        creator: 'creator',
+        createDate: 'createDate',
+        isEnable: 'isEnable'
+      }]
+    }
+  
+  })
+  
+  
+  export default [{
+    //新车准备标准维护-查询
+    url: apiMaintain.seDbNewCarReadyQueryFind.APIUrl + cH + 'v=' + apiMaintain.seDbNewCarReadyQueryFind.ServiceCode,
+    type: 'post',
+    response: config => {
+      return {
+        result: '1',
+        msg: 'success',
+        data: queryData
+      }
+    }
+  }]

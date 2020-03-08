@@ -1,0 +1,948 @@
+<!--
+* 描述: 待清洗线索——线索详情
+* 创建人: dxuem
+* 创建时间: 2019-07-26 15:42
+* 记录：
+*  20190726 新建 dxuem
+*  20190802 修改 dxuem
+-->
+<template>
+  <div class="app-container app-container-table filter-params-crm-scroll">
+    <div class="filter-container filter-params-crm">
+      <el-form label-position="right" disabled>
+        <el-collapse v-model="activeNames">
+          <el-collapse-item title="客户信息" name="1">
+            <el-row>
+              <el-col :span="6">
+                <txtCustomerName :txt_CustomerName="form.custName" ref="custName"></txtCustomerName>
+              </el-col>
+              <el-col :span="6">
+                <Sex :Sex="form.genderName" ref="genderName"></Sex>
+              </el-col>
+              <el-col :span="6">
+                <PhoneNumber :PhoneNumber="form.contactTel" ref="contactTel"></PhoneNumber>
+              </el-col>
+              <el-col :span="6">
+                <BackupPhone :BackupPhone="form.backupTel" ref="backupTel"></BackupPhone>
+              </el-col>
+            </el-row>
+          </el-collapse-item>
+          <el-collapse-item title="服务信息" name="2">
+            <el-row>
+              <el-col :span="6">
+                <ClueNumber :ClueNumber="form.serverOrder" ref="serverOrder"></ClueNumber>
+              </el-col>
+              <el-col :span="6">
+                <IntentionalOutlet :IntentionalOutlet="form.dlrShortName" ref="dlrShortName"></IntentionalOutlet>
+              </el-col>
+              <el-col :span="6">
+                <ClueType :ClueType="form.clueTypeName" ref="clueTypeName"></ClueType>
+              </el-col>
+              <el-col :span="6">
+                <OrderAmount :OrderAmount="form.orderAmount" ref="orderAmount"></OrderAmount>
+              </el-col>
+            </el-row>
+              <el-row>
+              <el-col :span="6">
+                <IntentionalCar :IntentionalCar="form.carSeriesCn" ref="carSeriesCn"></IntentionalCar>
+              </el-col>
+              <el-col :span="6">
+                <PlannedCarPurchaseTime
+                  :PlannedCarPurchaseTime="form.buyPlanName"
+                  ref="buyPlanName"
+                ></PlannedCarPurchaseTime>
+              </el-col>
+              <el-col :span="6">
+                <IntentionLevel :IntentionLevel="form.clueLevelCode" ref="clueLevelCode"></IntentionLevel>
+              </el-col>
+              <el-col :span="6">
+                <CarShow :CarShow="form.carExhiName" ref="tbCarExhiId"></CarShow>
+              </el-col>
+                </el-row>
+              <el-row>
+              <el-col :span="6">
+                <ExpectedFollowTime
+                  :ExpectedFollowTime="form.nextCallbackDate"
+                  ref="nextCallbackDate"
+                ></ExpectedFollowTime>
+              </el-col>
+              <el-col :span="6">
+                <PreOrderReachShopTime
+                  :PreOrderReachShopTime="form.preArriveDlrTime"
+                  ref="preArriveDlrTime"
+                ></PreOrderReachShopTime>
+              </el-col>
+              <el-col :span="6">
+                <sctActivityName :sct_ActivityName="form.actionName" ref="actionName"></sctActivityName>
+              </el-col>
+           
+              <el-col :span="6">
+                <ContactWay :ContactWay="form.cantactWayName" ref="cantactWayCode"></ContactWay>
+              </el-col>
+                </el-row>
+                  <el-row>
+              <el-col :span="6">
+                <ChannelBigClass :ChannelBigClass="form.infoChanMName" ref="infoChanMCode"></ChannelBigClass>
+              </el-col>
+              <el-col :span="6">
+                <ChannelSmallClass :ChannelSmalTypeName="form.infoChanDName" ref="infoChanDCode"></ChannelSmallClass>
+              </el-col>
+              <el-col :span="6">
+                <CleaningStatus :CleaningStatus="form.cleanFlagName" ref="cleanFlagName"></CleaningStatus>
+              </el-col>
+            
+              <el-col :span="6">
+                <NumberOfCleanings :NumberOfCleanings="form.cleanQty" ref="cleanQty"></NumberOfCleanings>
+              </el-col>
+                </el-row>
+                  <el-row>
+              <el-col :span="6">
+                <ContactStatus :ContactStatus="form.touchStatusName" ref="touchStatus"></ContactStatus>
+              </el-col>
+              </el-row>
+                <el-row>
+              <el-col :span="6">
+                <Descripts :Descripts="form.clueDesc" ref="clueDesc"></Descripts>
+              </el-col>
+            </el-row>
+          </el-collapse-item>
+          <el-collapse-item title="线索详情" name="3">
+            <el-row>
+              <el-col :span="6">
+                <EnglishName :EnglishName="form.personEn" ref="personEn"></EnglishName>
+              </el-col>
+              <el-col :span="6">
+                <Birthday :Birthday="form.birthDate" ref="birthDate"></Birthday>
+              </el-col>
+              <el-col :span="6">
+                <CustomerType :CustomerType="form.custClassCode" ref="custClassCode"></CustomerType>
+              </el-col>
+              <el-col :span="6">
+                <ConvenientContactTime
+                  :ConvenientContactTime="form.convTimeName"
+                  ref="convTimeName"
+                ></ConvenientContactTime>
+              </el-col>
+            </el-row>
+
+            <el-row>
+              <el-col :span="6">
+                <Province :Province="form.addrProvince" ref="addrProvince"></Province>
+              </el-col>
+              <el-col :span="6">
+                <City :City="form.addrCity" ref="addrCity"></City>
+              </el-col>
+              <el-col :span="6">
+                <District :District="form.addrCounty" ref="addrCounty"></District>
+              </el-col>
+              <el-col :span="6">
+                <EMS :EMS="form.addrZip" ref="addrZip"></EMS>
+              </el-col>
+            </el-row>
+
+            <el-row>
+              <el-col :span="12">
+                <txtDetailAddress
+                  :txt_DetailAddress="form.addrStreet"
+                  ref="addrStreet"
+                  class="long-col"
+                ></txtDetailAddress>
+              </el-col>
+              <el-col :span="6">
+                <CertificateType :CertificateType="form.credTypeName" ref="credTypeName"></CertificateType>
+              </el-col>
+              <el-col :span="6">
+                <CertificateNumber :CertificateNumber="form.credNo" ref="credNo"></CertificateNumber>
+              </el-col>
+            </el-row>
+            <el-row>
+              <el-col :span="6">
+                <Education :Education="form.degreeCode" ref="degreeCode"></Education>
+              </el-col>
+              <el-col :span="6">
+                <Industry :Industry="form.tradeCode" ref="tradeCode"></Industry>
+              </el-col>
+              <el-col :span="6">
+                <Career :Career="form.jobCode" ref="jobCode"></Career>
+              </el-col>
+              <!-- <el-col :span="6">
+                <ComanyFullName :ComanyFullName="form.Compname" ref="compname"></ComanyFullName>
+              </el-col> -->
+            </el-row>
+
+            <el-row>
+              <el-col :span="6">
+                <AnnualHouseholdIncome
+                  :AnnualHouseholdIncome="form.familyIncomeCode"
+                  ref="familyIncomeCode"
+                ></AnnualHouseholdIncome>
+              </el-col>
+              <el-col :span="6">
+                <LicenseType :LicenseType="form.driverTypeCode" ref="driverTypeCode"></LicenseType>
+              </el-col>
+              <el-col :span="6">
+                <DrivingAge :DrivingAge="form.driverTimeCode" ref="driverTimeCode"></DrivingAge>
+              </el-col>
+              <el-col :span="6">
+                <Interest :Interest="form.hobby" ref="hobby"></Interest>
+              </el-col>
+            </el-row>
+
+            <el-row>
+              <el-col :span="6">
+                <IntentionalPrice :IntentionalPrice="form.intentPriceCode" ref="intentPriceCode"></IntentionalPrice>
+              </el-col>
+              <el-col :span="6">
+                <CarPurchaseWay :CarPurchaseWay="form.recommendFlag" ref="recommendFlag"></CarPurchaseWay>
+              </el-col>
+              <el-col :span="6">
+                <PurchaseMethod :PurchaseMethod="form.buyTypeCode" ref="buyTypeCode"></PurchaseMethod>
+              </el-col>
+              <el-col :span="6">
+                <IntentionalAppearanceColor
+                  :IntentionalAppearanceColor="form.color"
+                  ref="color"
+                ></IntentionalAppearanceColor>
+              </el-col>
+            </el-row>
+            <el-row>
+              <el-col :span="6">
+                <IntentionalInteriorColor
+                  :IntentionalInteriorColor="form.innerColor"
+                  ref="innerColor"
+                ></IntentionalInteriorColor>
+              </el-col>
+            </el-row>
+          </el-collapse-item>
+          <el-collapse-item title="追踪信息" name="4">
+            <el-table
+              :data="tabledatas.tableData"
+              highlight-current-row
+              style="width: 100%;height:330px"
+              v-loading.body="false"
+              element-loading-text="Loading"
+              border
+              fit
+            >
+              <el-table-column type="index" label="序号" width="55"></el-table-column>
+              <el-table-column
+                v-for="item in tabledatas.colnames"
+                :key="item.value"
+                :label="item.label"
+                :prop="item.value"
+                align="center"
+              ></el-table-column>
+            </el-table>
+            <el-pagination
+              background
+              layout="prev, pager, next"
+              :total="tabledatas.total"
+              :page-size="tabledatas.pagesize"
+              :current-page="tabledatas.pageindex"
+              @prev-click="prev"
+              @next-click="next"
+              @current-change="changepage"
+            ></el-pagination>
+          </el-collapse-item>
+        </el-collapse>
+      </el-form>
+    </div>
+  </div>
+</template>
+<script>
+import txtCustomerName from "@/components/crm/textbox/Public/customerInfos/txt_CustomerName";
+import Sex from "@/components/crm/Select/Common/Customer/Sex";
+import PhoneNumber from "@/components/crm/textbox/Public/customerInfos/PhoneNumber";
+import BackupPhone from "@/components/crm/textbox/Public/customerInfos/BackupPhone";
+import tpServiceInformationCallCenterLeads from "@/components/crm/Template/tp_ServiceInformationCallCenterLeads";
+import tpClueDetailscalcenterclue from "@/components/crm/Template/tp_ClueDetails_calcenterclue";
+import TrackingInfoCallCenterClues from "@/components/crm/Template/TrackingInfo_CallCenterClues";
+
+import ClueNumber from "@/components/crm/textbox/Clue/ClueNumber";
+import IntentionalOutlet from "@/components/crm/EjectWindows/IntentionalOutlet.vue";
+import ClueType from "@/components/crm/Select/ClueType.vue";
+import IntentionalCar from "@/components/crm/EjectWindows/IntentionalCar.vue";
+import OrderAmount from "@/components/crm/textbox/Clue/CallCenterClue/OrderAmount.vue";
+import CarShow from "@/components/crm/Select/Clue/CallCenterClue/CarShow.vue";
+import PlannedCarPurchaseTime from "@/components/crm/Select/Common/Customer/PlannedCarPurchaseTime.vue";
+import IntentionLevel from "@/components/crm/Select/Common/Customer/IntentionLevel.vue";
+import ExpectedFollowTime from "@/components/crm/Time/ExpectedFollowTime.vue";
+import PreOrderReachShopTime from "@/components/crm/Time/PreOrderReachShopTime.vue";
+import sctActivityName from "@/components/crm/Select/Clue/Rescue/sct_ActivityName.vue";
+import OrderStatus from "@/components/crm/Select/Clue/CallCenterClue/OrderStatus.vue";
+import ContactWay from "@/components/crm/Select/Common/ContactWay.vue";
+import ChannelBigClass from "@/components/crm/Select/Common/ChannelBigClass.vue";
+import ChannelSmallClass from "@/components/crm/textbox/Clue/ChannelSmalTypeName.vue";
+import CleaningStatus from "@/components/crm/Select/Clue/CallCenterClue/CleaningStatus.vue";
+import NumberOfCleanings from "@/components/crm/textbox/Clue/CallCenterClue/NumberOfCleanings";
+import OrderTime from "@/components/crm/Time/OrderTime.vue";
+import OrderNumber from "@/components/crm/textbox/Clue/CallCenterClue/OrderNumber.vue";
+import ContactStatus from "@/components/crm/Select/Clue/ContactStatus";
+import Descripts from "@/components/crm/textbox/Public/Descripts.vue";
+
+import EnglishName from "@/components/crm/textbox/Clue/CallCenterClue/EnglishName";
+import Birthday from "@/components/crm/Time/Birthday";
+import CustomerType from "@/components/crm/Select/Common/Customer/CustomerType";
+import ConvenientContactTime from "@/components/crm/Select/Common/Customer/ConvenientContactTime";
+import Province from "@/components/crm/Select/Common/Province";
+import City from "@/components/crm/Select/Common/City";
+import District from "@/components/crm/Select/Common/District";
+import EMS from "@/components/crm/textbox/Public/customerInfos/EMS";
+import txtDetailAddress from "@/components/crm/textbox/txt_DetailAddress";
+import CertificateType from "@/components/crm/Select/Common/KeepAFile/CertificateType";
+
+//import  from "@/"
+import CertificateNumber from "@/components/crm/textbox/Public/customerInfos/CertificateNumber";
+import Education from "@/components/crm/Select/CallCenterClue/Education";
+import Industry from "@/components/crm/Select/Clue/CallCenterClue/Industry";
+import Career from "@/components/crm/Select/Clue/CallCenterClue/Career";
+import ComanyFullName from "@/components/crm/textbox/Public/customerInfos/ComanyFullName";
+import AnnualHouseholdIncome from "@/components/crm/Select/Clue/CallCenterClue/AnnualHouseholdIncome";
+import LicenseType from "@/components/crm/Select/Clue/CallCenterClue/LicenseType";
+import DrivingAge from "@/components/crm/Select/Common/Customer/DrivingAge";
+import Interest from "@/components/crm/EjectWindows/Interest";
+import IntentionalPrice from "@/components/crm/Select/Common/Customer/IntentionalPrice";
+import CarPurchaseWay from "@/components/crm/Select/Clue/CallCenterClue/CarPurchaseWay";
+import IntentionalAppearanceColor from "@/components/crm/Select/Clue/CallCenterClue/IntentionalAppearanceColor";
+import IntentionalInteriorColor from "@/components/crm/Select/Clue/CallCenterClue/IntentionalInteriorColor";
+import PurchaseMethod from "@/components/crm/Select/CallCenterClue/PurchaseMethod";
+
+// 短信模板
+import ModelName from "@/components/crm/textbox/Public/Message/ModelName";
+import ModelContentText from "@/components/crm/textbox/Public/Message/ModelContentText";
+
+import Table from "@/components/crm/table/Table";
+import { crmApis } from "@/api/graphQLApiList/crm";
+import { requestGraphQL } from "@/api/commonRequest";
+export default {
+  name: "crmClueDetail",
+  components: {
+    ModelName,
+    ModelContentText,
+    ContactStatus,
+    ClueNumber,
+    IntentionalOutlet,
+    ClueType,
+    IntentionalCar,
+    OrderAmount,
+    CarShow,
+    PlannedCarPurchaseTime,
+    IntentionLevel,
+    ExpectedFollowTime,
+    PreOrderReachShopTime,
+    sctActivityName,
+    OrderStatus,
+    ContactWay,
+    ChannelBigClass,
+    ChannelSmallClass,
+    NumberOfCleanings,
+    OrderTime,
+    OrderNumber,
+    Descripts,
+    CleaningStatus,
+    Table,
+    txtCustomerName,
+    Sex,
+    PhoneNumber,
+    BackupPhone,
+    tpServiceInformationCallCenterLeads,
+    tpClueDetailscalcenterclue,
+    TrackingInfoCallCenterClues,
+    EnglishName,
+    Birthday,
+    CustomerType,
+    ConvenientContactTime,
+    Province,
+    City,
+    District,
+    EMS,
+    txtDetailAddress,
+    CertificateType,
+    CertificateNumber,
+    Education,
+    Industry,
+    Career,
+    ComanyFullName,
+    AnnualHouseholdIncome,
+    LicenseType,
+    DrivingAge,
+    Interest,
+    IntentionalPrice,
+    CarPurchaseWay,
+    IntentionalAppearanceColor,
+    IntentionalInteriorColor,
+    PurchaseMethod
+  },
+  data() {
+    return {
+      params: [],
+      activeNames: ['1','2','3','4'],
+      value: "",
+
+      width: "900px",
+      form: {
+        carSeriesCn: {
+          input: "",
+          dialogVisible: false
+        },
+        custName: {
+          input: "",
+          isdisabled: false
+        },
+        genderName: {
+          value: "",
+          isdisabled: false
+        },
+        touchStatusName: {
+          value: "",
+          isdisabled: false
+        },
+        contactTel: {
+          input: "",
+          isdisabled: false
+        },
+        Phone1: {
+          input: ""
+        },
+        backupTel: {
+          input: "",
+          isdisabled: true
+        },
+        serverOrder: {
+          input: "",
+          isdisabled: true
+        },
+        dlrShortName: {
+          input: "",
+          dialogVisible: false
+        },
+        clueTypeName: {
+          value: "",
+          isdisabled: true
+        },
+        Intencar: {
+          input: "",
+          dialogVisible: false
+        },
+        orderAmount: {
+          input: "",
+          isdisabled: true
+        },
+        carExhiName: {
+          value: "",
+          isdisabled: true
+        },
+        buyPlanName: {
+          value: "",
+          isdisabled: true
+        },
+        clueLevelCode: {
+          value: "",
+          isdisabled: true
+        },
+        nextCallbackDate: {
+          value: "",
+          isdisabled: true
+        },
+        preArriveDlrTime: {
+          value: "",
+          isdisabled: true
+        },
+        actionName: {
+          value: "",
+          isdisabled: true
+        },
+        orderStatusName: {
+          value: "",
+          isdisabled: true
+        },
+        cantactWayName: {
+          value: "",
+          isdisabled: true
+        },
+        infoChanMName: {
+          value: "",
+          isdisabled: true
+          // isdisabled:true,
+        },
+        infoChanDName: {
+          input: "",
+          isdisabled: true
+        },
+        cleanFlagName: {
+          value: "",
+          isdisabled: true
+        },
+        cleanQty: {
+          input: "",
+          isdisabled: true
+        },
+        orderDate: {
+          value: "",
+          isdisabled: true
+        },
+        orderCode: {
+          input: "",
+          isdisabled: true
+        },
+        clueDesc: {
+          input: "",
+          isdisabled: true
+        },
+        personEn: {
+          input: "",
+          isdisabled: true
+        },
+        birthDate: {
+          value: "",
+          isdisabled: true
+        },
+        custClassCode: {
+          value: "",
+          isdisabled: true
+        },
+        convTimeName: {
+          value: "",
+          isdisabled: true
+        },
+        addrProvince: {
+          value: "",
+          isdisabled: true
+        },
+        addrCity: {
+          value: "",
+          isdisabled: true
+        },
+        addrCounty: {
+          value: "",
+          isdisabled: true
+        },
+        addrZip: {
+          input: "",
+          isdisabled: true
+        },
+        addrStreet: {
+          input: "",
+          isdisabled: true
+        },
+        credTypeName: {
+          value: "",
+          isdisabled: true
+        },
+        credNo: {
+          input: "",
+          isdisabled: true
+        },
+        degreeCode: {
+          value: "",
+          isdisabled: true
+        },
+        tradeCode: {
+          value: "",
+          isdisabled: true
+        },
+        jobCode: {
+          value: "",
+          isdisabled: true
+        },
+        Compname: {
+          input: "",
+          isdisabled: true
+        },
+        familyIncomeCode: {
+          value: "",
+          isdisabled: true
+        },
+        driverTypeCode: {
+          value: "",
+          isdisabled: true
+        },
+        driverTimeCode: {
+          value: "",
+          isdisabled: true
+        },
+        hobby: {
+          dialogVisible: false
+        },
+        intentPriceCode: {
+          value: "",
+          isdisabled: true
+        },
+        recommendFlag: {
+          value: "",
+          isdisabled: true
+        },
+        buyTypeCode: {
+          value: "",
+          isdisabled: true
+        },
+        color: {
+          value: "",
+          isdisabled: true
+        },
+        innerColor: {
+          value: "",
+          isdisabled: true
+        }
+      },
+      modn: {
+        input: ""
+      },
+      modc: {
+        input: ""
+      },
+      tabledatas: {
+        colnames: [
+          { label: "意向车系", value: "carSeriesCn" },
+          { label: "客户名称", value: "custName" },
+          { label: "意向级别", value: "clueLevelCode" },
+          { label: "回访描述", value: "reviewDesc" },
+          { label: "回访时间", value: "factReviewDate" },
+          { label: "处理状态", value: "touchStatusName" },
+          //{ label: "回访类型", value: "reviewTypeName" },
+          { label: "回访人员", value: "hfPerson" },
+          { label: "来源单号", value: "serverOrder" }
+        ],
+        tableData: [],
+        queryObj: {
+          // .后面是服务编码，.前面固定写死
+          apiConfig: crmApis.clueServerQueryReviewRecord,
+          apiQueryRow: [
+            "carSeriesCn",
+            "custName",
+            "clueLevelCode",
+            "reviewDesc",
+            "factReviewDate",
+            "touchStatusName",
+            //"reviewTypeName",
+            "hfPerson",
+            "serverOrder"
+          ],
+          params: {
+            serverOrder: ""
+          }
+        },
+        pagesize: 10,
+        pageindex: 1,
+        total: 0
+      }
+    };
+  },
+  mounted: function() {
+    this.$nextTick(function() {
+      this.initdata();
+      this.query();
+      this.initdatacust();
+    });
+  },
+  created: function() {},
+  methods: {
+    // 查询数据
+    initdata() {
+      let that = this;
+      let queryObj = {
+        // api配置
+        apiConfig: crmApis.clueServerQueryDetailFromHeadquarters,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: [
+              "status",
+              "actionDesc",
+              "actionName",
+              "actionType",
+              "activeTime",
+              "addrZip",
+              "applicant",
+              "applicantId",
+              "applicantTime",
+              "arrivedDate",
+              "assignDate",
+              "assignQty",
+              "assignStatus",
+              "assignStatusName",
+              "auditResult",
+              "auditType",
+              "auitOpinion",
+              "backupTel",
+              "batchNo",
+              "birthDate",
+              "brandid",
+              "buyCaruseCode",
+              "buyFormCode",
+              "buyPlanCode",
+              "buyPlanName",
+              "buyTypeCode",
+              "buyTypeName",
+              "buyingFormSite",
+              "buypriceoff",
+              "buytime",
+              "caEmpId",
+              "caEmpName",
+              "callednum",
+              "campaignId",
+              "cantactWayCode",
+              "cantactWayName",
+              "carBrandCode",
+              "carBrandName",
+              "carConfigCn",
+              "carConfigId",
+              "carExhiName",
+              "carLicense",
+              "carSeriesCn",
+              "caseTime",
+              "changeIntentDate",
+              "city",
+              "cleanFlag",
+              "cleanFlagName",
+              "cleanQty",
+              "clueBelongType",
+              "clueCiytId",
+              "clueCode",
+              "clueDate",
+              "clueDesc",
+              "clueFrom",
+              "clueId",
+              "clueLevelCode",
+              "clueSource",
+              "clueStatus",
+              "clueType",
+              "clueTypeName",
+              "color",
+              "colorName",
+              "communicater",
+              "contStatus",
+              "contactTel",
+              "convTimeCode",
+              "convTimeName",
+              "createdDate",
+              "createdName",
+              "creator",
+              "credNo",
+              "credTypeCode",
+              "credTypeName",
+              "crruLevel",
+              "crruNode",
+              "crruNodeName",
+              "csr",
+              "custAddr",
+              "custClassCode",
+              "custClassName",
+              "custClueCode",
+              "custCounty",
+              "custCountyId",
+              "custFullName",
+              "custId",
+              "custName",
+              "custSource",
+              "dealNode",
+              "dealStatus",
+              "dealType",
+              "degreeCode",
+              "degreeName",
+              "deliveryCarSeriesId",
+              "deliveryCarSeriesName",
+              "deliveryCarTypeCode",
+              "deliveryCarTypeName",
+              "dlrCode",
+              "dlrShortName",
+              "driveDate",
+              "gender",
+              "genderName",
+              "groupCode",
+              "groupId",
+              "infoChanDCode",
+              "infoChanDName",
+              "infoChanMCode",
+              "infoChanMName",
+              "innerColor",
+              "innerColorName",
+              "intentPriceCode",
+              "intentionalPrice",
+              "isEnable",
+              "orderAmount",
+              "orderCode",
+              "orderDate",
+              "orderStatusName",
+              "preArriveDlrTime",
+              "processingAction",
+              "recommendFlag",
+              "recommendName",
+              "serverOrder",
+              "tbCarExhiId",
+              "touchStatus",
+              "touchStatusName",
+              "vin",
+              "vipTypeCode"
+            ]
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: 10,
+          pageIndex: 1,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {
+            serverOrder: this.$route.params.serverOrder
+          } //从线索查询传过来的参数
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result == "1" &&
+          response.data[queryObj.apiConfig.ServiceCode].rows != ""
+        ) {
+          let results = response.data[queryObj.apiConfig.ServiceCode].rows[0];
+          for (let key in results) {
+            if (that.form[key] && "input" in that.form[key]) {
+              that.form[key].input = results[key];
+            } else if (that.form[key] && "value" in that.form[key]) {
+              that.form[key].value = results[key];
+            }
+            if (that.$refs[key] && that.$refs[key].getData) {
+              that.$refs[key].getData();
+            } else if (that.$refs[key] && that.$refs[key].getNewData) {
+              that.$refs[key].getNewData();
+            }
+          }
+        }
+      });
+    },
+    initdatacust() {
+      let that = this;
+      let queryObj = {
+        // api配置
+        apiConfig: crmApis.mdmDlrCustInfoQuery,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: [
+              "personEn",
+              "convTimeName",
+              "convTimeCode",
+              "credTypeName",
+              "credNo",
+              "addrZip",
+              "birthDate",
+              "degreeName",
+              "degreeCode",
+              "tradeName",
+              "tradeCode",
+              "jobCode",
+              "jobName",
+              "incomeName",
+              "familyIncomeCode",
+              "driverTypeName",
+              "driverTimeCode",
+              "driverTimeName",
+              "driverTypeCode",
+              "hobby",
+              "addrProvince",
+              "addrCity",
+              "addrCounty",
+              "addrStreet",
+              "custClassCode",
+            ]
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: 10,
+          pageIndex: 1,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {
+            dlrCustNo: this.$route.params.custId,
+            isPV800:"1"
+          } //从线索查询传过来的参数
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result == "1" &&
+          response.data[queryObj.apiConfig.ServiceCode].rows != ""
+        ) {
+          let results = response.data[queryObj.apiConfig.ServiceCode].rows[0];
+          for (let key in results) {
+            if (that.form[key] && "input" in that.form[key]) {
+              that.form[key].input = results[key];
+            } else if (that.form[key] && "value" in that.form[key]) {
+              that.form[key].value = results[key];
+            }
+            if (that.$refs[key] && that.$refs[key].getData) {
+              that.$refs[key].getData();
+            } else if (that.$refs[key] && that.$refs[key].getNewData) {
+              that.$refs[key].getNewData();
+            }
+          }
+        }
+      });
+    },
+    query() {
+      let that = this;
+      that.tabledatas.queryObj.params.serverOrder = this.$route.params.serverOrder;
+
+      let queryObj = {
+        // api配置
+        apiConfig: that.tabledatas.queryObj.apiConfig,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: that.tabledatas.queryObj.apiQueryRow
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.tabledatas.pagesize,
+          pageIndex: that.tabledatas.pageindex,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: that.tabledatas.queryObj.params
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result == "1"
+          //&&response.data[queryObj.apiConfig.ServiceCode].rows != ""
+        ) {
+          that.tabledatas.tableData =
+            response.data[queryObj.apiConfig.ServiceCode].rows;
+          that.tabledatas.pageindex =
+            response.data[queryObj.apiConfig.ServiceCode].pageindex;
+          that.tabledatas.total =
+            response.data[queryObj.apiConfig.ServiceCode].records;
+        }
+      });
+    },
+    prev(index) {
+      let that = this;
+      that.tabledatas.pageindex = index;
+      this.query();
+    },
+    next(index) {
+      let that = this;
+      that.tabledatas.pageindex = index;
+      this.query();
+    },
+    changepage(index) {
+      let that = this;
+      that.tabledatas.pageindex = index;
+      this.query();
+    },
+    reset() {
+      this.$refs.ModelName.reset();
+      this.$refs.ModelContentText.reset();
+    }
+  }
+};
+</script>

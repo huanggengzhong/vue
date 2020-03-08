@@ -1,0 +1,86 @@
+import Mock from 'mockjs'
+import {
+    apiMaintain
+} from '../../../../src/api/graphQLApiList/se'
+const cH = '/'
+
+const queryData = Mock.mock({
+    seDbNewCarReadyQueryFind: {
+      result: '1',
+      pageindex: 1,
+      pages: 1,     
+      records: 1,
+      msg: 'success',
+      'rows|5': [{
+        matntainName:'matntainName',
+        carSeriescn: 'carSeriescn',
+        carSeriesCode: 'carSeriesCode',
+        carTypecn: 'carTypecn',
+        carTypeCode: 'carTypeCode',
+        newCarReadyId: 'newCarReadyId',
+        updateControlId: 'updateControlId',
+        maintainPrice: 'maintainPrice',
+        evalidDate: 'evalidDate',
+        modifier: 'modifier',
+        lastUpdateDate: 'lastUpdateDate',
+        creator: 'creator',
+        createDate: 'createDate',
+        isEnable: 'isEnable'
+      }]
+    }
+  
+  })
+
+const saveData = Mock.mock({
+  seDbNewCarReadyMutationSave:{
+    result:'1',
+    msg: 'success',
+  }
+})
+
+const deleteData = Mock.mock({
+  seDbNewCarReadyMutationDelete:{
+    result:'1',
+    msg: 'success',
+  }
+})
+  
+  
+  export default [{
+    //新车准备标准维护-查询
+    url: apiMaintain.seDbNewCarReadyQueryFind.APIUrl + cH + 'v=' + apiMaintain.seDbNewCarReadyQueryFind.ServiceCode,
+    type: 'post',
+    response: config => {
+      return {
+        result: '1',
+        msg: 'success',
+        data: queryData
+      }
+    }
+  },
+  {
+    //新车准备标准维护-新增
+    url: apiMaintain.seDbNewCarReadyMutationSave.APIUrl + cH + 'v=' + apiMaintain.seDbNewCarReadyMutationSave.ServiceCode,
+    type: 'post',
+    response: config => {
+      return {
+        result: '1',
+        msg: 'success',
+        data: saveData
+      }
+    }
+  },
+  {
+    //新车准备标准维护-删除
+    url: apiMaintain.seDbNewCarReadyMutationDelete.APIUrl + cH + 'v=' + apiMaintain.seDbNewCarReadyMutationDelete.ServiceCode,
+    type: 'post',
+    response: config => {
+      return {
+        result: '1',
+        msg: 'success',
+        data: deleteData
+      }
+    }
+  },
+
+]

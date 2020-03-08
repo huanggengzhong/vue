@@ -1,0 +1,498 @@
+<!--
+* description: 销售合同信息查询
+* author: cjming
+* createdDate: 2019-10-11
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template
+      ref="multipleTable"
+      :dynamicIsShowMoreBtn="isMoreBtn"
+      :dynamicTableOtherHeight="conHeight"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="false"
+      :dynamicIsInitTable="true"
+      :dynamicIsColumnDrop="true"
+    />
+
+    <edit
+      :dynamicEditRowData="editRowData"
+      :popupsVisible="editPopupsVisible"
+      :key="editPopupsKey"
+      :popupsState="editPopupsState"
+      @close="close"
+    ></edit>
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from "@/components/mixins/oneTableWithViewTemplateMixins";
+import { veApis } from "@/api/graphQLApiList/ve";
+import OneTableTemplate from "@/components/templates/oneTable";
+import Edit from "./edit";
+import { CacheConfig } from "@/cache/configCache/index";
+export default {
+  name: "orgWholeRoleManage",
+  // 组件混入对象
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+    Edit
+  }, // 阻塞路由预加载网格中组件的数据
+  beforeRouteEnter(to, from, next) {
+    CacheConfig.initData(to.path, function() {
+      next();
+    });
+  },
+
+  data() {
+    return {
+      //设置是否显示更多按钮
+      conHeight: 35,
+      isMoreBtn: true,
+      // 网格查询API配置对象
+      apiConfig: veApis.veContractQry,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: this.$t("sys.button.query")
+        }, //查询
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: this.$t("sys.button.reset")
+        }, //重置
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.add(),
+          // text: this.$t("sys.button.add")
+          text: "打印合同"
+        }, // '打印合同'
+        {
+          compKey: "btnKey4",
+          type: "",
+          size: "small",
+          clickEvent: () => this.add(),
+          // text: this.$t("sys.button.add")
+          text: "打印交车单"
+        }, // '打印交车单'
+        {
+          compKey: "btnKey",
+          type: "",
+          size: "small",
+          clickEvent: () => this.exportExcel(),
+          text: "导出"
+        }
+      ],
+      // 动态组件-查询条件
+      tableComponents:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              // {compKey: 'compKey1', labelName: this.$t('org.label.roleCode'), codeField: 'roleCode', component: () => import('@/components/org/commonInput'), type: 'inputText', isMust: true},//角色编码
+              {
+                compKey: "compKey2",
+                labelName: "品牌",
+                codeField: "carBrandCode",
+                component: () => import("@/components/org/carBrand/carBrand"),
+                type: "dropdownList",
+                isMust: true
+              }, //j角色名称
+              // 客户名称
+              {
+                compKey: "compKey3",
+                labelName: "客户名称",
+                codeField: "buyCustId",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              },
+              {
+                compKey: "compKey4",
+                labelName: "VIN码",
+                codeField: "vin",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              },
+              {
+                compKey: "compKey5",
+                labelName: "订单编号",
+                codeField: "roleOrgType",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true
+              },
+              {
+                compKey: "compKey6",
+                labelName: "合同编号",
+                codeField: "roleOrgType",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: false
+              },
+              {
+                compKey: "compKey7",
+                labelName: "销售类型",
+                codeField: "roleOrgType",
+                component: () => import("@/components/org/LookupValue"),
+                type: "dropdownList",
+                isMust: false
+              },
+              {
+                compKey: "compKey8",
+                labelName: "采购单状态",
+                codeField: "roleOrgType",
+                component: () => import("@/components/org/isEnable/isEnable"),
+                type: "dropdownList",
+                isMust: false
+              },
+              {
+                compKey: "compKey9",
+                labelName: "收款状态",
+                codeField: "roleOrgType",
+                component: () => import("@/components/org/isEnable/isEnable"),
+                type: "dropdownList",
+                isMust: false
+              },
+              {
+                compKey: "compKey10",
+                labelName: "销售顾问",
+                codeField: "roleOrgType",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: false
+              },
+              {
+                compKey: "compKey11",
+                labelName: "经销商简称",
+                codeField: "roleOrgType",
+                component: () => import("@/components/org/orgDlr"),
+                type: "propus",
+                isMust: false
+              },
+              {
+                compKey: "compKey12",
+                labelName: "车型",
+                codeField: "roleOrgType",
+                component: () => import("@/components/org/carTypeConfig"),
+                type: "propus",
+                isMust: false
+              },
+              {
+                compKey: "compKey13",
+                labelName: "优惠申请状态",
+                codeField: "roleOrgType",
+                component: () => import("@/components/org/LookupValue"),
+                type: "dropdownList",
+                isMust: false
+              },
+              {
+                compKey: "compKey14",
+                labelName: "下单日期",
+               codeField: "assignDateBegin",
+                isRequire: false,
+                component: () =>
+                  import("@/components/org/datePicker/datePicker"),
+                type: "datePicker",
+                dateOptionsType: "1",
+                isMust: false
+              },
+              {
+                compKey: "compKey15",
+                labelName: "至",
+                codeField: "assignDateBegin",
+                isRequire: false,
+                component: () =>
+                  import("@/components/org/datePicker/datePicker"),
+                type: "datePicker",
+                dateOptionsType: "1",
+                isMust: false
+              },
+              {
+                compKey: "compKey16",
+                labelName: "车务代办",
+                codeField: "roleOrgType",
+                component: () => import("@/components/org/LookupValue"),
+                type: "dropdownList",
+                isMust: false
+              },
+              {
+                compKey: "compKey17",
+                labelName: "精品业务",
+                codeField: "roleOrgType",
+                component: () => import("@/components/org/LookupValue"),
+                type: "dropdownList",
+                isMust: false
+              },
+              {
+                compKey: "compKey18",
+                labelName: "保险业务",
+                codeField: "roleOrgType",
+                component: () => import("@/components/org/LookupValue"),
+                type: "dropdownList",
+                isMust: false
+              }
+            ],
+      // 动态生成网格列
+      tableCols: this.getCols(),
+
+      //表单查询数据
+      formField: {
+        roleCode: "",
+        roleName: "",
+        roleOrgType: "",
+        carBrandCode: "",
+        buyCustId: ""
+      }
+    };
+  },
+  methods: {
+    del() {
+      console.info("删除");
+    },
+    // 编辑按钮事件
+    edit(index) {
+      var curIndex = index;
+
+      const that = this.$refs.multipleTable;
+      if (curIndex === undefined || curIndex === null) {
+        var currentRow;
+        if (that.isMul === true) {
+          // 多选
+          var selectData = that.selection;
+          if (selectData.length > 0) {
+            currentRow = selectData[0];
+          }
+        } else {
+          // 单选
+          currentRow = that.currentRow;
+        }
+        if (currentRow) {
+          curIndex = currentRow.index;
+        }
+      }
+
+      if (curIndex === undefined || curIndex === null) {
+        this.$alert("请选择需要修改的数据", "提示");
+        return;
+      }
+      this.editRowData = that.list[curIndex];
+      this.editRowData.enabled = String(this.editRowData.enabled);
+      this.showEdit("edit");
+    },
+    getCols() {
+      var cols = [
+        {
+          prop: "controlBtn",
+          // label: this.$t("sys.content.operate"),
+          label: "订单交期明细",
+          codeField: "controlBtn",
+          width: 120,
+          align: "center",
+          fixed: true,
+          isComponent: true,
+          comps: [
+            {
+              compKey: "propKey0",
+              align: "center",
+              // labelName: this.$t("sys.button.edit"),
+              labelName: "交期明细",
+              codeField: "editControlBtn",
+              clickEvent: this.edit,
+              component: () => import("@/components/org/linkButton")
+            }
+          ]
+        } //操作
+      ];
+      if (
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableCols.length > 0
+      ) {
+        cols = cols.concat(CacheConfig.cacheData[this.$route.path].tableCols);
+      } else {
+        cols = cols.concat([
+          {
+            prop: "saleTypeName",
+            label: "销售类型",
+            width: null,
+            align: "center"
+          }, //角色编码
+          {
+            prop: "saleOrderCode",
+            label: "订单编号",
+            width: null,
+            align: "center"
+          }, //角色名称
+          {
+            prop: "saleContractCode",
+            label: "合同编号",
+            width: null,
+            align: "center"
+          }, //是否内置
+          {
+            prop: "custName",
+            label: "客户名称",
+            width: null,
+            align: "center"
+          }, //启用状态
+          {
+            prop: "caEmpId",
+            label: "销售顾问",
+            width: null,
+            align: "center"
+          }, //组织类型
+
+          {
+            prop: "vin",
+            label: "VIN码",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "roleId",
+            label: "单据状态",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+
+          {
+            prop: "abnormalName",
+            label: "异常状态",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "carBrandCode",
+            label: "车辆品牌",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "abnormalName",
+            label: "车型名称",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "carBrandCode",
+            label: "车型编码",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "carColorName",
+            label: "车身颜色",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "builtIn",
+            label: "内饰颜色",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "preDeliveryDate",
+            label: "预计交车时间",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "chargeState",
+            label: "收款状态",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "ReceivedAmount",
+            label: "已收定金",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "contractPrice",
+            label: "合同金额",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "loanPoundage",
+            label: "按揭手续费",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "contractPrice",
+            label: "应收总金额",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "favoAmount",
+            label: "优惠申请状态",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "isLicence",
+            label: "车务代办",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "isPart",
+            label: "精品业务",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "isInsurance",
+            label: "保险业务",
+            width: null,
+            align: "center"
+            // hidden: true
+          },
+          {
+            prop: "createDateBegin",
+            label: "下单日期",
+            width: null,
+            align: "center"
+            // hidden: true
+          }
+        ]);
+      }
+      return cols;
+    }
+  }
+};
+</script>

@@ -1,0 +1,579 @@
+<!--
+* description: 销售出库
+* author: yangsq
+* createdDate: 2019-09-26
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template
+      ref="multipleTable"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="true"
+      :dynamicIsShowMoreBtn="true"
+    />
+    <edit
+      :dynamicEditRowData="editRowData"
+      :popupsVisible="editPopupsVisible"
+      :key="editPopupsKey"
+      height="780px"
+      :dynamicApiConfig="apiConfig"
+      :popupsState="editPopupsState"
+      @close="close"
+    ></edit>
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { veApis } from "@/api/graphQLApiList/ve";
+import Edit from "./edit";
+import OneTableTemplate from "@/components/templates/oneTable";
+import { CacheConfig } from "@/cache/configCache/index";
+
+export default {
+  name: "SaleOutOfStock",
+  // 组件混入对象：{data[listQuery] methods[queryTable]}
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+    Edit
+  },
+  // 阻塞路由预加载网格中组件的数据
+  beforeRouteEnter(to, from, next) {
+    CacheConfig.initData(to.path, function() {
+      next();
+    });
+  },
+  data() {
+    return {
+      // 网格查询API配置对象
+      apiConfig: veApis.veApplicationForFiling,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey2",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.save(),
+          text: "批量出库" //新车PDI
+        },
+        {
+          compKey: "btnKey1",
+          type: "",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: this.$t("sys.button.query") //查询
+        },
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: this.$t("sys.button.reset") //重置
+        }
+      ],
+      // 动态组件-查询条件
+      tableComponents:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              // 显示组件
+              {
+                compKey: "compKey1",
+                labelName: "合同编号", //合同编号
+                codeField: "orderNum",
+                isMul: true,
+                component: () => import("@/components/org/commonInput"),
+                type: "textInput",
+                isMust: true
+              },
+              {
+                compKey: "compKey2",
+                labelName: "客户名称", //客户名称
+                codeField: "custName",
+                component: () => import("@/components/org/commonInput"),
+                type: "textInput",
+                isMul: false,
+                isMust: true
+              },
+              {
+                compKey: "compKey3",
+                labelName: "销售顾问" /*销售顾问*/,
+                codeField: "salesConsultant",
+                component: () => import("@/components/ve/employeeSelect"),
+                type: "propus",
+                isMust: true
+              },
+              {
+                compKey: "compKey4",
+                labelName: this.$t("ve.label.vin"), //VIN码
+                codeField: "vin",
+                isMul: true,
+                component: () => import("@/components/org/commonInput"),
+                type: "textInput",
+                isMust: true
+              },
+              {
+                compKey: "compKey5",
+                labelName: "下单日期", //下单日期
+                codeField: "applyDate",
+                component: () =>
+                  import("@/components/org/datePicker/datePicker"),
+                type: "datePicker",
+                isMul: false,
+                isMust: false
+              },
+              {
+                compKey: "compKey6",
+                labelName: this.$t("ve.label.reach"), //至
+                codeField: "reach",
+                component: () =>
+                  import("@/components/org/datePicker/datePicker"),
+                type: "datePicker",
+                isMul: false,
+                isMust: false
+              }
+            ],
+      // 动态生成网格列
+      tableCols:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableCols &&
+        CacheConfig.cacheData[this.$route.path].tableCols.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableCols
+          : [
+              {
+                prop: "operation",
+                label: this.$t("org.label.operation"), //操作
+                codeField: "operation",
+                width: null,
+                align: "center",
+                isComponent: true,
+                comps: [
+                  {
+                    compKey: "propKey0",
+                    labelName: "出库", //出库
+                    codeField: "editControlBtn",
+                    clickEvent: () => this.edit(),
+                    component: () => import("@/components/org/linkButton")
+                  }
+                ]
+              },
+              {
+                prop: "orderNum",
+                label: "合同编号", //合同编号
+                width: 160,
+                align: "center"
+              },
+              {
+                prop: "purOrderType",
+                label: "订单类型", //订单类型
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "prohibit",
+                label: "客户名称", //客户名称
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "vin",
+                label: "VIN", //VIN
+                width: 160,
+                align: "center"
+              },
+              {
+                prop: "orderDateBegin",
+                label: "下单日期", //下单日期
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "salesConsultant",
+                label: "销售顾问", //销售顾问
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "contractCode",
+                label: "contractCode", //品牌
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "carIncolorId",
+                label: "carIncolorId", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "carColorId",
+                label: "carColorId", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "carBrandCode",
+                label: "carBrandCode", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "carConfigId",
+                label: "carConfigId", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "optionalPackage",
+                label: "optionalPackage", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "vin",
+                label: "vin", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "engineNo",
+                label: "engineNo", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "certificateNo",
+                label: "certificateNo", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "ArrivalDate",
+                label: "ArrivalDate", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "salesConsultant",
+                label: "salesConsultant", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "salesDate",
+                label: "salesDate", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "custName",
+                label: "custName", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "wareHouseMultiCode",
+                label: "wareHouseMultiCode", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "PlaceCode",
+                label: "PlaceCode", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "AreaCode",
+                label: "AreaCode", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "phone",
+                label: "phone", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "credTypeCode",
+                label: "credTypeCode", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "credNo",
+                label: "credNo", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "province",
+                label: "province", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "cityName",
+                label: "cityName", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "district",
+                label: "district", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "outStockDate",
+                label: "outStockDate", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "outStockPeople",
+                label: "outStockPeople", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "handoverPerson",
+                label: "handoverPerson", //
+                width: null,
+                hidden:true,
+                align: "center"
+              },
+              {
+                prop: "updateControlId",
+                label: "并发字段",
+                width: null,
+                align: "center",
+                hidden: true
+              }
+            ],
+      formField: {
+        orderNum: "",
+        custName:"",
+        orderType:"",
+        orderDateBegin:"",
+        dlr: "",
+        salesConsultant: "",
+        vin: "",
+        applyDate: "",
+        reach: "",
+        updateControlId:""
+      }
+    };
+  },
+  methods: {
+    //驳回
+    rejectOrder() {
+      const that = this.$refs.multipleTable;
+      let saveState = true;
+      let saveCount = 0;
+      let msg = "";
+
+      let selectData = that.$refs.multipleTable.selection;
+      if (selectData.length < 1) {
+        that.$message({
+          message: "请选择需要驳回的财务单",
+          type: "warning",
+          duration: 2000
+        });
+        return;
+      }
+
+      for (var k in selectData) {
+        let queryObj = {
+          // 保存mutation
+          type: "mutation",
+          // api配置
+          apiConfig: veApis.veApplicationForFiling,
+          variables: {
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: {
+              dlrAccountId: selectData[k].dlrAccountCode,
+              dlrAccountRInfoId: selectData[k].purcashTypeId,
+              updateControlId: selectData[k].updateControlId
+            }
+          }
+        };
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        // 调用中台API方法（可复用）
+        that.$requestGraphQL(paramD).then(response => {
+          if (response.data[queryObj.apiConfig.ServiceCode].result === "1") {
+            saveCount++;
+          } else {
+            saveState = false;
+            msg = response.data[queryObj.apiConfig.ServiceCode].msg;
+            that.$message({
+              message: msg,
+              type: "warning",
+              duration: 2000
+            });
+          }
+          if (saveCount == selectData.length) {
+            that.$message({
+              message: "驳回成功",
+              type: "success",
+              duration: 2000
+            });
+
+            that.queryTable(1);
+          }
+        });
+      }
+    },
+    // 批量出库
+    save() {
+      const that = this.$refs.multipleTable;
+      let saveState = true;
+      let saveCount = 0;
+      let msg = "";
+
+      let selectData = that.$refs.multipleTable.selection;
+      if (selectData.length < 1) {
+        that.$message({
+          message: "请选择需要出库的数据",
+          type: "warning",
+          duration: 2000
+        });
+        return;
+      }
+
+      for (var k in selectData) {
+        let queryObj = {
+          // 保存mutation
+          type: "mutation",
+          // api配置
+          apiConfig: veApis.veApplicationForFiling,
+          variables: {
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: {
+              carBrandCode: selectData[k].carBrandCode,
+              purOrderDId: selectData[k].purOrderDId,
+              updateControlId: selectData[k].updateControlId
+            }
+          }
+        };
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        // 调用中台API方法（可复用）
+        that.$requestGraphQL(paramD).then(response => {
+          if (response.data[queryObj.apiConfig.ServiceCode].result === "1") {
+            saveCount++;
+          } else {
+            saveState = false;
+            msg = response.data[queryObj.apiConfig.ServiceCode].msg;
+            that.$message({
+              message: msg,
+              type: "warning",
+              duration: 2000
+            });
+          }
+
+          if (saveCount == selectData.length) {
+            that.$message({
+              message: "出库成功",
+              type: "success",
+              duration: 2000
+            });
+
+            that.queryTable(1);
+          }
+        });
+      }
+    },
+    // examine() {
+    //   const that = this.$refs.multipleTable;
+    //   let saveState = true;
+    //   let saveCount = 0;
+    //   let msg = "";
+    //   let selectData = that.$refs.multipleTable.selection;
+    //   if (selectData.length < 1) {
+    //     that.$message({
+    //       message: "请至少选择一条数据",
+    //       type: "warning",
+    //       duration: 2000
+    //     });
+    //     return;
+    //   }
+    //   for (var k in selectData) {
+    //     let queryObj = {
+    //       // 保存mutation
+    //       type: "mutation",
+    //       // api配置
+    //       apiConfig: veApis.veApplicationForFiling,
+    //       variables: {
+    //         //当前中台使用的名称有dataInfo、info，具体查看API文档
+    //         dataInfo: {
+    //           custName: selectData[k].custName,
+    //           orderType: selectData[k].orderType,
+    //           updateControlId: selectData[k].updateControlId,
+    //           orderDateBegin: selectData[k].orderDateBegin,
+    //           dlr: selectData[k].dlr,
+    //           applyDate: selectData[k].applyDate
+    //         }
+    //       }
+    //     };
+    //     //转换了中台请求格式数据
+    //     var paramD = that.$getParams(queryObj);
+    //     // 调用中台API方法（可复用）
+    //     that.$requestGraphQL(paramD).then(response => {
+    //       if (response.data[queryObj.apiConfig.ServiceCode].result === "1") {
+    //         saveCount++;
+    //       } else {
+    //         saveState = false;
+    //         msg = response.data[queryObj.apiConfig.ServiceCode].msg;
+    //         that.$message({
+    //           message: msg,
+    //           type: "warning",
+    //           duration: 2000
+    //         });
+    //       }
+    //       if (saveCount == selectData.length) {
+    //         that.$message({
+    //           message: "批量出库成功",
+    //           type: "success",
+    //           duration: 2000
+    //         });
+    //         that.queryTable(1);
+    //       }
+    //     });
+    //   }
+    // }
+  }
+};
+</script>

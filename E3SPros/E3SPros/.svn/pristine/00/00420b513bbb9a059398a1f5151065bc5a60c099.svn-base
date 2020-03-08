@@ -1,0 +1,73 @@
+import Mock from 'mockjs'
+import {
+  apiMaintenance
+} from '../../../../src/api/graphQLApiList/se'
+const cH = '/'
+
+const seDbEngCarTypeMaintaQueryFindAll = Mock.mock({
+  seDbEngCarTypeMaintaQueryFindAll: {
+    result: '1',
+    pageindex: 1,
+    pages: 1,
+    records: 1,
+    msg: 'success',
+    'rows|10': [{
+      createdName: 'createdName',
+      modifyName: 'modifyName',
+      enableDate: 'enableDate',
+      lastUpdatedDate: 'lastUpdatedDate',
+      enginType: 'enginType',
+      maintaId: 'maintaId',
+      updateControlId: 'updateControlId',
+      enableDate: 'enableDate',
+      isEnable: 'isEnable',
+      isEnableCn: 'isEnableCn',
+      carBrandCode: 'carBrandCode',
+      carBrandCn: 'carBrandCn',
+      carSeriesCode: 'carSeriesCode',
+      carSeriesCn: 'carSeriesCn',
+      sCarseriesCode: 'sCarseriesCode',
+      sCarseriesDesc: 'sCarseriesDesc',
+      serviceCarType: 'serviceCarType',
+      maintaNo: 'maintaNo',
+    }]
+  }
+
+})
+
+
+// 保存
+const SeDbEngCarTypeMaintaMutationSave = Mock.mock({
+  SeDbEngCarTypeMaintaMutationSave: {
+      result: '1',
+      msg: 'success'
+  }
+})
+
+
+export default [
+  {
+  //保养维护-查询
+  url: apiMaintenance.seDbEngCarTypeMaintaQueryFindAll.APIUrl + cH + 'v=' + apiMaintenance.seDbEngCarTypeMaintaQueryFindAll.ServiceCode,
+  type: 'post',
+  response: config => {
+    return {
+      result: '1',
+      msg: 'success',
+      data: seDbEngCarTypeMaintaQueryFindAll
+    }
+  }
+},
+{
+  //保养维护-保存
+  url: apiMaintenance.SeDbEngCarTypeMaintaMutationSave.APIUrl + cH + 'v=' + apiMaintenance.SeDbEngCarTypeMaintaMutationSave.ServiceCode,
+  type: 'post',
+  response: config => {
+    return {
+      result: '1',
+      msg: 'success',
+      data: SeDbEngCarTypeMaintaMutationSave
+    }
+  }
+}
+]

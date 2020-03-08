@@ -1,0 +1,381 @@
+<!--
+* description: 目标量导入
+* author: ydche
+* createdDate: 2019-09-19
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template ref="multipleTable"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="true"
+      :dynamicIsInitTable="true"
+      :dynamicIsColumnDrop="true"
+      :dynamicIsShowMoreBtn="true"
+    />
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { veApis } from '@/api/graphQLApiList/ve'
+import OneTableTemplate from '@/components/templates/oneTable'
+
+import { CacheConfig } from '@/cache/configCache/index'
+export default {
+  name:"carProductQuery",
+  // 组件混入对象
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+
+  },// 阻塞路由预加载网格中组件的数据
+beforeRouteEnter(to, from, next) {CacheConfig.initData(to.path, function(){next()})},
+
+  data() {
+    return {
+      // 网格查询API配置对象
+      apiConfig: veApis.targetQuantityImport1,
+      // 动态组件-按钮
+      tableButtons: [
+        {compKey: 'btnKey1', type: 'primary', size: 'small', clickEvent: () => this.queryTable(1), text:this.$t('sys.button.query')},//查询
+        {compKey: 'btnKey2', type: '', size: 'small', clickEvent: () => this.importExcel(), text:this.$t('sys.button.import')},// '导入'
+        {compKey: 'btnKey4', type: '', size: 'small', clickEvent: () => this.save(), text:this.$t('sys.button.save')},//保存
+        {compKey: 'btnKey5', type: '', size: 'small', clickEvent: () => this.reset(), text:this.$t('sys.button.reset')},//重置
+      ],
+      // 动态组件-查询条件
+      tableComponents: CacheConfig.cacheData[this.$route.path] && CacheConfig.cacheData[this.$route.path].tableComponents.length > 0 ? CacheConfig.cacheData[this.$route.path].tableComponents : [
+
+         {compKey: 'compKey1', labelName: this.$t('org.label.carBrandCn'), codeField: 'carBrandCode', component: () => import('@/components/org/carBrand/carBrand'), isRequire: true, type: 'dropdownList', isMust: true},//品牌
+        {
+           compKey: "compKey3",
+           labelName: this.$t("org.label.dlrName") /*经销商*/,
+           codeField: "dlrId",
+           component: () => import("@/components/org/orgDlr"),
+           type: "propus",
+           isMust: true
+        },
+        { compKey: "compKey2",
+          labelName: this.$t('ve.label.targetType'),//目标量类型
+          codeField: "targetType",
+          component: () => import("@/components/ve/targetType"),
+          type: "dropdownList",
+          isMust: true
+        },
+        { compKey: "compKey4",
+          labelName: this.$t('ve.label.targetQuantDist'),//目标量区分
+          isMul:false,
+          codeField: "targetQuantityDistinction",
+          component: () => import("@/components/ve/targetQuantityDistinction"),
+          type: "dropdownList",
+          isMust: true
+        },
+        { compKey: "compKey5",
+          labelName: this.$t('ve.label.targetQuaYear'),//目标量年份
+          codeField: "targetQuantityYear",
+          isMul:false,
+          component: () => import("@/components/ve/targetQuantityYear"),
+          type: "dropdownList",
+          isMust: false
+        },
+        { compKey: "compKey6",
+          labelName: this.$t('ve.label.targetQuaMon'),//目标量月份
+          codeField: "targetQuantityMonth",
+          component: () => import("@/components/ve/targetQuantityMonth"),
+          type: "dropdownList",
+          isMust: false
+        },
+        { compKey: "compKey7",
+          codeField: "file",
+          span:12,
+          component: () => import("@/components/ve/upLoad"),
+          type: "propus",
+          isMust: false
+        },
+        { compKey: "compKey8",
+          labelName: this.$t('ve.label.carModelGroup'),//车型组
+          codeField: "carModelGroup",
+          component: () => import("@/components/ve/carModelGroup"),
+          type: "dropdownList",
+          isMust: false
+        },
+        { compKey: "compKey9",
+          codeField: "file",
+          span:6,
+          component: () => import("@/components/ve/downloadImportTemplate"),
+          type: "propus",
+          isMust: false
+        },
+      ],
+      // 动态生成网格列
+      tableCols: this.getCols(),
+
+      //表单查询数据
+      formField:{
+        carBrandCode:'',
+        dlrId:'',
+        carSeriseCode:'',
+        preInStockDateB:'',
+        preInStockDateEnd:'',
+      }
+    }
+  },
+  methods: {
+    getCols() {
+      var cols = [
+        // { prop: 'controlBtn', label:this.$t('sys.content.operate'), codeField: 'controlBtn', width: 60, align: 'center', fixed: true, isComponent: true,
+        //   comps:[{compKey: 'propKey0', align: 'center', labelName:this.$t('sys.button.edit'), codeField: 'editControlBtn', clickEvent: this.edit, component: () => import('@/components/org/linkButton')}]
+
+        // }//操作
+      ]
+      if (CacheConfig.cacheData[this.$route.path] && CacheConfig.cacheData[this.$route.path].tableCols.length > 0) {
+        cols = cols.concat(CacheConfig.cacheData[this.$route.path].tableCols)
+      } else {
+        cols = cols.concat([
+       { prop: 'carBrandCode', label: '经销商编码', width: 100, align: 'center',  },
+       { prop: 'carBrandCn', label: '经销商品牌', width: 120, align: 'center',  },
+       { prop: 'targetType', label: this.$t('ve.label.targetType')/*目标量类型*/, width: 100, align: 'center',  },
+       { prop: 'targetQuantityYM', label: this.$t('ve.label.targetType')/*目标量类型*/, width: 120, align: 'center',  },
+       {
+        prop: "CINItarget",
+        label: this.$t('ve.label.CINItarget')+'+',/*商业险新保率目标+*/
+        width: 135,
+        align: "center",
+        isComponent: true,
+        comps: [
+        {
+          compKey: "propKey1",
+          isShowLabel: false,
+          codeField: "CINItarget",
+          // lookuptype: "VE0166",
+          clickEvent: () => null,
+          component: () => import("@/components/org/commonInput")
+          }
+          ]
+        },
+        {
+        prop: "CINNvehicles",
+        label:  this.$t('ve.label.CINNvehicles')+'+',/*商业险新保辆数目标+*/
+        width: 150,
+        align: "center",
+        isComponent: true,
+        comps: [
+        {
+          compKey: "propKey1",
+          isShowLabel: false,
+          codeField: "CINNvehicles",
+          // lookuptype: "VE0166",
+          clickEvent: () => null,
+          component: () => import("@/components/org/commonInput")
+          }
+          ]
+        },
+        {
+        prop: "NEPRtarget",
+        label:  this.$t('ve.label.NEPRtarget')+'+',/*N延保渗透率目标+*/
+        width: 135,
+        align: "center",
+        isComponent: true,
+        comps: [
+        {
+          compKey: "propKey1",
+          isShowLabel: false,
+          codeField: "NEPRtarget",
+          // lookuptype: "VE0166",
+          clickEvent: () => null,
+          component: () => import("@/components/org/commonInput")
+          }
+          ]
+        },
+        {
+        prop: "NEPEvehicles",
+        label:  this.$t('ve.label.NEPEvehicles')+'+',/*N延保渗透辆数目标+*/
+        width: 150,
+        align: "center",
+        isComponent: true,
+        comps: [
+        {
+          compKey: "propKey1",
+          isShowLabel: false,
+          codeField: "NEPEvehicles",
+          // lookuptype: "VE0166",
+          clickEvent: () => null,
+          component: () => import("@/components/org/commonInput")
+          }
+          ]
+        },
+        {
+        prop: "NCCIRRtarget",
+        label:  this.$t('ve.label.NCCIRRtarget')+'+',/*新车商业险续保率目标+*/
+        width: 165,
+        align: "center",
+        isComponent: true,
+        comps: [
+        {
+          compKey: "propKey1",
+          isShowLabel: false,
+          codeField: "NCCIRRtarget",
+          // lookuptype: "VE0166",
+          clickEvent: () => null,
+          component: () => import("@/components/org/commonInput")
+          }
+          ]
+        },
+        {
+        prop: "OCCIRRtarget",
+        label:  this.$t('ve.label.OCCIRRtarget')+'+',/*旧车商业险续保率目标+*/
+        width: 165,
+        align: "center",
+        isComponent: true,
+        comps: [
+        {
+          compKey: "propKey1",
+          isShowLabel: false,
+          codeField: "OCCIRRtarget",
+          // lookuptype: "VE0166",
+          clickEvent: () => null,
+          component: () => import("@/components/org/commonInput")
+          }
+          ]
+        },
+        {
+        prop: "OCSIRRtarget",
+        label:  this.$t('ve.label.OCSIRRtarget')+'+',/*整体商业险续保率目标+*/
+        width: 165,
+        align: "center",
+        isComponent: true,
+        comps: [
+        {
+          compKey: "propKey1",
+          isShowLabel: false,
+          codeField: "OCSIRRtarget",
+          // lookuptype: "VE0166",
+          clickEvent: () => null,
+          component: () => import("@/components/org/commonInput")
+          }
+          ]
+        },
+        {
+            prop: "NCCIRRvehicles",
+            label:  this.$t('ve.label.NCCIRRvehicles')+'+',/*新车商业险续保辆数目标+*/
+            width: 175,
+            align: "center",
+            isComponent: true,
+            comps: [
+            {
+            compKey: "propKey1",
+            isShowLabel: false,
+            codeField: "NCCIRRvehicles",
+            // lookuptype: "VE0166",
+            clickEvent: () => null,
+            component: () => import("@/components/org/commonInput")
+            }
+            ]
+        },
+        {
+            prop: "OCCIRRvehicles",
+            label:  this.$t('ve.label.OCCIRRvehicles')+'+',/*旧车商业险续保辆数目标+*/
+            width: 175,
+            align: "center",
+            isComponent: true,
+            comps: [
+            {
+            compKey: "propKey1",
+            isShowLabel: false,
+            codeField: "OCCIRRvehicles",
+            // lookuptype: "VE0166",
+            clickEvent: () => null,
+            component: () => import("@/components/org/commonInput")
+            }
+            ]
+        },
+        {
+            prop: "OCSIRRvehicles",
+            label: this.$t('ve.label.CIRTargetTotal')+'+',/*商业险续保量目标合计+*/
+            width: 175,
+            align: "center",
+            isComponent: true,
+            comps: [
+            {
+            compKey: "propKey1",
+            isShowLabel: false,
+            codeField: "OCSIRRvehicles",
+            // lookuptype: "VE0166",
+            clickEvent: () => null,
+            component: () => import("@/components/org/commonInput")
+            }
+            ]
+        },
+    //    { prop: 'carBrandCn', label: '旧车商业险续保率目标', width: 150, align: 'center',  },
+    //    { prop: 'carBrandCn', label: '整体商业险续保率目标', width: 150, align: 'center',  },
+            ])
+      }
+      return cols
+    },
+    save(){
+        let that = this.$refs.multipleTable
+        let selData = that.$refs.multipleTable.selection
+        debugger
+        if(selData.length === 0){
+            this.$message({ message:this.$t('org.message.moreOneData')/*请至少选择一条数据*/ , type: 'warning' });
+			return false;
+        }
+        let length = selData.length - 1
+        for(let i = 0; i < selData.length; i++){
+            let queryObj = {
+				// 保存mutation
+				type: 'mutation',
+				// api配置
+				apiConfig: veApis.carSellSetMock2,
+				//条件/实体参数（变量），根据typeParam中的定义配置
+				variables: {
+					//当前中台使用的名称有dataInfo、info，具体查看API文档
+					dataInfo: selData[i],
+				},
+			};
+			//转换了中台请求格式数据
+			var paramD = this.$getParams(queryObj);
+			 this.$requestGraphQL(paramD).then(response => {
+				if (response.data[queryObj.apiConfig.ServiceCode].result === '1') {
+                    if(i === length){
+                        that.$message({
+                            message: this.$t('sys.tips.esTip5')/*保存成功*/,
+                            type: 'success',
+                            duration: 2000,
+                        });
+                        this.queryTable(1)
+                    }
+				}else{
+                    this.$message({
+                        message: this.$t('sys.tips.esTip10') + response.data[queryObj.apiConfig.ServiceCode].msg,
+                        type: 'warning',
+                        duration: 2000
+                    })
+                    this.queryTable(1)
+                }
+			});
+        }
+    },
+    importExcel(){
+        let that = this.$refs.multipleTable
+        let file = that.$refs.compKey7[0].file
+        if(!file.name){
+            this.$message({
+                message:  this.$t('org.message.selectTheTemplateFile'),/*请选择要导入的模板文件*/
+                type: 'warning',
+                duration: 2000
+            })
+        }else{
+            that.$message({
+                message: '导入成功'/*导入成功*/,
+                type: 'success',
+                duration: 2000,
+            });
+            this.queryTable(1)
+        }
+    }
+  }
+}
+</script>

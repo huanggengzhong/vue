@@ -1,0 +1,910 @@
+<!--
+* description: 成员管理-新增、修改弹窗
+* author: mjq
+* createdDate: 2019-08-14
+-->
+<template>
+  <section class="editCarBrand">
+    <el-dialog
+      :close-on-click-modal="false"
+      :title="textMap[popupsState]"
+      :append-to-body="true"
+      :visible.sync="curPopupsVisible"
+      @close="sendCode"
+      width="1000px"
+    >
+      <div class="filter-container filter-params">
+        <el-row :gutter="26" ref="vailComponentList">
+          <component
+            v-for="comp in tableComponents.filter(o => o.isMust === true)"
+            :ref="comp.isRequire ? comp.isRequire+ comp.compKey : comp.compKey"
+            :validrule="comp.validrule"
+            :key="comp.compKey"
+            :codeField="comp.codeField"
+            :textField="comp.textField"
+            :popupsKey="comp.compKey"
+            :is="comp.component"
+            :code="formField[comp.codeField]"
+            @changeCode="getComponentCode"
+            @focusCode="getFocusCode"
+            :disabled="comp.disabled"
+            :isRequire="comp.isRequire"
+            :isMul="comp.isMul"
+            :span="comp.span || 8"
+            :labelName="comp.labelName"
+            :lookuptype="comp.lookuptype"
+            :dateOptionsType="comp.dateOptionsType"
+          ></component>
+        </el-row>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button
+          v-for="comp in tableButtons"
+          :key="comp.compKey"
+          :type="comp.type"
+          @click="comp.clickEvent"
+        >{{comp.text}}</el-button>
+      </div>
+    </el-dialog>
+  </section>
+</template>
+<script>
+import { formMixins } from "@/components/mixins/formMixins";
+import { orgApis } from "@/api/graphQLApiList/org";
+import OneTableTemplate from "@/components/templates/popupsOneTable";
+export default {
+  // 组件混入对象
+  mixins: [formMixins],
+  props: {
+    roleOrgType: {
+      type: String,
+      default: function() {
+        return "";
+      }
+    },
+    handleVisible: {
+      type: Boolean,
+      default: function() {
+        return true;
+      }
+    },
+    handleTitle: {
+      type: Number,
+      default: function() {
+        return 1;
+      }
+    },
+    showOrgName: {
+      type: String,
+      default: function() {
+        return "";
+      }
+    },
+    dlrId: {
+      type: String,
+      default: function() {
+        return "";
+      }
+    },
+    dlrCode: {
+      type: String,
+      default: function() {
+        return "";
+      }
+    },
+    showOrgRealId: {
+      type: String,
+      default: function() {
+        return "";
+      }
+    },
+    showroleId: {
+      type: String,
+      default: function() {
+        return "";
+      }
+    }
+  },
+  data() {
+    return {
+      businessDates: "",
+      driverDates: "",
+      leaveDates: "",
+      employDates: "",
+      birthDates: "",
+
+      // 保存API配置对象
+      apiConfig: orgApis.mdmOrgEmployeeMutationSaveById,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey3",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.save1(),
+          text: this.$t("sys.button.save")
+        } /*确认*/,
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: this.$t("sys.button.reset")
+        } /*重置*/,
+        {
+          compKey: "btnKey1",
+          type: "",
+          size: "small",
+          clickEvent: () => this.sendCode(),
+          text: this.$t("sys.button.cancel")
+        } /*取消*/
+      ],
+      // 动态组件-查询条件
+      tableComponents: [
+        {
+          compKey: "compKey1",
+          labelName: this.$t("org.label.empCode"),
+          /*员工编码*/ codeField: "empCode",
+          isRequire: true,
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey2",
+          labelName: this.$t("org.label.empName"),
+          /*员工姓名*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "empName",
+          // lookuptype: "",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isRequire: true,
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey3",
+          labelName: this.$t("org.label.orgName"),
+          /*所属组织*/
+          // span: 16,
+          // type: "textarea",
+          codeField: "orgName",
+          // lookuptype: "",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isRequire: true,
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey4",
+          labelName: this.$t("org.label.stationName"),
+          /*岗位*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "stationId",
+          // lookuptype: "",
+          component: () => import("@/components/org/post"),
+          type: "dropdownList",
+          // isRequire: true,
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey5",
+          labelName: this.$t("org.label.Employees"),
+          /*员工性别*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "genderCode",
+          lookuptype: "BASE0005",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          // isRequire: true,
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey6",
+          labelName: this.$t("org.label.userName"),
+          /*创建登录名*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "userName",
+          // lookuptype: "BASE0005",
+          component: () => import("@/components/org/commonInput"),
+          // type: "dropdownList",
+          // isRequire: true,
+          isMust: true,
+          isMul: false
+        },
+        // {
+        //   compKey: "compKey7",
+        //   labelName: this.$t("org.label.loginaccountname"),
+        //   /*登陆账号名*/
+
+        //   // span: 16,
+        //   // type: "textarea",
+        //   codeField: "userName1",
+        //   // lookuptype: "",
+        //   component: () => import("@/components/org/commonInput"),
+        //   type: "inputText",
+        //   // isRequire: true,
+        //   isMust: true,
+        //   isMul: false
+        // },
+        {
+          compKey: "compKey7",
+          labelName: this.$t("org.label.userName1"),
+          /*登录账号名*/ codeField: "userName1",
+          // readonly: true,
+          // parentFileds: "copy:userName",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey8",
+          labelName: this.$t("org.label.password"),
+          /*登陆密码*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "password",
+          // lookuptype: "LX156",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          // isRequire: true,
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey9",
+          labelName: this.$t("org.label.isFrozen1"),
+          lookuptype: "DB0064",
+          codeField: "isFrozen",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true
+          //在职状态
+        },
+        {
+          compKey: "compKey10",
+          labelName: this.$t("org.label.mobile"),
+          /*手机号码*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "mobile",
+          // lookuptype: "",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isRequire: true,
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey11",
+          labelName: this.$t("org.label.credTypeCode"),
+          /*证件类型*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "credTypeCode",
+          lookuptype: "VE0240",
+          component: () => import("@/components/org/LookupValue"),
+          isRequire: true,
+          type: "dropdownList",
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey12",
+          labelName: this.$t("org.label.credNo"),
+          /*证件号码*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "credNo",
+          // lookuptype: "",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isRequire: true,
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey13",
+          labelName: this.$t("org.label.workTel"),
+          /*工作电话*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "workTel",
+          // lookuptype: "",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey14",
+          labelName: this.$t("org.label.employType"),
+          /*招聘方式*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "employType",
+          lookuptype: "DB0063",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey15",
+          labelName: this.$t("org.label.employDate"), // 入职日期
+          codeField: "employDate",
+          component: () => import("@/components/org/datePicker/dateTimePick"),
+          type: "datePicker",
+          dateOptionsType: "1",
+          isMust: true
+        },
+        {
+          compKey: "compKey16",
+          labelName: this.$t("org.label.birthDate"),
+          /*公历日期*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "birthDate",
+          // lookuptype: "DB0063",
+          component: () => import("@/components/org/datePicker/dateTimePick"),
+          format: "yyyy-MM-dd HH:mm:ss",
+          type: "datePicker",
+          // dateOptionsType: "0",
+          isMust: true
+          // isMul: false
+        },
+        {
+          compKey: "compKey17",
+          labelName: this.$t("org.label.email"),
+          /*email*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "email",
+          // lookuptype: "",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isRequire: true,
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey18",
+          labelName: this.$t("org.label.secondMan"),
+          /*紧急联系人*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "secondMan",
+          // lookuptype: "",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey19",
+          labelName: this.$t("org.label.nationalityCode"),
+          /*国籍*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "nationalityCode",
+          lookuptype: "DB0024",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey20",
+          labelName: this.$t("org.label.nativePlace"),
+          /*籍贯*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "nativePlace",
+          // lookuptype: "",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey21",
+          labelName: this.$t("org.label.nationCode"),
+          /*民族*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "nationCode",
+          lookuptype: "DB0026",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey22",
+          labelName: this.$t("org.label.politicsCode"),
+          /*政治面貌*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "politicsCode",
+          lookuptype: "DB0035",
+          component: () => import("@/components/org/LookupValue"),
+          type: "inputText",
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey23",
+          labelName: this.$t("org.label.marriagedCode"),
+          /*婚姻状况*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "marriagedCode",
+          lookuptype: "VE0502",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true
+          // isMul: false
+        },
+        {
+          compKey: "compKey24",
+          labelName: this.$t("org.label.degreeCode"),
+          /*学历*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "degreeCode",
+          lookuptype: "VE0500",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey25",
+          labelName: this.$t("org.label.school"),
+          /*毕业学校*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "school",
+          // lookuptype: "",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey26",
+          labelName: this.$t("org.label.degreepro"),
+          /*专业*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "degreepro",
+          // lookuptype: "",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey27",
+          labelName: this.$t("org.label.fax"),
+          /*传真*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "fax",
+          // lookuptype: "",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey28",
+          labelName: this.$t("org.label.secondManTel"),
+          /*联系人电话*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "secondManTel",
+          // lookuptype: "",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+          // isMul: false
+        },
+        {
+          compKey: "compKey29",
+          labelName: this.$t("org.label.hometelephone"),
+          /*家电电话*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "familyPhone",
+          // lookuptype: "",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey30",
+          labelName: this.$t("org.label.personAddr"),
+          /*个人通信*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "personAddr",
+          // lookuptype: "",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey31",
+          labelName: this.$t("org.label.driverDate"), // 领取驾照日期
+          codeField: "driverDate",
+          component: () => import("@/components/org/datePicker/dateTimePick"),
+          format: "yyyy-MM-dd HH:mm:ss",
+          type: "datePicker",
+          isMust: true
+        },
+        {
+          compKey: "compKey32",
+          labelName: this.$t("org.label.businessDate"), // 从事汽车行业时间
+          codeField: "businessDate",
+          component: () => import("@/components/org/datePicker/dateTimePick"),
+          format: "yyyy-MM-dd HH:mm:ss",
+          type: "datePicker",
+          isMust: true
+        },
+        {
+          compKey: "compKey33",
+          labelName: this.$t("org.label.zip"),
+          /*邮编*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "zip",
+          // lookuptype: "",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey34",
+          labelName: this.$t("org.label.isFrozen2"),
+          /*状态*/
+
+          // span: 16,
+          // type: "textarea",
+          codeField: "isFrozen",
+          lookuptype: "DB0063",
+          component: () => import("./LookupValue/index"),
+          type: "dropdownList",
+          isMust: true,
+          isMul: false
+        },
+        {
+          compKey: "compKey35",
+          labelName: this.$t("org.label.leaveDate"), // 离职日期
+          codeField: "leaveDate",
+          component: () => import("@/components/org/datePicker/dateTimePick"),
+          format: "yyyy-MM-dd HH:mm:ss",
+          type: "datePicker",
+          isMust: true
+        }
+        //修改
+
+        // {
+        //   compKey: "compKey36",
+        //   labelName: "角色ID",
+        //   codeField: "roleId",
+        //   component: () => import("@/components/org/commonInput"),
+        //   type: "inputText",
+        //   isMust: true,
+        //   hidden: true
+        // }
+      ],
+      // 标题
+      textMap: {
+        edit: this.$t("org.label.editStaff") /*修改员工信息*/,
+        add: this.$t("org.label.addStaff") /*新增员工信息*/
+      },
+      // 表单数据（无需赋值，由混入对象赋值）
+      formField: {
+        isEnable: "",
+        // roleName: "",
+        // orgName: "",
+        // orgId: "",
+        // roleCode: "",
+        // roleDesc: "",
+        userId: this.showroleId,
+        updateControlId: "",
+        // userId: "",
+        //
+        // dlrShortName:"",
+
+        // dlrId: this.dlrId,
+        // dlrCode: this.dlrCode,
+        empId: "",
+        marriagedCode: "",
+        dlrCode: "",
+        dlrId: "",
+        carBrandCode: "",
+        deptId: this.showOrgRealId,
+        // deptId: this.showOrgName,
+
+        empCode: "",
+        empName: "",
+        orgName: this.showOrgName,
+        stationId: "",
+        genderCode: "",
+        userName: "",
+        userName1: "",
+        password: "",
+        isFrozen: "",
+        mobile: "",
+        credTypeCode: "",
+        credNo: "",
+        workTel: "",
+        employType: "",
+        employDate: "",
+        // employDate: "",
+        email: "",
+        secondMan: "",
+        nationalityCode: "",
+        nativePlace: "",
+        nationCode: "",
+        politicsCode: "",
+        // marriageCode: "",
+        degreeCode: "",
+        school: "",
+        degreepro: "",
+        fax: "",
+        secondManTel: "",
+        familyPhone: "",
+        personAddr: "",
+        driverDate: "",
+        businessDate: "",
+        zip: "",
+        isFrozen: "",
+        leaveDate: "",
+        birthDate: ""
+      }
+      // userName: ""
+    };
+  },
+  created() {
+    this.onCreated();
+    // this.formField.orgName = this.editRowData.orgName;
+    // if (this.isUseRowData) {
+    //   for (var key in this.formField) {
+    //     if (this.editRowData[key]) {
+    //       this.formField[key] = this.editRowData[key];
+    //     } else {
+    //       this.formField[key] = "";
+    //       // 两层处理
+    //       for (var rKey in this.editRowData) {
+    //         if (rKey.indexOf(".") > -1) {
+    //           var tmpKey = rKey.split(".")[1];
+    //           if (tmpKey === key) {
+    //             this.formField[tmpKey] = this.editRowData[rKey];
+    //             break;
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    // }
+  },
+  methods: {
+    onCreated() {
+      console.log("qwe");
+
+      var that = this;
+      if (that.tableComponents.length === 0) {
+        if (that.popupsPageCode && that.popupsPageCode.length > 0) {
+          // 读取弹窗配置信息
+          CacheConfig.initData(that.popupsPageCode, function() {
+            if (
+              CacheConfig.cacheData[that.popupsPageCode] &&
+              CacheConfig.cacheData[that.popupsPageCode].formComponents.length >
+                0
+            ) {
+              that.tableComponents =
+                CacheConfig.cacheData[that.popupsPageCode].formComponents;
+            } else {
+              that.tableComponents = that.staticTableComponents;
+            }
+            that.popupsTableKey = that.$utils.generateId();
+          });
+        } else {
+          that.tableComponents = that.staticTableComponents;
+        }
+      }
+      // 赋值formField
+      if (this.popupsState === "edit") {
+        if (this.isUseRowData) {
+          for (var key in this.formField) {
+            if (this.dynamicEditRowData[key]) {
+              this.formField[key] = this.dynamicEditRowData[key];
+            } else {
+              if (typeof this.formField[key] === "number") {
+                this.formField[key] = 0;
+              } else if (typeof this.formField[key] === "string") {
+                this.formField[key] = "";
+              }
+
+              // 两层处理
+              for (var rKey in this.dynamicEditRowData) {
+                if (rKey.indexOf(".") > -1) {
+                  var tmpKey = rKey.split(".")[1];
+                  if (tmpKey === key) {
+                    this.formField[tmpKey] = this.dynamicEditRowData[rKey];
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+        this.formField.password = "***";
+        this.formField.userName1 = this.dynamicEditRowData.userName;
+        this.formField.orgName = this.dynamicEditRowData.orgName;
+        this.formField.empId = this.dynamicEditRowData.empId;
+        this.userName = this.dynamicEditRowData.userName;
+        console.log(this.dynamicEditRowData.userName);
+      }
+      // 备份fromField（用于重置）
+      // 初始化品牌
+      if (
+        this.formField.carBrandCode === "" &&
+        this.isSetDefaultBrand === true
+      ) {
+        this.formField.carBrandCode = this.$store.getters.orgInfo.BRAND_CODE;
+      }
+      this.backFormField = JSON.parse(JSON.stringify(this.formField));
+
+      // 联动组件获取父组件传值
+      that.$nextTick(() => {
+        // 监听
+        that.watchComp(true);
+      });
+    },
+
+    save1() {
+      // console.log(this.formField.businessDate);
+      // console.log(this.formField.employDate);
+
+      if (
+        this.formField.password === "***" &&
+        this.userName != this.formField.userName
+      ) {
+        {
+          this.$message({
+            message: "请修改账号密码" /*请修改管理员信息*/,
+            type: "warning",
+            duration: 2000
+          });
+          this.formField.password = "";
+          return false;
+        }
+      }
+      this.formField.dlrId = this.dlrId;
+      this.formField.dlrCode = this.dlrCode;
+      this.formField.carBrandCode = this.$store.getters.orgInfo.BRAND_CODE;
+
+      // this.formField.businessDate = this.formField.businessDate + " 00:00:00";
+      // this.formField.driverDate = this.formField.driverDate + " 00:00:00";
+      // this.formField.leaveDate = this.formField.leaveDate + " 00:00:00";
+      // this.formField.employDate = this.formField.employDate + " 00:00:00";
+      // this.formField.birthDate = this.formField.birthDate + " 00:00:00";
+
+      // if (this.formField.businessDate == " 00:00:00") {
+      //   this.formField.businessDate = null;
+      // }
+      // if (this.formField.driverDate == " 00:00:00") {
+      //   this.formField.driverDate = null;
+      // }
+      // if (this.formField.leaveDate == " 00:00:00") {
+      //   this.formField.leaveDate = null;
+      // }
+      // if (this.formField.employDate == " 00:00:00") {
+      //   this.formField.employDate = null;
+      // }
+      // if (this.formField.birthDate == " 00:00:00") {
+      //   this.formField.birthDate = null;
+      // }
+      if (this.popupsState === "edit") {
+        if (
+          this.formField.password === "***"
+          // this.formField.password === "***" &&
+          // this.userName === this.formField.userName
+        ) {
+          this.formField.password = undefined;
+          this.formField.userName = undefined;
+          this.formField.userId = undefined;
+        }
+      }
+
+      var saveObj = this.formField;
+
+      this.formField.userName1 = undefined;
+
+      this.save(saveObj);
+
+      // setTimeout(() => {
+      //   this.formField.businessDate = "";
+      //   this.formField.driverDate = "";
+      //   this.formField.leaveDate = "";
+      //   this.formField.employDate = "";
+      //   this.formField.birthDate = "";
+      // }, 200);
+    }
+  },
+  watch: {
+    "formField.isEnable": {
+      handler: function() {
+        if (this.formField.isEnable == "1") {
+          this.formField.isFrozen = "0";
+        } else if (this.formField.isEnable == "0") {
+          this.formField.isFrozen = "1";
+        }
+      }
+    },
+    "formField.isFrozen": {
+      handler: function() {
+        if (this.formField.isFrozen == "1") {
+          this.formField.isEnable = "0";
+        } else if (this.formField.isFrozen == "0") {
+          this.formField.isEnable = "1";
+        }
+      }
+    }
+  }
+};
+</script>
+ <style lang="scss" scoped>
+/deep/ .el-col-16 .csslableName {
+  width: 14.2%;
+}
+/deep/ .el-col-16 label {
+  width: 10.4%;
+}
+/deep/ .el-textarea {
+  float: left;
+  width: 90.6% !important;
+}
+</style>
+

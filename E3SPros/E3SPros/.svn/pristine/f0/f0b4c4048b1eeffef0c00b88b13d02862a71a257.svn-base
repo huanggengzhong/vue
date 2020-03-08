@@ -1,0 +1,171 @@
+<template>
+  <div>
+    <div class="app-container app-container-table">
+      <div class="filter-container filter-title"></div>
+      <div class="filter-container filter-params" ref="conHeight">
+        <mix-form
+          ref="detailForm"
+          :dynamicFormFields="detailFields"
+          :dynamicFieldsData="detailFieldsData"
+          :isSearch="true"
+        ></mix-form>
+        <div>
+          <mix-button name="searchBtns" :dynamicButtons="btns" :span="6" :size="samll"></mix-button>
+        </div>
+      </div>
+    </div>
+    <mix-table
+      ref="tableList"
+      :isShowSelect="true"
+      :isDialog="true"
+      :queryParams="QueryParams"
+      :isMore="true"
+      :dynamicTableCols="recallCols"
+      :isPaging="true"
+    ></mix-table>
+    <CarTypeModal :isMul="true" ref="multiCarType" />
+  </div>
+</template>
+
+<script>
+//导入品牌
+import carBrand from "@/components/org/carBrand/carBrand";
+// 导入API
+import { recallApi } from "@/api/graphQLApiList/se";
+//导入表格
+import mixTable from "@/components/basicComponent/mixTable";
+// 导入表单
+import mixForm from "@/components/basicComponent/mixForm";
+//导入按钮组件
+import mixButton from "@/components/basicComponent/mixButton";
+// 车型组件的导入
+import CarTypeModal from "@/components/se/CarTypeModal/CarTypeModal";
+
+export default {
+  name: "seMaintenanceStandardQuery",
+  components: {
+    mixTable,
+    carBrand,
+    recallApi,
+    mixButton,
+    mixForm,
+    CarTypeModal
+  },
+
+  data() {
+    return {
+      //按钮参数
+      btns: [
+        {
+          name: "search",
+          text: "查询",
+          clickEvent: "",
+          posistion:"right",
+          argument: {
+            type: "search"
+          }
+        },
+            {
+          name: "reset",
+          text: "重置",
+          clickEvent: "",
+          position:"right",
+          argument: {
+            type: "reset"
+          }
+        },
+      ],
+
+      // 表单的元素
+      detailFieldsData: {
+        carBrandCode: "",
+        recallCaseType: "",
+        topic: "",
+        caseCode: "",
+        faultPartCode: "",
+        caseCode: "",
+        faultPartCode: "",
+        csCode: "",
+        ctCode: "",
+        productFactory: "",
+        dutyCompType: "",
+        dutyComp: "",
+        dutyCompName: "",
+        limitDays: "",
+        limitMile: "",
+        recallType: "",
+        estimateCompleteDate: "",
+        pfpCode: "",
+        isRemind: "",
+        isLinkRecallCase: ""
+      },
+      // 表单参数信息
+      detailFields: [
+        {
+          label: "品牌:",
+          codeField: "carBrandCode",
+          sendCode: () => null,
+          focusCode: () => null,
+          changeCode: val => {
+            this.detailFieldsData.carBrandCode = val;
+          },
+          isComponent: true,
+          rules: { required: true, message: "请选择车辆品牌", trigger: "blur" },
+          component: () => import("@/components/org/carBrand/carBrand")
+        },
+        {
+          label: "车系:",
+          codeField: "demio",
+          type: "dropdownList",
+          options: [
+            { value: "", label: "全部" },
+            { value: "1", label: "东风风神A30" }
+          ]
+        },
+        {
+          label: "公告车型:",
+          codeField: "CarTypeModal",
+          type: "inputTxt",
+          suffixIcon: "el-icon-search",
+          sendCode: () => null,
+          focusCode: () => null,
+          event: this.openCarType
+        },
+        {
+          label: "启用日期:",
+          codeField: "usedate",
+          type: "inputDate"
+        }
+      ],
+
+      // 表头信息
+      recallCols: [
+        { label: "品牌", codeField: "carBrandCn" },
+        { label: "车系", codeField: "recallCaseCode" },
+        { label: "公告车型", codeField: "recallCaseTypeName" },
+        { label: "启用日期", codeField: "operDate" },
+        { label: "保养名称", codeField: "topic" },
+        { label: "保养轮次", codeField: "pfpCode" },
+        { label: "保养单价", codeField: "opratePlaceName" },
+        { label: "保存里程上限(公里)", codeField: "caseStatus" },
+        { label: "首保时间上限(公里)", codeField: "caseStatus" }
+      ],
+
+      QueryParams: {}
+    };
+  },
+  methods: {
+    //查询
+    fetchData() {
+      this.$refs.tableList.queryList();
+    },
+
+    openCarType() {
+      this.$refs.multiCarType.open();
+    }
+  }
+};
+</script>
+
+<style>
+</style>

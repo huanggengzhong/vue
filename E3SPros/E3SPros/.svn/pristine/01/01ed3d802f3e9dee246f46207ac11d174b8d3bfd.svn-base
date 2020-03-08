@@ -1,0 +1,495 @@
+<!--
+* description: 公司客户信息维护
+* author: laimzh
+* createdDate: 2019-08-14
+-->
+<template>
+  <el-form class="editPer filter-params-crm-scroll">
+    <div class="filter-container filter-button">
+      <el-button size="small" @click="save()">保存</el-button>
+      <!-- <el-button type="primary" size="small" @click="manage()">管理信用记录</el-button> -->
+    </div>
+    <div class="filter-container-crm filter-title-crm">基本信息</div>
+    <div class="filter-container-crm filter-params">
+      <el-row>
+        <crmTextInput
+          compKey="compKey1"
+          labelName="UID"
+          :code="uid"
+          codeField="uid"
+          :isRequire="true"
+        ></crmTextInput>
+        <crmTextInput
+          compKey="compKey2"
+          labelName="公司简称"
+          :code="custName"
+          codeField="custName"
+          :isRequire="true"
+        ></crmTextInput>
+        <crmTextInput
+          compKey="compKey3"
+          labelName="公司全称"
+          :code="custFullName"
+          codeField="custFullName"
+          :span="12"
+          :isRequire="true"
+          :disabled="true"
+        ></crmTextInput>
+      </el-row>
+
+      <el-row>
+        <crmTextInput
+          compKey="compKey4"
+          labelName="机构代码"
+          :code="credNo"
+          codeField="credNo"
+          :isRequire="true"
+        ></crmTextInput>
+        <crmTextInput
+          compKey="compKey5"
+          labelName="法人名称"
+          :code="principalName"
+          codeField="principalName"
+          :disabled="true"
+        ></crmTextInput>
+        <crmTextInput
+          compKey="compKey6"
+          labelName="法人电话"
+          :code="addrCity"
+          codeField="addrCity"
+          :disabled="true"
+        ></crmTextInput>
+        <crmTextInput
+          compKey="compKey7"
+          labelName="法人身份证"
+          :code="addrCounty"
+          codeField="addrCounty"
+        ></crmTextInput>
+      </el-row>
+
+      <el-row>
+        <el-col :span="6">
+          <Province :span="6" @changeCode="prochange" ref="province" :Province="province"></Province>
+        </el-col>
+        <el-col :span="6">
+          <City @changeCode="citychange" :City="City" ref="city"></City>
+        </el-col>
+        <el-col :span="6">
+          <District :District="District" ref="district"></District>
+        </el-col>
+        <crmTextInput
+          compKey="compKey11"
+          labelName="建档日期"
+          :code="nation"
+          codeField="nation"
+          :isRequire="false"
+        ></crmTextInput>
+      </el-row>
+
+      <el-row>
+        <crmTextInput
+          compKey="compKey12"
+          :span="12"
+          labelName="详细地址"
+          :code="addrStreet"
+          codeField="addrStreet"
+          :isRequire="false"
+        ></crmTextInput>
+        <lookupvalue
+          compKey="compKey43"
+          :isMul="false"
+          labelName="公司规模"
+          :code="compOrgscaleCode"
+          codeField="compOrgscaleCode"
+        ></lookupvalue>
+        <lookupvalue
+          compKey="compKey41"
+          :isMul="false"
+          labelName="公司性质"
+          :code="compKindCode"
+          codeField="compKindCode"
+        ></lookupvalue>
+      </el-row>
+      <el-row>
+        <crmTextInput
+          compKey="compKey13"
+          labelName="公司备注"
+          :code="remark"
+          codeField="remark"
+          :isRequire="false"
+          :disabled="true"
+        ></crmTextInput>
+        <crmTextInput
+          compKey="compKey14"
+          labelName="邮政编码"
+          :code="addrZip"
+          codeField="addrZip"
+          :isRequire="false"
+        ></crmTextInput>
+        <crmTextInput
+          compKey="compKey15"
+          :disabled="true"
+          labelName="银行卡号"
+          :code="bankCardNo"
+          codeField="bankCardNo"
+        ></crmTextInput>
+        <crmTextInput compKey="compKey16" labelName="开户行" :code="bankCode" codeField="bankCode"></crmTextInput>
+      </el-row>
+      <el-row>
+        <lookupvalue compKey="compKey17" labelName="建档来源" :code="source" codeField="source"></lookupvalue>
+        <el-col :span="6" class="crm-label-required choosefile">
+          <el-form-item label="证件照1">
+            <UpLoad></UpLoad>
+            <!-- <el-button >选择文件</el-button> -->
+          </el-form-item>
+        </el-col>
+        <el-col :span="6" class="crm-label-required choosefile">
+          <el-form-item label="证件照2">
+            <UpLoad></UpLoad>
+          </el-form-item>
+        </el-col>
+        <el-col :span="6" class="crm-label-required choosefile">
+          <el-form-item label="行驶证">
+            <UpLoad></UpLoad>
+          </el-form-item>
+        </el-col>
+      </el-row>
+    </div>
+    <div class="filter-container-crm filter-title-crm">联系信息</div>
+    <div class="filter-container-crm filter-params">
+      <el-row>
+        <crmTextInput
+          compKey="compKey18"
+          labelName="公司电话"
+          :code="compTel"
+          codeField="compTel"
+          :isRequire="false"
+        ></crmTextInput>
+        <crmTextInput
+          compKey="compKey19"
+          labelName="官方微信号"
+          :code="webchat"
+          codeField="webchat"
+          :disabled="true"
+        ></crmTextInput>
+        <crmTextInput
+          compKey="compKey20"
+          labelName="官网"
+          :code="homeTel"
+          codeField="homeTel"
+          :disabled="true"
+        ></crmTextInput>
+        <crmTextInput compKey="compKey21" labelName="电子邮箱" :code="email" codeField="email"></crmTextInput>
+      </el-row>
+      <el-row>
+        <crmTextInput compKey="compKey22" labelName="传真号码" :code="faxTel" codeField="faxTel"></crmTextInput>
+        <crmTextInput
+          compKey="compKey23"
+          labelName="联系人名称"
+          :code="principalName"
+          codeField="principalName"
+        ></crmTextInput>
+        <crmTextInput compKey="compKey24" labelName="电话" :code="phone" codeField="phone"></crmTextInput>
+      </el-row>
+    </div>
+    <!-- <div class="filter-container-crm filter-title-crm">信用记录</div>
+    <div class="filter-container-crm filter-params">
+      <el-row>
+        <lookupvalue
+          compKey="compKey25"
+          :isMul="false"
+          lookuptype=""
+          labelName="类型"
+          codeField="isHaveChild"
+        ></lookupvalue>
+        <lookupvalue
+          compKey="compKey26"
+          :isMul="false"
+          lookuptype=""
+          labelName="标签类型"
+          codeField="isHaveChild"
+        ></lookupvalue>
+          <crmTextInput compKey="compKey7" labelName="负面内容" inputType="textarea" :span="12" v-if="nagflag" :disabled="true" :code="backMoney" codeField="backMoney"></crmTextInput>
+            <crmTextInput compKey="compKey10" labelName="正面内容" inputType="textarea" :span="12" v-if="posflag" :disabled="true" :code="backMoney" codeField="backMoney"></crmTextInput>
+            
+      </el-row>
+      <el-row class="table" v-if="credit">
+        <el-table
+          :data="tabledata.tableDatas"
+          :stripe="flag"
+          highlight-current-row
+          style="width: 100%;height:335px;"
+          v-loading.body="false"
+          element-loading-text="Loading"
+          border
+          fit
+        >
+          <el-table-column type="selection" width="50" v-if="isdisplay.ismuti"></el-table-column>
+          <el-table-column type="index" label="序号" width="60"></el-table-column>
+          <el-table-column label="操作">
+            <template slot-scope="scope">
+              <el-button size="mini" type="text" @click="edit(scope.$index, scope.row)">编辑</el-button>
+              <el-button size="mini" type="text" @click="delete(scope.$index, scope.row)">删除</el-button>
+            </template>
+          </el-table-column>
+          <el-table-column
+            v-for="item in tabledata.colnames"
+            :key="item.value"
+            :label="item.label"
+            :prop="item.value"
+            align="center"
+          ></el-table-column>
+        </el-table>
+        <el-pagination
+          background
+          layout="prev, pager, next"
+          :total="9"
+          :page-size="tabledata.pagesize"
+          :current-page="tabledata.pageindex"
+        ></el-pagination>
+      </el-row>
+    </div>-->
+    <el-dialog v-if="showedit">
+      <lookupvalue
+        compKey="compKey36"
+        :span="8"
+        :isMul="false"
+        lookuptype
+        labelName="类型"
+        codeField="isHaveChild"
+      ></lookupvalue>
+      <lookupvalue
+        :span="8"
+        compKey="compKey37"
+        :isMul="false"
+        lookuptype
+        labelName="标签类型"
+        codeField="isHaveChild"
+      ></lookupvalue>
+      <crmTextInput
+        compKey="compKey38"
+        labelName="添加人"
+        :span="8"
+        v-if="nagflag"
+        :code="backMoney"
+        :disabled="true"
+        codeField="backMoney"
+      ></crmTextInput>
+      <crmTextInput
+        compKey="compKey39"
+        labelName="备注"
+        inputType="textarea"
+        :code="backMoney"
+        :span="16"
+        v-if="nagflag"
+        :disabled="true"
+        codeField="backMoney"
+      ></crmTextInput>
+    </el-dialog>
+  </el-form>
+</template>
+<script>
+import { crmApis } from "@/api/graphQLApiList/crm";
+import { requestGraphQL } from "@/api/commonRequest";
+// import OneTableTemplate from "@/components/templates/oneTable";
+
+import crmTextInput from "@/components/crm/textbox/crmTextInput";
+import crmdatePicker from "@/components/crm/Time/crmdatePicker";
+import lookupvalue from "@/components/crm/lookupValue/lookupvalue";
+import UpLoad from "@/components/crm/EjectWindows/UpLoad";
+export default {
+  name: "editPer",
+
+  // 组件混入对象
+  components: {
+    crmTextInput,
+    crmdatePicker,
+    lookupvalue,
+    UpLoad
+  },
+  props: {
+    editPerPopupsVisible: { type: Boolean, default: false },
+    // 新增、编辑弹窗Key
+    editPerPopupsKey: "",
+    // 新增、编辑弹窗状态（add/edit/view）
+    editPerPopupsState: "",
+    // 新增、编辑行对象
+    editPerRowData: {},
+    // 弹窗状态（add/edit/view）
+    popupsState: ""
+  },
+  data() {
+    return {
+      nagflag: true,
+      posflag: false,
+      credit: false,
+      flag: true,
+      showedit: false,
+      isdisplay: {
+        ismuti: false
+      },
+      params: {},
+      // 保存API配置对象
+
+      tabledata: {
+        colnames: [
+          { value: "uid", label: "标签类别", width: null, align: "center" },
+          {
+            value: "carBrandName",
+            label: "备注",
+            width: null,
+            align: "center"
+          },
+          { value: "custName", label: "添加人", width: null, align: "center" },
+          {
+            value: "phone",
+            label: "最后更新时间",
+            width: null,
+            align: "center"
+          }
+        ],
+        tableDatas: [],
+        pagesize: 10,
+        pageindex: 1
+      },
+      // 标题
+      textMap: {
+        edit: "维护个人客户",
+        add: "新建个人客户"
+      },
+      // 客户信息修改（公司）   缺建档日期，公司备注，建档来源，官网，类型，标签类型，内容（正面负面）
+      formField: {
+        uid: "",
+        custName: "",
+        custFullName: "",
+        credNo: "",
+        principalName: "",
+        addrProvince: "",
+        addrCity: "",
+        addrCounty: "",
+        nation: "",
+        bankCode: "",
+        compOrgscaleCode: "",
+        compKindCode: "",
+        remark: "",
+        addrZip: "",
+        bankCardNo: "",
+        addrStreet: "",
+        source: "",
+        compTel: "",
+        webchat: "",
+        homeTel: "",
+        email: "",
+        faxTel: "",
+        phone: ""
+      },
+      uid: "",
+      custName: "",
+      custFullName: "",
+      credNo: "",
+      principalName: "",
+      addrProvince: "",
+      addrCity: "",
+      addrCounty: "",
+      bankCardNo: "",
+      addrStreet: "",
+      compOrgscaleCode: "",
+      compKindCode: "",
+      remark: "",
+      addrZip: "",
+      bankCode: "",
+      source: "",
+      compTel: "",
+      webchat: "",
+      homeTel: "",
+      email: "",
+      faxTel: "",
+      phone: ""
+    };
+  },
+  mounted() {
+    this.$nextTick(() => {
+      this.initdata();
+    });
+  },
+  methods: {
+    manage() {
+      this.credit = true;
+    },
+    edit(inde, row) {
+      this.showedit = true;
+    },
+    initdata(){
+      if (this.$route.params.status == "edit") {
+        
+      } else if (this.$route.params.status == "add") {
+        
+      }
+    },
+    save() {
+      //保存表单
+      let that = this;
+      debugger;
+      this.formField.custNo = this.$route.params.custNo;
+      this.formField.dlrCustNo = this.$route.params.dlrCustNo;
+      let queryObj = {
+        // api配置
+        type: "mutation",
+        apiConfig: crmApis.createdOneIdMutationSaveCust,
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.tabledata.pagesize,
+          pageIndex: that.tabledata.pageindex,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {
+            custModifyScence: "203", //修改客户信息
+            custInfo: this.formField
+          }
+        }
+      };
+
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result == "1"
+          // &&response.data[queryObj.apiConfig.ServiceCode].rows != ""
+        ) {
+          that.$crmcf.showMessages(that, "success", "保存成功！");
+          that.$crmcf.crmcloseView(that);
+        } else {
+          that.$crmcf.showMessages(
+            that,
+            "error",
+            response.data[queryObj.apiConfig.ServiceCode].msg
+          );
+        }
+      });
+      this.saveForm();
+    },
+    prochange(val) {
+      let that = this;
+      that.City.pcode = val;
+      if (that.$refs.city == undefined) {
+      } else {
+        that.$refs.city.getData();
+      }
+    },
+    citychange(val) {
+      let that = this;
+      that.District.pcode = val;
+      if (that.$refs.district == undefined) {
+      } else {
+        that.$refs.district.getData();
+      }
+    }
+  }
+};
+</script>
+<style scoped>
+.choosefile {
+  float: left;
+  text-align: left;
+}
+</style>

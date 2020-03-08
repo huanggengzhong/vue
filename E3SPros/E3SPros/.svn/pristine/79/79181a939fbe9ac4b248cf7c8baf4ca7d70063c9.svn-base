@@ -1,0 +1,179 @@
+/*
+ * @Author: xgz 
+ * @Date: 2019-07-25 21:10:53 
+ * @Last Modified by: //此处填修改人名字
+ * @Last Modified time: 2019-10-24 19:02:54
+ * 2019年10月17日10:45:03 改为混入
+ */
+<template>
+  <div class="app-container app-container-table">
+    <!-- 单网格查询  -->
+    <one-table-template ref="multipleTable" :dynamicButtons="tableButtons" :dynamicComponents="tableComponents" :dynamicIsShowSelect="false" :dynamicApiConfig="apiConfig" :dynamicTableCols="tableCols" :dynamicFormFields="formField" />
+    <edit :dynamicEditRowData="editRowData" :popupsVisible="editPopupsVisible" :key="editPopupsKey" :popupsState="editPopupsState" @close="close"></edit>
+  </div>
+</template>
+<script>
+import { crmApis } from "@/api/graphQLApiList/crm";
+import { requestGraphQL } from "@/api/commonRequest";
+import OneTableTemplate from "@/components/crm/Template/crmonePage";
+import { oneTableWithViewTemplateMixins } from "@/components/mixins/oneTableWithViewTemplateMixins";
+import Edit from "./edit";
+import { CacheConfig } from "@/cache/configCache/index";
+import { debuglog } from "util";
+
+export default {
+  name: "linksLibManage",
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+    Edit
+  },
+  data() {
+    return {
+      // 网格查询API配置对象
+      apiConfig: crmApis.csDbTemplateQueryFindAll,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.add(),
+          text: this.$t("sys.button.add")
+        }
+      ],
+      // 动态组件-查询条件
+      tableComponents:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              // 显示组件
+              {
+                compKey: "compKey1",
+                labelName: "模板名称",
+                codeField: "templateName",
+                component: () =>
+                  import("@/components/crm/textbox/crmTextInput"),
+                type: "inputText",
+                isMust: false
+              },
+              {
+                compKey: "compKey2",
+                labelName: "短信模板内容",
+                codeField: "templateName",
+                component: () =>
+                  import(
+                    "@/components/crm/crmEjectWindows/crmMsgTempContent/index"
+                  ),
+                type: "propus",
+                isMust: false
+              },
+              {
+                compKey: "compKey3",
+                labelName: "模板类型",
+                codeField: "templateType",
+                lookuptype: "VE0451",
+                component: () =>
+                  import("@/components/crm/lookupValue/lookupvalue"),
+                type: "dropdownList",
+                isMust: false
+              },
+              {
+                compKey: "compKey4",
+                labelName: "是否启用",
+                codeField: "isEnable",
+                component: () => import("@/components/crm/Select/crmIsEnable"),
+                type: "dropdownList",
+                isMust: false
+              }
+            ],
+      // 动态生成网格列
+      tableCols: [
+        {
+          prop: "controlBtn",
+          label: "编辑",
+          codeField: "controlBtn",
+          width: 60,
+          align: "center",
+          isComponent: true,
+          comps: [
+            {
+              compKey: "propKey0",
+              labelName: "编辑",
+              codeField: "editControlBtn",
+              clickEvent: this.edit,
+              component: () => import("@/components/org/linkButton"),
+              isMust: false
+            }
+          ]
+        },
+        {
+          prop: "templateName",
+          label: "模板名称",
+          width: null,
+          align: "center"
+        },
+        {
+          prop: "templateContent",
+          label: "短信模板内容",
+          width: null,
+          align: "center"
+        },
+        {
+          prop: "templateType",
+          label: "模板类型",
+          width: null,
+          align: "center"
+        },
+        { prop: "isEnable", label: "是否启用", width: null, align: "center" },
+        {
+          prop: "createdName",
+          label: "创建人",
+          width: null,
+          align: "center"
+        },
+        {
+          prop: "createdDate",
+          label: "创建时间",
+          width: null,
+          align: "center"
+        },
+        {
+          prop: "templateCode",
+          label: "序列",
+          width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          prop: "updateControlId",
+          label: "控制修改字段",
+          width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          prop: "templateId",
+          label: "控制修改",
+          width: null,
+          align: "center",
+          hidden: true
+        }
+      ],
+      formField: {
+        oemCode: "1",
+        groupCode: "1",
+        templateName: "",
+        templateType:"",
+        templateContent: "",
+        isEnable: ""
+      }
+    };
+  },
+  methods: {}
+};
+</script>
+
+
+

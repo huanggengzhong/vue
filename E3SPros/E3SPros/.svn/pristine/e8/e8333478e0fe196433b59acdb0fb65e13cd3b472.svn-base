@@ -1,0 +1,272 @@
+<!--
+* description: 车型配置与颜色关系维护-新增、修改弹窗
+* author: linzewen
+* createdDate: 2019-08-07
+
+-->
+
+<template>
+  <section class="editCarBrand">
+    <el-dialog
+      :close-on-click-modal="false"
+      :title="textMap[popupsState]"
+      :append-to-body="true"
+      :visible.sync="curPopupsVisible"
+      @close="sendCode"
+      width="1000px"
+    >
+      <div class="filter-container filter-params">
+        <el-row :gutter="26">
+          <component
+            v-for="comp in tableComponents.filter(o => o.isMust === true)"
+            :ref="comp.isRequire ? comp.isRequire+ comp.compKey : comp.compKey"
+            :key="comp.compKey"
+            :codeField="comp.codeField"
+            :textField="comp.textField"
+            :popupsKey="comp.compKey"
+            :is="comp.component"
+            :code="formField[comp.codeField]"
+            @changeCode="getComponentCode"
+            @focusCode="getFocusCode"
+            :disabled="comp.disabled"
+            :isRequire="comp.isRequire"
+            :isMul="false"
+            :span="comp.span || 8"
+            :labelName="comp.labelName"
+            :lookuptype="comp.lookuptype"
+            :dateOptionsType="comp.dateOptionsType"
+            :parentFileds="comp.parentFileds"
+          ></component>
+        </el-row>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button
+          v-for="comp in tableButtons"
+          :key="comp.compKey"
+          :type="comp.type"
+          @click="comp.clickEvent"
+        >{{comp.text}}</el-button>
+      </div>
+    </el-dialog>
+  </section>
+</template>
+<script>
+import { formMixins } from "@/components/mixins/formMixins";
+import { orgApis } from "@/api/graphQLApiList/org";
+import OneTableTemplate from "@/components/templates/popupsOneTable";
+export default {
+  // 组件混入对象
+  mixins: [formMixins],
+  data() {
+    return {
+      // 保存API配置对象
+      apiConfig: orgApis.mdmVeCarConfigMutationSaveS,
+
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.save(),
+          text: this.$t("sys.button.save")
+        },
+        {
+          compKey: "btnKey2",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: this.$t("sys.button.reset")
+        },
+        {
+          compKey: "btnKey3",
+          size: "small",
+          clickEvent: () => this.sendCode(),
+          text: this.$t("sys.button.cancel")
+        }
+      ],
+      // 动态组件-各种下拉框和输入框
+      tableComponents: [
+        // 品牌
+        {
+          compKey: "compKey1",
+          labelName: this.$t("org.label.carBrand"),
+          codeField: "carBrandCode",
+          component: () => import("@/components/org/carBrand/carBrand"),
+          type: "dropdownList",
+          disabled: !this.isAdd(),
+          isMul: false,
+          isMust: true
+        },
+        // 车系
+{
+          compKey: "compKey2",
+          labelName: this.$t("org.label.carSerise"),
+          codeField: "carSeriesId",
+          parentFileds: this.isAdd() ?"carBrandCode-carBrandCode" :'',
+          component: () => import("@/components/org/CarCode"),
+          isRequire: true,
+          disabled: !this.isAdd(),
+          type: "dropdownList",
+          isMust: true,
+        },
+        // 车型
+        {
+          compKey: "compKey3",
+          labelName: this.$t("org.label.carType"),
+          codeField: "smallCarTypeId",
+          parentFileds:"value:carBrandCode|carSeriesId",
+          component: () => import("@/components/org/SmallCarType"),
+          type: "dropdownList",
+          isRequire: true,
+          disabled: !this.isAdd(),
+          isMul: false,
+          isMust: true
+        },
+        {
+          compKey: "compKey4",
+          labelName: this.$t("org.label.carConfigCode"),
+          codeField: "carConfigCode",
+          component: () => import("@/components/org/commonInput"),
+          isRequire: true,
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey5",
+          labelName: this.$t("org.label.carConfigCn"),
+          codeField: "carConfigCn",
+          component: () => import("@/components/org/commonInput"),
+          isRequire: true,
+          type: "inputText",
+          isMust: true,
+        },
+        {
+          compKey: "compKey6",
+          labelName: this.$t("org.label.supplyStatusCn"),
+          lookuptype: "VE0014",
+          codeField: "supplyStatus",
+          component: () => import("@/components/org/LookupValue"),
+          isRequire: true,
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey7",
+          labelName: this.$t("org.label.isEnableCn"),
+          codeField: "isEnable",
+          component: () => import("@/components/org/isEnable/isEnable"),
+          type: "dropdownList",
+          isMust: true,
+          isRequire: true
+        },
+        //电池类型
+        {
+          compKey: "compKey8",
+          labelName: this.$t("org.label.batteryType"),
+          lookuptype: "VE0625",
+          codeField: "batteryType",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true
+        },
+        //电机类型
+        {
+          compKey: "compKey9",
+          labelName: this.$t("org.label.motortypeName"),
+          lookuptype: "VE0624",
+          codeField: "motorType",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true
+        },
+        //电控类型
+        {
+          compKey: "compKey15",
+          labelName: this.$t("org.label.eleconType"),
+          lookuptype: "VE0626",
+          codeField: "eleConType",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey10",
+          labelName: this.$t("org.label.isNewCarType"),
+          lookuptype: "VE0185",
+          codeField: "isNewCar",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey12",
+          labelName: this.$t("org.label.emissionStandard"),
+          lookuptype: "VE0280",
+          codeField: "letStandard",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey13",
+          labelName: this.$t("org.label.powerType"),
+          lookuptype: "VE0283",
+          codeField: "powerType",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey14",
+          labelName: this.$t("org.label.adaptClimate"),
+          lookuptype: "VE0180",
+          codeField: "adaptClimate",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true
+        }
+      ],
+      // 标题
+      textMap: {
+        edit: this.$t("org.label.textMap1.editCarType") /*车型配置维护*/,
+        add: this.$t("org.label.textMap1.addCarType") /*车型配置新增*/
+      },
+      // 表单数据（无需赋值，由混入对象赋值）
+      formField: {
+        carBrandCode: "",
+        carSeriesId: "",
+        smallCarTypeId:"",
+        supplyStatus: "",
+        carConfigId:"",
+        updateControlId:"",
+        emissionStandard:"",
+        // SmallCarType:"",
+        isEnable: "",
+        // orderNo: "",
+        isNewCar: "",
+        motorType: "",
+        batteryType: "",
+        eleConType: "",
+        // emissionStandard: "",
+        letStandard: "",
+        powerType: "",
+        adaptClimate: "",
+        carConfigCode: "",
+        carConfigCn: ""
+      }
+    };
+  },
+  methods: {
+    //保存
+
+     save() {
+      this.$utils.validataMoth(this, "validpopup");
+      if (this.valid) {
+        var saveObj  = JSON.parse(JSON.stringify(this.formField));
+        // delete saveObj['isNewCarName','eleConTypeName','motorTypeName','batteryTypeName']
+        //保存表单
+        this.saveForm(saveObj);
+      }
+  }}
+};
+</script>

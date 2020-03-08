@@ -1,0 +1,467 @@
+import Mock from 'mockjs';
+import { paApis } from '../../../src/api/graphQLApiList/pa'
+const cH = '/'
+//备件来源维护--备件来源查询
+const partBigTypeRepreQuery = Mock.mock({ // 备件类别查询
+    partBigTypeRepreQuery: {
+      'result': '1',
+      'pageindex': '5',
+      'pages': '10',
+      'records': '6',
+      'msg': '成功',
+      'rows|4': [
+        {
+          'partTypeId': '1',
+          '备件品牌': '备件品牌',
+          '备件号': '备件号',
+          '备件名称': '备件名称',
+          '供应商':	'供应商',
+          '供应商名称':	'供应商名称',
+          '备件类别':	'备件类别',
+          '备件来源大类': '备件来源大类',
+          '备件状态': '备件状态',
+          '备件来源':	'备件来源',
+          'updateControlId': ','
+        }
+      ]
+    }
+  })
+
+  //备件来源维护--备件来源类别查询
+const partSourceTypeQuery = Mock.mock({ // 备件类别查询
+    partSourceTypeQuery: {
+      'result': '1',
+      'pageindex': '5',
+      'pages': '10',
+      'records': '6',
+      'msg': '成功',
+      'rows|4': [
+        {
+          'partTypeId': '1',
+          '来源代码': '来源代码',
+          '来源名称': '来源名称',
+          '来源大类': '来源大类',
+          '状态':	'状态',
+          '备注':	'备注',
+          'updateControlId': ','
+        }
+      ]
+    }
+  })
+////备件来源维护--备件来源保存
+  const partSourceTypeSave = Mock.mock({
+    partSourceTypeSave: {
+        "result": "1",
+        "data": {
+            "rows": [{
+                "result": "1",
+                "msg": "保存成功"
+            },
+            ]
+        },
+        "msg": "success"
+    }
+})
+////备件来源维护--备件来源类别保存
+const partSourceType1Save = Mock.mock({
+    partSourceType1Save: {
+        'result': '1',
+      'pageindex': '5',
+      'pages': '10',
+      'records': '6',
+      'msg': '成功',
+      'rows|4': [
+        {
+          'partTypeId': '1',
+          '备件品牌': '备件品牌',
+          '备件号': '备件号',
+          '备件名称': '备件名称',
+          '供应商':	'供应商',
+          '供应商名称':	'供应商名称',
+          '备件类别':	'备件类别',
+          '备件来源大类': '备件来源大类',
+          '备件状态': '备件状态',
+          '备件来源':	'备件来源',
+          'updateControlId': ','
+        }
+      ]
+    }
+
+})
+//可视化基础数据配置-时间节点配置查询
+const paBuOemVisTimeCfigQueryFindAll = Mock.mock({ 
+    paBuOemVisTimeCfigQueryFindAll: {
+        "msg": "查询成功",
+        "pageindex": 1,
+        "pages": 1,
+        "records": 1,
+        "result": "1",
+        "rows|12": [
+          {
+            "disableState": "11",
+            "fitRange": "4",
+            "isCalNext": "5",
+            "isCalNextName": null,
+            "isEnable": "1",
+            "isWorkTime": "6",
+            "isWorkTimeName": null,
+            "lastUpdatedDate": null,
+            "modifier": null,
+            "modifyName": null,
+            "mycatOpTime": null,
+            "needState": "10",
+            "nodeRemark": "7",
+            "oemCode": null,
+            "oemId": null,
+            "orderNo": 111,
+            "remark": "你好呀",
+            "sdpOrgId": null,
+            "sdpUserId": null,
+            "timeConfigId|A1-F1": null,
+            "timeNodeCode": "SCC1212",
+            "timeNodeName": "阿言",
+            "timeNodeType": "啊啊",
+            "updateControlId": "c43f772c55e8420994a2fce50d8069ec",
+            "wlStatus": "8",
+            "wlStatusName": null
+          }
+        ]
+    }
+  })
+  //备件调拨单制作查询
+  const paBuDlrFlitOrderQueryFindAll = Mock.mock({ 
+    paBuDlrFlitOrderQueryFindAll: {
+        "msg": "查询成功",
+        "pageindex": 1,
+        "pages": 1,
+        "records": 1,
+        "result": "1",
+        "rows|12": [
+          {
+            "flitOrderCode": "11",
+            "flitTypeName": "4",
+            "custFullName": "5",
+            "custClassName": null,
+            "flitDate": "1",
+            "flitStatusName": "6",
+            "modifier": null,
+            "flitReferAmount": null,
+            "creatorName": null,
+            "createdDate": null,
+            "rejectReason": null,
+            
+          }
+        ]
+    }
+  })
+   //备件调拨取消-调拨取消查询
+   const flitCancelQuery = Mock.mock({ 
+    flitCancelQuery: {
+        "msg": "查询成功",
+        "pageindex": 1,
+        "pages": 1,
+        "records": 1,
+        "result": "1",
+        "rows|12": [
+          {
+            "flitType": "11",
+            "flitordercode": "4",
+            "billData": "5",
+            "flitCancelCusCode": "5",
+            "flitCancelCusName": "1",
+            "flitCancelCusNName": "6"
+          }
+        ]
+    }
+  })
+  //备件调拨取消-调拨取消保存
+  const flitCancelSave = Mock.mock({
+    flitCancelSave: {
+        "result": "1",
+        "data": {
+            "rows": [{
+                "result": "1",
+                "msg": "保存成功"
+            },
+            ]
+        },
+        "msg": "success"
+    }
+})
+//备件调拨取消-调拨取消查询
+const flitCancelHistoryQuery = Mock.mock({ 
+    flitCancelHistoryQuery: {
+        "msg": "查询成功",
+        "pageindex": 1,
+        "pages": 1,
+        "records": 1,
+        "result": "1",
+        "rows|12": [
+          {
+            "flitCancelHistoryCode": "11",
+            "FlitCancelHistoryFlitNo": "4",
+            "targerInt": "5",
+            "cancelType": "2",
+            "cancleMoney": "1",
+            "FlitCancelHistoryDate": "6",
+            "createor": "3",
+            "FlitCancelHistoryComPuted": "4",
+          }
+        ]
+    }
+  })
+  //备件调拨取消-调拨取消保存
+  const flitCancelHistorySave = Mock.mock({
+    flitCancelHistorySave: {
+        "result": "1",
+        "data": {
+            "rows": [{
+                "result": "1",
+                "msg": "保存成功"
+            },
+            ]
+        },
+        "msg": "success"
+    }
+})
+//备件调拨取消-调拨取消明细查询
+const flitCancelDetailQuery = Mock.mock({ 
+    flitCancelDetailQuery: {
+        "msg": "查询成功",
+        "pageindex": 1,
+        "pages": 1,
+        "records": 1,
+        "result": "1",
+        "rows|12": [
+          {
+            "flitCancelHistoryCode": "11",
+            "FlitCancelHistoryFlitNo": "4",
+            "targerInt": "5",
+            "cancelType": "2",
+            "cancleMoney": "1",
+            "FlitCancelHistoryDate": "6",
+            "createor": "3",
+            "FlitCancelHistoryComPuted": "4",
+          }
+        ]
+    }
+  })
+  //备件调拨取消-调拨取消历史明细查询
+const flitCancelHistoryDetailQuery = Mock.mock({ 
+    flitCancelHistoryDetailQuery: {
+        "msg": "查询成功",
+        "pageindex": 1,
+        "pages": 1,
+        "records": 1,
+        "result": "1",
+        "rows|12": [
+          {
+            "flitCancelHistoryCode": "11",
+            "FlitCancelHistoryFlitNo": "4",
+            "targerInt": "5",
+            "cancelType": "2",
+            "cancleMoney": "1",
+            "FlitCancelHistoryDate": "6",
+            "createor": "3",
+            "FlitCancelHistoryComPuted": "4",
+          }
+        ]
+    }
+  })
+  //备件调拨单制作-调拨单明细查询
+const PaBuDlrFlitOrderD = Mock.mock({ 
+    PaBuDlrFlitOrderD: {
+        "msg": "查询成功",
+        "pageindex": 1,
+        "pages": 1,
+        "records": 1,
+        "result": "1",
+        "rows|12": [
+          {
+            "partBrandCode": "V",
+            "partNo": "4",
+            "partName": "5",
+            "flitQty": "2",
+            "unit": "1",
+            "flitFactPrice": "6",
+            "flitQty": "3",
+            "flitPrice": "4",
+            "outStoreQty": "4",
+            "cancelQty": "4",
+            "inStoreQty": "4",
+          }
+        ]
+    }
+  })
+  // 备件调拨单制作-新建调拨单保存
+  const PaBuDlrFlitOrderSave = Mock.mock({
+    PaBuDlrFlitOrderSave: {
+        "result": "1",
+        "data": {
+            "rows": [{
+                "result": "1",
+                "msg": "保存成功"
+            },
+            ]
+        },
+        "msg": "success"
+    }
+})
+// 备件调拨单制作-删除
+ const PaBuDlrFlitOrderDel = Mock.mock({
+    PaBuDlrFlitOrderDel: {
+        "result": "1",
+        "data": {
+            "rows": [{
+                "result": "1",
+                "msg": "删除成功"
+            },
+            ]
+        },
+        "msg": "success"
+    }
+})
+//备件调拨单审核-审核，驳回，作废
+const flitToExamineSave = Mock.mock({
+    flitToExamineSave: {
+        "result": "1",
+        "data": {
+            "rows": [{
+                "result": "1",
+                "msg": "保存成功"
+            },
+            ]
+        },
+        "msg": "success"
+    }
+})
+export default [
+     //备件来源维护--备件来源查询
+     {
+        url: paApis.partBigTypeRepreQuery.APIUrl + cH + 'v=' + paApis.partBigTypeRepreQuery.ServiceCode,
+        type: 'post',
+        response: config => {
+            return partBigTypeRepreQuery
+        }
+    },
+    //备件来源维护--备件来源类别查询
+    {
+        url: paApis.partSourceTypeQuery.APIUrl + cH + 'v=' + paApis.partSourceTypeQuery.ServiceCode,
+        type: 'post',
+        response: config => {
+            return partSourceTypeQuery
+        }
+    },
+    //备件来源维护--备件来源保存
+    {
+        url: paApis.partSourceTypeSave.APIUrl + cH + 'v=' + paApis.partSourceTypeSave.ServiceCode,
+        type: 'post',
+        response: config => {
+            return partSourceTypeSave
+        }
+    },
+    //备件来源维护--备件来源类别保存
+    {
+        url: paApis.partSourceType1Save.APIUrl + cH + 'v=' + paApis.partSourceType1Save.ServiceCode,
+        type: 'post',
+        response: config => {
+            return partSourceType1Save
+        }
+    },
+    //可视化基础数据配置-时间节点配置查询
+    {
+        url: paApis.paBuOemVisTimeCfigQueryFindAll.APIUrl + cH + 'v=' + paApis.partSourceType1Save.ServiceCode,
+        type: 'post',
+        response: config => {
+            return paBuOemVisTimeCfigQueryFindAll
+        }
+    },
+    //备件调拨单制作-查询
+    {
+        url: paApis.paBuDlrFlitOrderQueryFindAll.APIUrl + cH + 'v=' + paApis.paBuDlrFlitOrderQueryFindAll.ServiceCode,
+        type: 'post',
+        response: config => {
+            return paBuDlrFlitOrderQueryFindAll
+        }
+    },
+    //备件调拨单制作-明细查询
+    {
+        url: paApis.PaBuDlrFlitOrderD.APIUrl + cH + 'v=' + paApis.PaBuDlrFlitOrderD.ServiceCode,
+        type: 'post',
+        response: config => {
+            return PaBuDlrFlitOrderD
+        }
+    },
+    //备件调拨取消-调拨取消查询
+    {
+        url: paApis.flitCancelQuery.APIUrl + cH + 'v=' + paApis.flitCancelQuery.ServiceCode,
+        type: 'post',
+        response: config => {
+            return flitCancelQuery
+        }
+    },
+    //备件调拨取消-调拨取消保存
+    {
+        url: paApis.flitCancelSave.APIUrl + cH + 'v=' + paApis.flitCancelSave.ServiceCode,
+        type: 'post',
+        response: config => {
+            return flitCancelSave
+        }
+    },
+    //备件调拨取消-调拨取消历史查询
+    {
+        url: paApis.flitCancelHistoryQuery.APIUrl + cH + 'v=' + paApis.flitCancelHistoryQuery.ServiceCode,
+        type: 'post',
+        response: config => {
+            return flitCancelHistoryQuery
+        }
+    },
+    //备件调拨取消-调拨取消历史删除
+    {
+        url: paApis.flitCancelHistorySave.APIUrl + cH + 'v=' + paApis.flitCancelHistorySave.ServiceCode,
+        type: 'post',
+        response: config => {
+            return flitCancelHistorySave
+        }
+    },
+    //备件调拨取消-调拨取消明细查询
+    {
+        url: paApis.flitCancelDetailQuery.APIUrl + cH + 'v=' + paApis.flitCancelDetailQuery.ServiceCode,
+        type: 'post',
+        response: config => {
+            return flitCancelDetailQuery
+        }
+    },
+    //备件调拨取消-调拨取消历史明细查询
+    {
+        url: paApis.flitCancelHistoryDetailQuery.APIUrl + cH + 'v=' + paApis.flitCancelHistoryDetailQuery.ServiceCode,
+        type: 'post',
+        response: config => {
+            return flitCancelHistoryDetailQuery
+        }
+    },
+     // 备件调拨单制作-新建调拨单保存
+    {
+        url: paApis.PaBuDlrFlitOrderSave.APIUrl + cH + 'v=' + paApis.PaBuDlrFlitOrderSave.ServiceCode,
+        type: 'post',
+        response: config => {
+            return PaBuDlrFlitOrderSave
+        }
+    },
+    // 备件调拨单制作-删除
+    {
+        url: paApis.PaBuDlrFlitOrderDel.APIUrl + cH + 'v=' + paApis.PaBuDlrFlitOrderDel.ServiceCode,
+        type: 'post',
+        response: config => {
+            return PaBuDlrFlitOrderDel
+        }
+    },
+      //备件调拨单审核-审核，驳回，作废
+    {
+        url: paApis.flitToExamineSave.APIUrl + cH + 'v=' + paApis.flitToExamineSave.ServiceCode,
+        type: 'post',
+        response: config => {
+            return flitToExamineSave
+        }
+    },
+]

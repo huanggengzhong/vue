@@ -1,0 +1,249 @@
+//查询条件样式
+.filter-params-crm-scroll{
+    background-color: #FFF;
+    width: 100%;
+    height:calc(100vh - 74px);
+    overflow-y: scroll;
+    margin-top: -10px;
+    border-bottom: 1px solid #ddd;
+    margin-top: 5px;
+    margin-left: 10px;
+    .cssvalidateFormate{
+        display: inline-table
+    }
+}
+.crm-s-scroll{
+    padding-bottom:60px; 
+    // margin-top: 45px;
+    margin-left: 10px;  
+}
+.crm-label-required .el-form-item .el-form-item__label::before {
+    content: '*';
+    color: #F56C6C;
+    margin-right: 4px;
+}
+.crm-default-select-area{
+    span{
+        display: block
+    }
+    cursor: pointer;
+    display: inline-block;
+    min-width: 60px;
+    height: 28px;
+    line-height: 28px;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    font-size: 12px;
+    text-align: center;
+}
+.crm-selectedClass{
+    background: #2971ff;
+    color:white;
+}
+.crm-unselectedClass{
+   
+}
+el-dialog{
+    .filter-params-crm {
+        width: 100%;
+        text-align: right;
+        padding: 10px 0px 10px 0px;
+        border: none;
+        border-radius: 0px;
+        .toggleParam{
+           z-index: 999999;
+           // position: relative;
+           // margin: 0;
+           // top:0;
+           box-shadow: rgba(0, 0, 0, 0.5) 10px 20px 20px 0px;
+           padding: 0px 13px;
+           background-color: white;
+        }  
+    }
+ }
+.filter-params-crm {
+ width: 100%;
+ text-align: right;
+ padding: 10px 0px 10px 0px;
+ border: none;
+ border-radius: 0px;
+ .toggleParam{
+    z-index: 999999;
+    // position: relative;
+    // margin: 0;
+    // top:0;
+    box-shadow: rgba(0, 0, 0, 0.5) 10px 20px 20px 0px;
+    padding: 0px 13px;
+    background-color: white;
+ }
+ 
+ .filter-title{   
+     margin-top: 5px;
+ }
+ .el-table{
+     margin-top: 5px;
+ }
+//  客户标签类
+ .cust-label .el-form-item__content{
+     width:100%;
+     min-width: 1000px;
+     .el-tag{
+         margin-right: 5px;
+     }
+ }
+
+.long-textarea-style textarea{
+    width: 520px;
+    margin: 2px 0;
+}
+.filter-params-sub{
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+ .el-row{
+    label{
+        word-wrap: break-word; 
+word-break: normal; 
+    }
+    .long-label{
+        label{
+            line-height: 15px !important
+        } 
+    }
+    margin:3px;
+ }
+ label {
+     height: 28px;
+     margin-right: 0px;
+     font-size: 12px;
+     font-weight: normal !important;
+     color: #333333;
+     border-radius: 2px;
+ }
+ .el-col {
+     padding-left: 13px;
+     padding-right: 13px;
+     margin-bottom: 0px;
+     label {
+        width: 32%;
+    }
+     .el-input {
+         width: 68%;
+         height: 28px;
+         font-size: 12px;
+         color: #2971ff;
+         border: #2971ff;
+         border-radius: 2px;
+         input {
+             border-radius: 2px;
+         }
+     }
+     .el-textarea {
+         width: 68%;
+         font-size: 12px;
+         color: #2971ff;
+         border: #2971ff;
+         border-radius: 2px;
+         input {
+             border-radius: 2px;
+         }
+     }
+     .el-select {
+         width: 68%;
+     }
+     .el-select {
+         .el-input {
+             width: 100%;
+         }
+     }
+     .el-form-item{
+         margin-bottom: 0px
+     }
+ }
+ .table-col .el-col {
+     margin-bottom: 0;
+ }
+ .el-button--small{
+     padding: 0px
+}
+.icon-button{
+    margin: 0px;
+    padding: 0px;
+    max-height: 32px;
+    width:20px;
+    min-width: 20px;
+}
+}
+ .filter-params-crm .long-col  {
+    .el-input{
+        width: 85%;
+    }
+    label{
+        width: 15%;
+    }
+    .el-textarea{
+        width: 85%;
+    }
+  }
+ 
+
+  .filter-params-crm .icon-col{
+      padding-left: 0px;
+      margin-left: 0px;
+      margin-right: 0;
+      padding-right: 0
+  }
+  .filter-params-crm .long-col .el-col label{
+    width:32%;
+  }
+// 分隔条样式
+.filter-title-crm {
+ padding-left: 10px;
+ padding-right: 10px;
+ text-align: left;
+ height: 30px;
+ line-height: 30px;
+ font-size: 12px;
+ // margin-top: 5px;
+ border-top: 1px solid #e8e8e8;
+ border-bottom: 1px solid #e8e8e8;
+padding-left: 10px;
+
+}
+.toggleParam {
+    .el-col .el-form-item {
+        margin: 0 0 2px 0;
+    }
+}
+
+.crm-table{
+    .el-table__body{
+        // overflow: scroll
+    }
+}
+
+// 底部表单按钮组
+.filter-button-bottom-abosulte{
+    position: fixed;
+    bottom: 22px;
+    right: right;
+    background-color: white;
+    z-index: 2000;  //小于菜单3021
+    border-top: 1px solid #ddd;
+    left: 20px;
+    right: 20px;
+    width: 100%;
+    z-index: 999999;
+    -webkit-box-shadow: rgba(77, 62, 62, 0.5) -17px 18px 32px 22px;
+    box-shadow: rgba(77, 62, 62, 0.5) -17px 18px 32px 22px;
+    background-color: white;
+    padding: 8px 27px;
+    // padding: 10px 30px;
+    .button{
+        float: right;
+        margin-right: 16px;
+    }
+}
+// .app-main{
+//     overflow: hidden;
+// }

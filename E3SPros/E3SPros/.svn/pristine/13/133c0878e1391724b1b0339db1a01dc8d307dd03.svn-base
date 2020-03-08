@@ -1,0 +1,309 @@
+<!--
+* description: 提醒升级设置
+* author: zxuan
+* createdDate: 2019-10-18
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template
+      ref="multipleTable"
+      :dynamicSearchField="searchField"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="false"
+      :dynamicIsInitTable="false"
+      :dynamicIsColumnDrop="false"
+    />
+    <!-- <RemindSet :PopupsVisible="flag" ref="trans" />
+    <UpdateSet :transferLog="Tlog" ref="Tlog" />-->
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from "@/components/mixins/oneTableWithViewTemplateMixins";
+import { crmApis } from "@/api/graphQLApiList/crm";
+import OneTableTemplate from "@/components/crm/Template/crmonePage";
+import RemindSet from "@/views/crm/csc/RemindSet";
+import UpdateSet from "@/views/crm/csc/UpdateSet";
+import { CacheConfig } from "@/cache/configCache/index";
+
+export default {
+  name: "interCustTransfer",
+  // 组件混入对象
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate
+    // RemindSet,
+    // UpdateSet
+  },
+  // 阻塞路由预加载网格中组件的数据
+  beforeRouteEnter(to, from, next) {
+    CacheConfig.initData(to.path, function() {
+      next();
+    });
+  },
+  data() {
+    var p = new Promise(function(resolve, reject) {
+      setTimeout(function() {
+        console.log("异步 start");
+        resolve("异步 end");
+      }, 1000);
+    });
+    console.log("同步 start");
+    return {
+      flag: false,
+      searchField: "请输入搜索内容",
+      Tlog: {
+        dialogVisible: false
+      },
+      // 网格查询API配置对象
+      apiConfig: crmApis.csDbUpdateRemindSetMQueryFindAll,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.UpdateSet(),
+          text: "新增升级规则"
+        },
+        {
+          compKey: "btnKey5",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.RemindSet(),
+          text: "新增提醒规则"
+        }
+        // {
+        //   compKey: "btnKey2",
+        //   type: "primary",
+        //   size: "small",
+        //   clickEvent: () => this.queryTable(1),
+        //   text: "查询"
+        // },
+        // {
+        //   compKey: "btnKey4",
+        //   type: "",
+        //   size: "small",
+        //   clickEvent: () => this.reset(),
+        //   text: "重置"
+        // }
+      ],
+      // 动态组件-查询条件
+      tableComponents:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              {
+                compKey: "compKey1",
+                labelName: "提醒升级",
+                lookuptype: "LX053",
+                codeField: "ruleType",
+                component: () =>
+                  import("@/components/crm/lookupValue/lookupvalue"),
+                type: "dropdownList",
+                isMust: false
+              },
+              {
+                compKey: "compKey2",
+                labelName: "业务流程",
+                lookuptype: "LX009",
+                codeField: "buniessProcess",
+                component: () =>
+                  import("@/components/crm/lookupValue/lookupvalue"),
+                type: "dropdownList",
+                isMust: false
+              },
+              {
+                compKey: "compKey3",
+                labelName: "已完成结点",
+                codeField: "begNode",
+                component: () =>
+                  import("@/components/crm/Select/crmProcessNode"),
+                type: "dropdownList",
+                isMust: false
+              },
+              {
+                compKey: "compKey4",
+                labelName: "待处理结点",
+                codeField: "endNode",
+                component: () =>
+                  import("@/components/crm/Select/crmProcessNode"),
+                type: "dropdownList",
+                isMust: false
+              },
+              {
+                compKey: "compKey5",
+                labelName: "规则名称",
+                codeField: "ruleName",
+                component: () =>
+                  import("@/components/crm/textbox/crmTextInput"),
+                type: "inputText",
+                isMust: false
+              },
+              {
+                compKey: "compKey6",
+                labelName: "是否启用",
+                codeField: "isEnable",
+                clearable: false,
+                component: () => import("@/components/crm/Select/crmIsEnable"),
+                type: "dropdownList",
+                isMust: false
+              },
+              {
+                compKey: "compKey7",
+                labelName: "服务大类",
+                codeField: "ruleClass",
+                component: () =>
+                  import("@/components/crm/Select/Common/crmserBigclass"),
+                type: "dropdownList",
+                isMust: false
+              },
+              {
+                compKey: "compKey8",
+                labelName: "品牌",
+                codeField: "carBrandCode",
+                component: () => import("@/components/org/carBrand/carBrand"),
+                type: "dropdownList",
+                isMust: false
+              },
+              {
+                compKey: "compKey9",
+                labelName: "是否督办",
+                lookuptype: "DB0064",
+                codeField: "isRise",
+                component: () =>
+                  import("@/components/crm/lookupValue/lookupvalue"),
+                type: "dropdownList",
+                isMust: false
+              },
+            ],
+      // 动态生成网格列
+      tableCols:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableCols.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableCols
+          : [
+              {
+                prop: "controlBtn",
+                label: "操作",
+                codeField: "controlBtn",
+                width: 120,
+                align: "center",
+                isComponent: true,
+                comps: [
+                  {
+                    compKey: "propKey0",
+                    labelName: "修改",
+                    // compareField: "isEnable",
+                    // compareValue: "1",
+                    codeField: "editControlBtn",
+                    clickEvent: this.RemindSet,
+                    component: () => import("@/components/org/linkButton"),
+                    isMust: true,
+                  },
+                  // {
+                  //   compKey: "propKey1",
+                  //   labelName: "删除",
+                  //   compareField: "isEnable",
+                  //   compareValue: "0",
+                  //   codeField: "delControlBtn",
+                  //   clickEvent: this.del,
+                  //   component: () => import("@/components/org/linkButton")
+                  // }
+                ]
+              },
+              {
+                prop: "carBrandCode",
+                label: "品牌",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "ruleName",
+                label: "规则名称",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "bussWfName",
+                label: "业务流程",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "begNodeName",
+                label: "已完成节点",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "endNodeName",
+                label: "待处理节点",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "ruleTypeName",
+                label: "分类",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "begTime",
+                label: "开始时间",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "endTime",
+                label: "结束时间",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "isEnableName",
+                label: "是否启用",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "isRiseName",
+                label: "是否督办",
+                width: null,
+                align: "center"
+              }
+            ],
+      // 表单查询参数
+      formField: {
+        bussWf: "",
+        begNode: "",
+        endNode: "",
+        ruleName: "",
+        isEnable: "",
+        ruleClass: "",
+        ruleType:"",
+        oemCode:this.$store.getters.orgInfo.OEM_CODE,
+        groupCode: this.$store.getters.orgInfo.GROUP_CODE,
+        carBrandCode: "",
+        isRise: ""
+      }
+    };
+  },
+  methods: {
+    UpdateSet() {
+      let that = this;
+      that.$crmcf.jumpDetailTag(that,"UpdateSet","/UpdateSet")
+    },
+    RemindSet(index,rowData) {
+      let that = this;
+      console.log(rowData)
+      debugger
+      that.$crmcf.jumpDetailTag(that,"RemindSet","/RemindSet",rowData)
+    }
+  }
+};
+</script>

@@ -1,0 +1,252 @@
+<template>
+  <section>
+    <el-dialog
+      width="900px"
+      :title="showTitle "
+      :visible.sync="handleVisibled"
+      center
+      @close="sendCodeHandleVisible"
+      :close-on-click-modal="false"
+      :append-to-body="true"
+    >
+
+      <one-table-template ref="multipleTable"
+        :dynamicApiConfig="apiConfig"
+        :dynamicFormFields="formField"
+        :dynamicComponents="tableComponents"
+        :dynamicIsShowSelect="false"
+        :isshowSearchConTile="false"
+        :isshowTable="false"
+        :isShowPagination="false"
+        :isshowSearchTableButton="false"
+        :isshowSearchResult="false"
+      />
+      <div style="text-align:right" v-if="showAuthorize">
+      <el-button type="primary" @click="authorize" >{{$t('org.label.authorization')/*授权*/}}</el-button>
+      </div>
+       <div class="filter-container filter-title" ref="resultTitleHeight">{{$t('sys.content.gridTitle')/*查询结果*/}}</div>
+      <el-aside class="el-slide" style="background-color: #fff" width="850px" >
+        <el-tree
+          class="filter-tree"
+          :data="orgList"
+          :props="defaultProps"
+          default-expand-all
+           highlight-current
+          v-loading="queryState"
+          :default-checked-keys="defaultCheckeDeys"
+          :show-checkbox="isShowCheckBox"
+          height="300px"
+          node-key="menuId"
+          ref="tree"
+        ></el-tree>
+      </el-aside>
+    </el-dialog>
+  </section>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { orgApis } from "@/api/graphQLApiList/org";
+import { requestGraphQL } from "@/api/commonRequest";
+import OneTableTemplate from '@/components/templates/popupsOneTable'
+import { debuglog } from 'util';
+export default {
+    // 组件混入对象：{data[listQuery] methods[queryTable]}
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate
+  },
+  props: {
+    handleVisible: {
+      type: Boolean,
+      default: function() {
+        return false;
+      }
+    },
+    handleTitle: {
+      type: Number,
+      default: function() {
+        return 1;
+      }
+    },
+    editData: {
+      type: null,
+      default: ""
+    }
+  },
+  data() {
+    return {
+      apiConfig: orgApis.sysUserPrivQueryByPage,
+      handleVisibled: this.handleVisible,
+      queryState:false,
+      showTitle: this.handleTitle == 0 ? this.$t('org.label.userRightsView')/*用户权限查看*/ : this.$t('org.label.userRightsChange')/*用户权限变更*/,
+      //是否只查看有权限
+      selectedOnly:this.handleTitle == 0 ? "1" : "0",
+      //是否显示授权按钮
+      showAuthorize:this.handleTitle == 0 ? false : true,
+      //是否显示复选框
+      isShowCheckBox:this.handleTitle == 0 ? false : true,
+      tableComponents: [
+          {compKey: 'compKey1', labelName: this.$t('org.label.authorizedObject')/*授权对象*/, codeField: 'userName',disabled:true,component: () => import('@/components/org/commonInput'), type: 'inputText', isMust: true},
+       ],
+      formField: {
+        userName:this.editData.userName
+      },
+      orgList: [],
+      defaultProps: {
+        children: "children",
+        label: "menuName"
+      },
+      defaultCheckeDeys:[]
+    };
+  },
+  created() {
+    this.queryOrganization();
+  },
+  methods: {
+    //设置默认选中
+    getDefaultCheckeDeys(){
+      let arr = this.orgList
+      for(let i  of arr){
+        if(i.children){
+           for(let j of i.children){
+            if(j.isSelected === "1"){
+              console.log(j.menuId)
+              this.defaultCheckeDeys.push(j.menuId)
+            }
+          }
+        }
+
+      }
+      console.log(this.defaultCheckeDeys)
+    },
+    //查询组织
+    queryOrganization() {
+      this.queryState=true;
+      const that = this;
+      let obj = {}
+      if(this.handleTitle != 1){
+        obj.roleId = this.editData.roleId
+        obj.selectedOnly = 1
+      }else{
+        obj.roleId = this.editData.roleId
+      }
+      let queryObj = {
+        // api配置
+        apiConfig: orgApis.sysUserPrivQueryByPage,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: ["menuName", "menuId", "isSelected", "parentMenuId"]
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: 10000,
+          pageIndex: 1,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {
+            userId: this.editData.userId,
+            selectedOnly:this.selectedOnly
+          }
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[orgApis.sysUserPrivQueryByPage.ServiceCode].result ===
+            "1"
+        ) {
+          var dataList =
+            response.data[orgApis.sysUserPrivQueryByPage.ServiceCode].rows;
+
+          var tree = this.$utils.parseTreeFromList(
+            dataList,
+            "parentMenuId",
+            "menuId"
+          );
+
+          this.orgList = tree;
+          if(this.handleTitle === 1){
+            this.getDefaultCheckeDeys()
+          }
+        this.queryState=false;
+
+        }
+      });
+    },
+    sendCodeHandleVisible() {
+      this.$emit("visible", false);
+    },
+    authorize(val) {
+     var menuList = [];
+      var data = this.$refs.tree.getCheckedNodes(false,true);
+      if(data.length == 0){
+        // this.$message({
+        //   message: this.$t('org.message.selMenuAuthor')/*请选择要授权的菜单*/,
+        //   type: 'warning',
+        //   duration: 2000
+        // });
+        // return
+        menuList=[-1]
+      }else{
+         for (var k in data) {
+        menuList.push(data[k].menuId);
+      }
+      }
+      let queryObj = {
+        // 保存mutation
+        type: "mutation",
+        // api配置
+        apiConfig: orgApis.sysUserPrivMutationSave,
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {
+            userId: this.editData.userId,
+            menuId: menuList.toString()
+          }
+        }
+      };
+      //转换了中台请求格式数
+      var paramD = this.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (response.data[queryObj.apiConfig.ServiceCode].result === "1") {
+            this.$message({
+            message: this.$t('org.label.userRightsChange')/*用户权限变更*/+this.$t('sys.tips.esTip5')/*保存成功*/,
+            type: "success",
+            duration: 2000
+          });
+          this.sendCodeHandleVisible()
+        }else {
+            msg = response.data[queryObj.apiConfig.ServiceCode].msg;
+            this.$message({
+              message: msg,
+              type: 'warning',
+              duration: 2000
+            });
+          }
+      });
+    },
+    sendCode(){
+      this.handleVisibled = false
+      this.$emit('changeCode', code, text)
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.el-slide {
+  height: 300px;
+  background: #fff;
+  position: relative;
+  margin-top: 10px;
+  border-radius: 2px;
+  -webkit-box-shadow: 2px 3px 2px #c1c1c1;
+  box-shadow: 2px 3px 2px #c1c1c1;
+}
+</style>

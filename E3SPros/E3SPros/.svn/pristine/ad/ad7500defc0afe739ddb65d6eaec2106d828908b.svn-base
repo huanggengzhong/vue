@@ -1,0 +1,94 @@
+import Mock from 'mockjs'
+import { paApis } from '../../../src/api/graphQLApiList/pa'
+const cH = '/'
+
+const data = Mock.mock({
+  paDlrOutStoreQueryFindAll: {
+    result: '1',
+    pageindex: '1',
+    pages: '1',
+    records: '4',
+    msg: '查找成功',
+    'rows|10': [
+      {
+        billNo: 'WOH1006190001',
+        billDate: '2019-06-19 17:25:11',
+        custName: '李汉群',
+        billType: '维修出库',
+        a2: '售后服务',
+        a3: '李小小',
+        state: '部分出库',
+        package: '1',
+        total: '10',
+        amount: '1200.00',
+        carLicense: '粤MVV811',
+        vin: 'LGBF1AE00AR202817',
+        remark: '无',
+        a5: '吴小雨',
+        a6: '李一一',
+        a7: '2018-12-28',
+        oemId: 'ASA123141',
+        groupId: 'SQW21314',
+        oemCode: 'AAAAAA',
+        groupCode: 'SSSSSS',
+        aaa: '0'
+      }
+    ]
+
+  }
+})
+const data1 = Mock.mock({
+  paDlrOutStoreQueryDFindAll: {
+    result: '1',
+    pageindex: '1',
+    pages: '1',
+    records: '4',
+    msg: '查找成功',
+    'rows|10': [
+      {
+        partNo: 'QS006190001',
+        partBrandCode: 'WQS0909122211',
+        b1: '冷却器-机油',
+        outQty: '10',
+        hasOutQty: '0',
+        b2: '0',
+        canOutQty: '15',
+        b3: '1',
+        outQtyTemp: '10',
+        unit: '个',
+        b4: '1200.00',
+        taxRate: '13%',
+        b5: '138.52',
+        storePriceAmount: '10200.00',
+        b6: '',
+        a7: '',
+        remarks: ''
+      }
+    ]
+
+  }
+})
+
+export default [
+  {
+    url: paApis.paDlrOutStoreQueryFindAll.APIUrl + cH + 'v=' + paApis.paDlrOutStoreQueryFindAll.ServiceCode,
+    type: 'post',
+    response: config => {
+      return {
+        result: '1',
+        data: data
+      }
+    }
+
+  },
+  {
+    url: paApis.paDlrOutStoreQueryDFindAll.APIUrl + cH + 'v=' + paApis.paDlrOutStoreQueryDFindAll.ServiceCode,
+    type: 'post',
+    response: config => {
+      return {
+        result: '1',
+        data: data1
+      }
+    }
+  }
+]

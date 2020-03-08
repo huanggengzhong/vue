@@ -1,0 +1,280 @@
+<!--
+* description: 物流运输时限设置
+* author: xulfan
+* createdDate: 2019-09-21
+* logs:
+*   2019-09-19 完成页面开发和国际化配置 xulfan
+*   2019-09-25 完成组件联动显示隐藏 xulfan
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template
+      ref="multipleTable"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="false"
+      :dynamicIsShowMoreBtn="true"
+    />
+    <certificatImportDialog @visible="handDialogVisibleFunc" :dialogVisible="dialogVisible" />
+    <Edit
+      :dynamicEditRowData="editRowData"
+      :popupsVisible="editPopupsVisible"
+      :key="editPopupsKey"
+      :popupsState="editPopupsState"
+      @close="close"
+    />
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { veApis } from "@/api/graphQLApiList/ve";
+import OneTableTemplate from "@/components/templates/oneTable";
+import { CacheConfig } from "@/cache/configCache/index";
+import LangSelect from "@/components/LangSelect";
+import certificatImportDialog from "./dialog";
+import Edit from "./edit";
+export default {
+  name: "veLogTransTimeLimSetting",
+  // 组件混入对象
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+    LangSelect,
+    certificatImportDialog,
+    Edit
+  },
+  // 阻塞路由预加载网格中组件的数据
+  beforeRouteEnter(to, from, next) {
+    CacheConfig.initData(to.path, function() {
+      next();
+    });
+  },
+  data() {
+    return {
+      dialogVisible: false,
+      // 网格查询API配置对象
+      apiConfig: veApis.logTransTimeLimitSetQry,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: this.$t("sys.button.query") //查询
+        },
+        {
+          compKey: "btnKey2",
+          size: "small",
+          clickEvent: () => this.add(),
+          text: this.$t("org.label.add") //新增
+        },
+        {
+          compKey: "btnKey4",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: this.$t("sys.button.reset") //重置
+        },
+        {
+          compKey: "btnKey5",
+          type: "",
+          size: "small",
+          clickEvent: () => this.importFile(),
+          text: this.$t("sys.button.import") //导入
+        },
+        {
+          compKey: "btnKey6",
+          type: "",
+          size: "small",
+          clickEvent: () => this.exportExcel(),
+          text: this.$t("sys.button.export") //导出
+        }
+      ],
+      tableComponents:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              // 动态组件-查询条件
+              {
+                compKey: "compKey1",
+                labelName: this.$t("org.label.departure") /*出发地*/,
+                codeField: "departureCode",
+                component: () =>
+                  import("@/components/ve/hostFatoryWareHouse/wareHouseInput"),
+                type: "propus",
+                isMust: true,
+              },
+              {
+                compKey: "compKey2",
+                labelName: this.$t("org.label.destinationType") /*目的地类型*/,
+                lookuptype: "VE0079",
+                codeField: "destinationTypeCode",
+                component: () => import("@/components/org/LookupValue"),
+                type: "dropdownList",
+                isMust: true,
+                isMul: false
+              },
+              {
+                compKey: "compKey3",
+                labelName: this.$t(
+                  "org.label.destination"
+                ) /*目的地（主机厂弹窗）*/,
+                codeField: "destinationCode",
+                parentFileds: 'show:destinationTypeCode--1',
+                component: () =>
+                  import("@/components/ve/hostFatoryWareHouse/wareHouseInput"),
+                type: "propus",
+                isMust: true,
+              },
+              {
+                compKey: "compKey4",
+                labelName: this.$t(
+                  "org.label.Dlrdestination"
+                ) /*目的地（经销商弹窗）*/,
+                codeField: "dlrId",
+                parentFileds: 'show:destinationTypeCode--2',
+                component: () =>
+                  import("@/components/org/orgDlr"),
+                type: "propus",
+                isMust: true,
+              },
+              {
+                compKey: "compKey5",
+                labelName: this.$t("org.label.transportType") /*运输方式*/,
+                lookuptype: "VE0079",
+                codeField: "transportTypeCode",
+                component: () => import("@/components/org/LookupValue"),
+                type: "dropdownList",
+                isMust: false,
+              },
+              {
+                compKey: "compKey6",
+                labelName: this.$t(
+                  "org.label.logisticsTransCompany"
+                ) /*物流运输公司*/,
+                lookuptype: "VE0079",
+                codeField: "transCompanyCode",
+                component: () => import("@/components/org/LookupValue"),
+                type: "dropdownList",
+                isMust: false
+              }
+            ],
+      // 动态生成网格列
+      tableCols:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableCols.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableCols
+          : [
+              {
+                prop: "controlBtn",
+                label: this.$t("sys.button.edit") /*操作*/,
+                codeField: "controlBtn",
+                width: 80,
+                align: "center",
+                isComponent: true,
+                comps: [
+                  {
+                    compKey: "propKey1",
+                    labelName: this.$t("sys.button.edit"),
+                    codeField: "editControlBtn",
+                    clickEvent: this.edit,
+                    component: () => import("@/components/org/linkButton")
+                  }
+                ]
+              },
+              {
+                prop: "departure",
+                label: this.$t("org.label.departure"), //出发地
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "destinationType",
+                label: this.$t("org.label.destinationType"), //目的地类型
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "destination",
+                label: this.$t("org.label.destination"), //目的地
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "transportType",
+                label: this.$t("org.label.transportType"), //运输方式
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "logisticsTransCompany",
+                label: this.$t("org.label.logisticsTransCompany"), //物流运输公司
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "transportDate",
+                label: this.$t("org.label.transportDate"), //运输天数
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "isEnable",
+                label: this.$t("org.label.isEnable"), //状态
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "updateControlId",
+                label: this.$t("org.label.updateControlId"), //并发控制Id
+                width: null,
+                align: "center",
+                hidden: true
+              }
+            ],
+      //表单查询数据
+      formField: {
+        departureCode: "",
+        departureTypeCode: "",
+        destinationCode: "",
+        destinationTypeCode: "",
+        transportTypeCode: "",
+        transCompanyCode: "",
+        dlrId: ""
+      }
+      // componentsPath: "@/components/org/orgDlr"
+    };
+  },
+  // watch: {
+  //   "formField.destinationTypeCode": function formFieldDestinationTypeCode(val) {
+  //     debugger;
+  //     if (val == "1") {
+  //       this.$refs.multipleTable.dynamicComponents[3].isShow = false;
+  //       this.$refs.multipleTable.dynamicComponents[2].isShow = true;
+  //     } else if (val == "2") {
+  //       this.$refs.multipleTable.dynamicComponents[3].isShow = true;
+  //       this.$refs.multipleTable.dynamicComponents[2].isShow = false;
+  //     }
+  //   }
+  // },
+  methods: {
+    handDialogVisibleFunc(val) {
+      this.dialogVisible = val;
+    },
+    importFile() {
+      this.dialogVisible = true;
+    }
+  }
+};
+</script>
+<style scoped>
+.onOffPart {
+  height: 50px;
+  text-align: left;
+}
+</style>

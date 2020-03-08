@@ -1,0 +1,521 @@
+<!--
+* description: 经销商不可用订单类型维护
+* author: chchhui
+* createdDate: 2019-07-26
+* logs：
+*  20190720 新增页面功能
+-->
+
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button" ref="searcheHeight">
+      <el-button type="primary" size="small" @click="queryList(1)">查询</el-button>
+      <el-button size="small" @click="getExcel">导出</el-button>
+      <el-button size="small" @click="reset">重置</el-button>
+      <el-button size="small" @click="addDlr">增加经销商</el-button>
+      <el-button size="small" @click="deleteRow">删除经销商</el-button>
+      <el-button size="small" @click="save">保存</el-button>
+    </div>
+    <div class="filter-container filter-params">
+      <el-row :gutter="24">
+        <carBrand :span="6" :code="listQuery.carBrandCode" @changeCode="getBrandCode" />
+        <dlrChoose
+          :seComQueChoDlrVisible="isShowChoose"
+          @sentData="getData"
+          @sentCode="getSentCode"
+          @close="closeVisible"
+          :isMul="isMul"
+        />
+        <!-- <seComQueChoMu
+          ref="dlrMoreChoose"
+          :curPopupsVisible="isseComQueChoMu"
+          @changeCode="getDlrCode"
+          @close="closeVisible"
+          :isMul="isMul"
+        />-->
+        <el-col :span="6">
+          <label>经销商</label>
+          <el-input
+            placeholder="请选择"
+            size="small"
+            v-model="listQuery.dlrShortName"
+            @focus="chooseDlr"
+            clearable
+          ></el-input>
+        </el-col>
+        <LookupValue
+          :span="6"
+          :isMul="isMul"
+          :isShowLabel="isShowLabel"
+          :code="listQuery.orderTypeCode"
+          :lookuptype="lookuptype.orderTypeName"
+          :labelName="lookupValuelable.orderTypeName"
+          @changeCode="getOrderTypeName"
+        />
+      </el-row>
+    </div>
+    <el-row :gutter="24">
+      <el-col :span="8">
+        <div class="filter-container filter-title">订单类型列表</div>
+        <el-table
+          :data="list"
+          element-loading-text="Loading"
+          border
+          fit
+          stripe
+          highlight-current-row
+          @row-click="rowClick"
+        >
+          <el-table-column prop="id" label="序号" type="index" width="60" align="center"></el-table-column>
+          <el-table-column prop="orderTypeName" label="订单类型名称" align="center"></el-table-column>
+        </el-table>
+      </el-col>
+      <el-col :span="16">
+        <div class="filter-container filter-title">已设置订单类型经销商列表</div>
+        <el-table
+          v-loading="listLoading"
+          :data="rightList"
+          element-loading-text="Loading"
+          border
+          fit
+          stripe
+          highlight-current-row
+          @select="isSelected"
+          @select-all="isSelected"
+          ref="multipleTable"
+        >
+          <el-table-column label="序号" type="index" width="60" align="center"></el-table-column>
+          <el-table-column type="selection" width="55" label="选择+" />
+          <el-table-column prop="carBrandCn" label="经销商品牌" width="120" align="center"></el-table-column>
+          <el-table-column prop="dlrCode" label="经销商编码" width="165" align="center"></el-table-column>
+          <el-table-column prop="dlrFullName" label="经销商名称" align="center"></el-table-column>
+        </el-table>
+        <el-pagination
+          background
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          :page-sizes="[10, 20, 30]"
+          :page-size="10"
+          prev-text="上一页"
+          next-text="下一页"
+          layout="prev, pager, next, sizes, ->, total"
+          :total="rightList?pageTotal:0"
+        ></el-pagination>
+      </el-col>
+    </el-row>
+  </div>
+</template>
+<script>
+import { doQueryList } from "@/api/pa/basedata/paDbDlrUseOrderType";
+import { doQueryMdsLookupValueByPage } from "@/api/pa/basedata/queryLookupValue";
+import { orgApis } from "@/api/graphQLApiList/org";
+import carBrand from "@/components/org/carBrand/carBrand";
+import dlrChoose from "@/components/se/seCommonQueryChooseDlr";
+import seComQueChoMu from "@/components/se/seComQueryChoDlrMul";
+import { requestGraphQL } from "@/api/commonRequest";
+import { paApis } from "@/api/graphQLApiList/pa";
+import LookupValue from "@/components/org/LookupValue";
+export default {
+  name: "pajxsbkyddlxwh",
+  components: {
+    carBrand,
+    LookupValue,
+    dlrChoose,
+    seComQueChoMu
+  },
+  data() {
+    return {
+      listLoading: false,
+      isShowChoose: false,
+      isseComQueChoMu: false,
+      popupsVisible: false,
+      orderType: "",
+      isMul: false,
+      isShowLabel: true,
+      lookupValuelable: {
+        orderTypeName: "订单类型"
+      },
+      lookuptype: {
+        orderTypeName: "PA0025"
+      },
+      list: [],
+      rightList: [],
+      saveList: {},
+      deleteList: [],
+      dataList: [],
+      pageTotal: 0,
+      pageIndex: 1,
+      pageSize: 10,
+      limit: 20,
+      listQuery: {
+        dlrShortName: "",
+        dlrId: "",
+        orderTypeCode: "",
+        carBrandCode: ""
+      }
+    };
+  },
+  created() {
+    this.queryValue();
+  },
+  mounted() {
+    this.listQuery.carBrandCode = "";
+  },
+  watch: {
+    isMul(val, oldVal) {}
+  },
+  methods: {
+    //获取单选的经销商名称
+    getSentCode(data) {
+      this.listQuery.dlrShortName = data.dlrShortName;
+    },
+    //关闭弹窗
+    closeVisible(val) {
+      this.isseComQueChoMu = val;
+      this.isShowChoose = val;
+    },
+    //查询条件经销商弹窗
+    chooseDlr() {
+      this.isMul = false;
+      this.isShowChoose = true;
+    },
+
+    //添加经销商弹窗
+    addDlr() {
+      if (this.listQuery.orderTypeCode == "") {
+        this.$message({
+          type: "success",
+          message: "请选择一种订单类型进行添加"
+        });
+      } else {
+        this.isMul = true;
+        this.isShowChoose = true;
+      }
+    },
+    //获取订单类型编码
+    getOrderTypeName(val) {
+      this.listQuery.orderTypeCode = val;
+      this.orderTypeCode = this.listQuery.orderTypeCode;
+    },
+    handleSizeChange(val) {
+      this.pageSize = val;
+      this.queryList();
+    },
+    handleCurrentChange(val) {
+      this.pageIndex = val;
+      this.queryList();
+    },
+
+    // 值列表查询
+    queryValue() {
+      doQueryMdsLookupValueByPage(9999, 1, {
+        isEnable: "1",
+        lookupTypeCode: "PA0025"
+      }) //值类型编码
+        .then(response => {
+          var retData =
+            response.data[orgApis.mdsLookupValueQueryByPage.ServiceCode];
+          if (retData.result === "1" && retData.rows !== "") {
+            const tempList = retData.rows;
+            var tempOptions = [];
+            tempList.forEach(row => {
+              tempOptions.push({
+                orderTypeCode: row.lookupValueCode,
+                orderTypeName: row.lookupValueName
+              });
+            });
+            this.list = tempOptions; //下拉列表赋值
+            //console.log(this.transitTypeChoose);
+          }
+        });
+    },
+
+    // 删除表格的数据
+    deleteRow() {
+      if (this.deleteList.length == 0) {
+        this.$alert("请选择需要删除的数据", "提示", {
+          confirmButtonText: "确定",
+          type: "warning"
+        });
+      } else {
+        this.$confirm("此操作将永久删除该数据, 是否继续?", "提示", {
+          confirmButtonText: "确定",
+          cancelButtonText: "取消",
+          type: "warning"
+        })
+          .then(() => {
+            for (var i = 0; i < this.deleteList.length; i++) {
+              for (var j = 0; j < this.rightList.length; j++) {
+                if (this.deleteList[i].dlrId == this.rightList[j].dlrId) {
+                  this.rightList.splice(j, 1);
+                }
+              }
+            }
+            this.rightList = [];
+            this.$message({
+              type: "success",
+              message: "删除成功!"
+            });
+          })
+          .catch(() => {
+            this.$message({
+              type: "info",
+              message: "已取消删除"
+            });
+          });
+      }
+    },
+
+    //重置
+    reset() {
+      this.listQuery.orderTypeCode = "";
+      this.listQuery.dlrShortName = "";
+      this.listQuery.carBrandCode = "";
+    },
+
+    // 保存数据
+    save() {
+      const that = this;
+      var tempList = that.rightList;
+      var tempOptions = [];
+      tempList.forEach(row => {
+        tempOptions.push({
+          dlrId: row.dlrId,
+          orderTypeCode: that.saveList.orderTypeCode
+        });
+      });
+      let queryObj = {
+        //保存需要传 type="mutation"
+        type: "mutation",
+        typeParam:
+          "($info:InputPaDbDlrUseOrderType,$infos:[InputPaDbDlrUseOrderType])",
+        // api配置
+        apiConfig: paApis.paDbDlrUseOrderTypeMutationSave,
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        apiServices: [
+          {
+            apiServiceParam: "(info:$info,infos:$infos)"
+            //表格中台返回网格的字段
+          }
+        ],
+        variables: {
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          info: that.saveList,
+          infos: tempOptions
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[paApis.paDbDlrUseOrderTypeMutationSave.ServiceCode]
+            .result === "1" &&
+          response.data[paApis.paDbDlrUseOrderTypeMutationSave.ServiceCode]
+            .rows != ""
+        ) {
+          that.$message({ message: "保存成功", type: "success" });
+          this.queryList();
+        }
+      });
+    },
+
+    // 选择经销商添加到表格
+    getData(data) {
+      this.isShowChoose = false;
+      console.log(this.rightList + "123");
+      console.log(data);
+      for (var i = 0; i < data.length; i++) {
+        for (var j = 0; j < this.rightList.length; j++) {
+          if (data[i].dlrCode == this.rightList[j].dlrCode) {
+            this.$message({
+              type: "success",
+              message: data[i].dlrFullName + "经销商已存在，请不要重复添加"
+            });
+            return;
+          }
+        }
+        this.rightList.push(data[i]);
+        console.log(data[i]);
+      }
+      console.log(this.rightList);
+    },
+
+    isSelected(selection) {
+      this.deleteList = selection;
+    },
+
+    // 选择某种订单类型进行查询
+    rowClick(row) {
+      this.listQuery.orderTypeCode = row.orderTypeCode;
+      this.saveList.orderTypeCode = row.orderTypeCode;
+      this.queryList();
+    },
+    getBrandCode(val) {
+      this.listQuery.carBrandCode = val;
+    },
+    // 导出
+    getExcel() {
+      var tableColumns = null ? null : this.$refs.multipleTable.columns;
+      this.queryList(
+        1,
+        "excel",
+        "已设置订单类型经销商列表导出",
+        "已设置订单类型经销商列表",
+        tableColumns
+      );
+    },
+    // 查询数据
+    queryList(
+      page,
+      dataType = "",
+      excelName = "",
+      excelSheetName = "",
+      tableColumns = null
+    ) {
+      const that = this;
+      that.listLoading = true;
+      let queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: "query",
+        typeParam:
+          "($pageIndex: Int, $pageSize: Int, $dataInfo: " +
+          paApis.paDbDlrUseOrderTypeQueryFindAll.InputType +
+          ")",
+        // 请求API
+        apiUrl: paApis.paDbDlrUseOrderTypeQueryFindAll.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: paApis.paDbDlrUseOrderTypeQueryFindAll.ServiceCode,
+            apiServiceParam:
+              "(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)",
+            //表格中台返回网格的字段
+            apiQueryRow: [
+              "carBrandCn",
+              "carBrandCode",
+              "createdDate",
+              "createdName",
+              "creator",
+              "dlrCode",
+              "dlrId",
+              "dlrShortName",
+              "dlrFullName",
+              "dlrUseOrderTypeId",
+              "groupCode",
+              "groupId",
+              "isEnable",
+              "isSystem",
+              "lastUpdatedDate",
+              "modifier",
+              "modifyName",
+              "mycatOpTime",
+              "oemCode",
+              "oemId",
+              "orderTypeCode",
+              "remark",
+              "sdpOrgId",
+              "sdpUserId",
+              "updateControlId"
+            ]
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.pageSize,
+          pageIndex: page || that.pageIndex,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: that.listQuery
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      if (dataType === "excel") {
+        queryObj.variables.pageSize = 99999;
+        if (tableColumns == null) tableColumns = [];
+        var tmpCols = tableColumns; // .filter(o => o.hidden !== true)
+        // 网格列对象转为excel列对象
+        var excelCols = {};
+        for (var i = 0; i < tmpCols.length; i++) {
+          if (tmpCols[i].property != null)
+            excelCols[tmpCols[i].property] = tmpCols[i].label;
+        }
+        // 数据类型
+        paramD.dataType = "excel";
+        // excel文件名称
+        paramD.excelName = excelName;
+        // 根据请求API描述excel数据对象
+        paramD.excels = [
+          {
+            // excel sheet名称
+            title: excelSheetName,
+            // 对应API服务编码
+            actionName: queryObj.apiServices[0].apiServiceCode,
+            // excel列
+            columns: excelCols
+          }
+        ];
+      }
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        let time = new Date();
+        let Y = time.getFullYear() + "-";
+        let M =
+          (time.getMonth() + 1 < 10
+            ? "0" + (time.getMonth() + 1)
+            : time.getMonth() + 1) + "-";
+        let D = time.getDate() + " ";
+        let h = time.getHours();
+        let m = time.getMinutes();
+        let s = time.getSeconds();
+        if (dataType == "excel") {
+          //导出excel查询
+          this.$utils.downloadFile(
+            response,
+            "已设置订单类型经销商列表导出" +
+              Y +
+              M +
+              D +
+              h +
+              "：" +
+              m +
+              "：" +
+              s +
+              ".xlsx"
+          );
+          this.listLoading = false;
+        } else if (
+          response.data[paApis.paDbDlrUseOrderTypeQueryFindAll.ServiceCode]
+            .result === "1"
+        ) {
+          if (page) {
+            //查询完返回指定的page页数
+            that.pageIndex = page;
+          }
+
+          that.pageTotal = Number(
+            response.data[paApis.paDbDlrUseOrderTypeQueryFindAll.ServiceCode]
+              .records
+          );
+          that.rightList =
+            response.data[
+              paApis.paDbDlrUseOrderTypeQueryFindAll.ServiceCode
+            ].rows;
+          that.listLoading = false;
+        } else {
+          that.listLoading = false;
+          this.$message({
+            message:
+              response.data[paApis.paDbDlrUseOrderTypeQueryFindAll.ServiceCode]
+                .msg,
+            type: "warning",
+            duration: 2000
+          });
+        }
+      });
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+</style>

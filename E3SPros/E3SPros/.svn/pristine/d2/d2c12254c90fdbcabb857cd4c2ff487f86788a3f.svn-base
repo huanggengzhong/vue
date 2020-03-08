@@ -1,0 +1,298 @@
+<!--
+* description: 经销商备件入库退库
+* author: chchhui
+* createdDate: 2019-10-15
+* logs：
+*  20191015 新增页面功能
+-->
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button">
+      <el-button type="primary" size="small" @click="fetchData" >查询</el-button>
+      <el-button size="small" >打印</el-button>
+      <el-button size="small" @click="reset" >重置</el-button>
+    </div>
+    
+    <div class="filter-container filter-params">
+     <el-row :gutter="26">
+        <el-col :span="22">
+          <el-row>
+            <LookupValue
+              :span="6"
+              :isMul="isMul"
+              :isShowLabel="isShowLabel"
+              :code="queryParams.dataInfo.billType"
+              lookuptype="PA10010"
+              labelName="入库类型"
+              @changeCode="getBillType"
+            />
+            <el-col :span="6">
+              <label>入库单号</label>
+              <el-input
+                v-model="queryParams.dataInfo.inStoreCode"
+                suffix-icon="el-icon-search"
+                placeholder="请输入"
+                size="small"
+              />
+            </el-col>
+            <el-col :span="6">
+               <label>出入库日期</label>
+              <el-date-picker
+                v-model="InStoreDate"
+                type="daterange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                @change="changeDate">
+              </el-date-picker>
+            </el-col>
+            <el-col :span="6">
+              <label>关联单号</label>
+              <el-input
+                v-model="queryParams.dataInfo.relateOrderCode"
+                suffix-icon="el-icon-search"
+                placeholder="请输入"
+                size="small"
+              />
+            </el-col>
+          </el-row>
+        </el-col>
+        <el-col :span="2">
+          <el-button icon="el-icon-plus" @click="changeToggleParam" class="moreParam">更多</el-button>
+        </el-col>
+        <el-col :span="22" v-show="toggleParam"  >
+          <el-row>
+            <el-col :span="6">
+              <label>供应商</label>
+              <el-input
+                v-model="queryParams.dataInfo.supplierId"
+                suffix-icon="el-icon-search"
+                placeholder="请选择"
+                size="small"
+              />
+            </el-col>
+          </el-row>
+        </el-col>
+      </el-row>
+    </div>
+    
+    <mix-table
+        ref="tableList"
+        :queryParams="queryParams"
+        :dynamicTableCols="cols"
+        :isShowSelect=false
+        :isPaging=true
+        :isDialog=false /> 
+    
+    <el-dialog
+      title="明细查询"
+      :visible.sync="dialogFormVisible"
+      width="80%"
+      @closed="closeDialog"
+      @opened="openDialog"
+      :append-to-body="true"
+      :close-on-click-modal="false"
+    >
+     <div class="filter-container filter-button">
+      <el-button type="primary" size="small" @click="save" >退货</el-button>
+     </div>
+     <div class="filter-container filter-params">
+      
+     </div>
+      <mix-table 
+        ref="detailList"
+        :queryParams="queryParams1"
+        :dynamicTableCols="detailCols"
+        :isShowSelect=false
+        :isPaging=false
+        :isDialog=true
+        :onetableHeight=200 />
+    </el-dialog>
+  </div>
+</template>
+
+
+<script>
+import { paBuDlrInStoreMutationSave } from "@/api/pa/dealerStorage/paBuDlrlnStonage"
+import { paApis } from "@/api/graphQLApiList/pa";
+import { requestGraphQL } from "@/api/commonRequest";
+import LookupValue from '@/components/org/LookupValue'
+import mixTable from "@/components/basicComponent/mixTable"
+import mixDetail from "@/components/basicComponent/mixDetail"
+import { type } from 'os';
+import { format } from 'path';
+
+export default {
+  components: {
+    mixTable,
+    LookupValue
+  },
+
+  data() {
+    return {
+        toggleParam:false,
+        dialogFormVisible:false,
+        InStoreDate:[],
+        row:{
+          billNo:'',
+          billType:'',
+          billDate:'',
+          deliveryNo:'',
+          state:'',
+          total:'',
+          amount:'',
+          receiptDate:'',
+          remarks:''
+        },
+        options:[
+            {
+                label:'全部',
+                value:1
+            },
+            {
+                label:'部分入库',
+                value:2
+            },
+            {
+                label:'未入库',
+                value:3
+            }
+        ],
+        cols:[
+            { label: '入库单号',codeField:"inStoreCode",comps:{
+              type:"link",
+              event:this.linkDialog
+            }
+            },
+            { label: '入库类型', codeField: "billType"},
+            { label: '入库时间', codeField: "inStoreDate"},
+            { label: '品种数', codeField: "inStoreVarietyNum"},
+            { label: '税率', codeField: "taxRate"},
+            { label: '总税额', codeField: "a2"},
+            { label: '含税总金额', codeField: "inStoreAmount"},
+            { label: '总数量', codeField: "a3"},
+            { label: '关联单号', codeField: "sourceOrderCode"},
+      ],
+       queryParams: {
+        APIUrl: paApis.paBuDlrInStoreQueryFindAll.APIUrl,
+        InputType: paApis.paBuDlrInStoreQueryFindAll.InputType,
+        ServiceCode: paApis.paBuDlrInStoreQueryFindAll.ServiceCode,
+        dataInfo: {
+          inStoreCode: '',
+          billType: '',
+          beginInStoreDate: '',
+          endInStoreDate: '',
+          relateOrderCode:'',
+          supplierId:''
+          
+        },
+        apiQueryRow: [
+          'carBrandCn',
+          'carBrandCode',
+          'carSeriesCn',
+          'carSeriesCode',
+          'carTypeCn',
+          'carTypeCode'
+        ]
+      },
+      detailCols:[
+        {label:"备件品牌",codeField:"partBrandCode"},
+        {label:"电池包/模组编码", isEdit:true ,width:150,codeField:"b1",comps:{
+            type:"inputTxt"
+        }},
+        
+        {label:"备件编码",codeField:"partNo"},
+        {label:"备件名称",codeField:"partName"},
+        {label:"单位",codeField:"unit"},
+        {label:"入库数量",codeField:"inStoreQty"},
+        {label:"已退数量",codeField:"hasReturnQty"},
+        {label:"库存数量",codeField:"storeQty"},
+        {label:"可退数量",codeField:"canReturnQty"},
+        {label:"退货数量",codeField:"returnQty",width:120,isEdit:"true",comps:{
+              type:"inputTxt",           
+        }},
+        {label:"单价",codeField:"taxRinStorePriceate"},
+        {label:"金额",codeField:"inStoreAmount"},
+        {label:"仓库名称",codeField:"warehouseName"},
+        {label:"仓位编码",codeField:"placeCode"},
+        
+      ],
+      queryParams1: {
+        APIUrl: paApis.paBuDlrInStoreDQueryFindAll.APIUrl,
+        InputType: paApis.paBuDlrInStoreDQueryFindAll.InputType,
+        ServiceCode: paApis.paBuDlrInStoreDQueryFindAll.ServiceCode,
+        dataInfo: {
+          documentNumber: '',
+          outboundType: '',
+          carTypeCode: ''
+        },
+        apiQueryRow: [
+          'carBrandCn',
+          'carBrandCode',
+          'carSeriesCn',
+          'carSeriesCode',
+          'carTypeCn',
+          'carTypeCode'
+        ]
+      },
+    }
+  },
+  created() {
+    //this.textQurey();
+  },
+  methods:{
+    fetchData(){
+      this.$refs.tableList.queryList()
+     
+    },
+    changeToggleParam() {
+      this.toggleParam = !this.toggleParam;
+      console.log(this.toggleParam);
+      if (this.toggleParam) {
+        this.moreBtnIcon = "el-icon-minus";
+      } else {
+        this.moreBtnIcon = "el-icon-plus";
+      }
+    },
+    linkDialog(row){
+      
+      this.dialogFormVisible = true
+      this.row = {
+
+      }
+      this.row = row
+      this.$refs.detailList.tableData = []
+    },
+    openDialog(){
+      this.$refs.detailList.queryList()
+     
+    },
+    closeDialog(){
+      this.dialogFormVisible = false
+
+    },
+    save(){
+      // paBuDlrInStoreMutationSave(this.pa)
+    },
+    changeDate(){
+      queryParams.dataInfo.beginInStoreDate = this.InStoreDate[0]
+      queryParams.dataInfo.endInStoreDate = this.InStoreDate[1]
+    },
+    getBillType(val){
+      this.queryParams.dataInfo.billType = val
+
+    },
+    reset(){
+      this.InStoreDate= []
+      this.queryParams.dataInfo.beginInStoreDate=''
+      this.queryParams.dataInfo.endInStoreDate = ''
+      this.queryParams.dataInfo.inStoreCode = ''
+      this.queryParams.dataInfo.billType = ''
+      this.queryParams.dataInfo.relateOrderCode = ''
+      this.queryParams.dataInfo.supplierId = ''
+    }
+  
+  }
+  
+};
+</script>

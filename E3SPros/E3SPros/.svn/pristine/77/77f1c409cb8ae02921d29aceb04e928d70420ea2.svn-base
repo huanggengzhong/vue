@@ -1,0 +1,248 @@
+<!--
+* description: 节点维护
+* author: zouzx
+* createdDate: 2019-09-26
+-->
+<template>
+  <section class="editCarBrand">
+    <el-dialog
+      :close-on-click-modal="false"
+      :title="textMap[popupsState]"
+      :append-to-body="true"
+      :visible.sync="curPopupsVisible"
+      @close="sendCode"
+      width="1000px"
+    >
+      <div class="filter-container filter-params">
+        <el-row :gutter="26">
+          <component
+            v-for="comp in tableComponents.filter(o => o.isMust === true)"
+            :ref="comp.isRequire ? comp.isRequire+ comp.compKey : comp.compKey"
+            :validrule="comp.validrule"
+            :key="comp.compKey"
+            :codeField="comp.codeField"
+            :textField="comp.textField"
+            :popupsKey="comp.compKey"
+            :is="comp.component"
+            :code="formField[comp.codeField]"
+            @changeCode="getComponentCode"
+            @focusCode="getFocusCode"
+            :disabled="comp.disabled"
+            :isRequire="comp.isRequire"
+            :span="comp.span || 8"
+            :labelName="comp.labelName"
+            :lookuptype="comp.lookuptype"
+            :dateOptionsType="comp.dateOptionsType"
+            :isMul="false"
+          ></component>
+        </el-row>
+      </div>
+      <div
+        slot="footer"
+        class="dialog-footer"
+      >
+        <el-button
+          v-for="comp in tableButtons"
+          :key="comp.compKey"
+          :type="comp.type"
+          @click="comp.clickEvent"
+        >{{comp.text}}</el-button>
+      </div>
+    </el-dialog>
+  </section>
+</template>
+<script>
+import { formMixins } from "@/components/mixins/formMixins";
+import { crmApis } from "@/api/graphQLApiList/crm";
+import OneTableTemplate from "@/components/crm/Template/crmonePage";
+export default {
+  // 组件混入对象
+  mixins: [formMixins],
+  data() {
+    return {
+      // 保存API配置对象
+      apiConfig: crmApis.csDbNodeMutationSaveById,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.save(),
+          text: "保存"
+        }
+      ],
+      // 动态组件-查询条件
+      tableComponents: [
+        {
+          compKey: "compKey1",
+          labelName: "节点组",
+          codeField: "nodeGroupCode",
+          textField: "groupName",
+          isRequire: true,
+          component: () =>
+            import("@/components/crm/crmEjectWindows/crmNodeGroupPop/index"),
+          type: "propus",
+          isMust: true
+        },
+        {
+          compKey: "compKey2",
+          labelName: "节点编码",
+          codeField: "nodeCode",
+          isRequire: true,
+          component: () => import("@/components/crm/textbox/crmTextInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey3",
+          labelName: "节点名称",
+          codeField: "nodeName",
+          isRequire: true,
+          component: () => import("@/components/crm/textbox/crmTextInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey4",
+          labelName: "单据状态",
+          codeField: "statusCode",
+          isRequire: true,
+          lookuptype: "LX006",
+          component: () => import("@/components/crm/lookupValue/lookupvalue"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey5",
+          labelName: "是否允许被驳回",
+          codeField: "isCanRejected",
+          isRequire: true,
+          component: () => import("@/components/crm/Select/ONEID/sct_YesOrNo"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey6",
+          labelName: "响应节点编码",
+          codeField: "responNodeCode",
+          component: () => import("@/components/crm/textbox/crmTextInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey7",
+          labelName: "是否需要回访",
+          codeField: "isReview",
+          isRequire: true,
+          component: () => import("@/components/crm/Select/ONEID/sct_YesOrNo"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey8",
+          labelName: "是否结案",
+          codeField: "isEnd",
+          isRequire: true,
+          component: () => import("@/components/crm/Select/ONEID/sct_YesOrNo"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey9",
+          labelName: "是否需要下一步处理人",
+          codeField: "isNext",
+          isRequire: true,
+          component: () => import("@/components/crm/Select/ONEID/sct_YesOrNo"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey10",
+          labelName: "是否驳回节点",
+          codeField: "isReject",
+          isRequire: true,
+          component: () => import("@/components/crm/Select/ONEID/sct_YesOrNo"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey11",
+          labelName: "是否考核",
+          codeField: "isAsse",
+          isRequire: true,
+          component: () => import("@/components/crm/Select/ONEID/sct_YesOrNo"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey12",
+          labelName: "待办跳转页面",
+          codeField: "page",
+          component: () => import("@/components/crm/textbox/crmTextInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey13",
+          labelName: "顺序",
+          codeField: "orderNo",
+          isRequire: true,
+          component: () => import("@/components/crm/textbox/crmTextInputNumber"),
+          isMust: true
+        },
+        {
+          compKey: "compKey14",
+          labelName: "是否启用",
+          codeField: "isEnable",
+          isRequire: true,
+          component: () => import("@/components/crm/Select/crmIsEnable"),
+          type: "dropdownList",
+          isMust: true
+        }
+      ],
+      // 标题
+      textMap: {
+        edit: "修改节点信息",
+        add: "新增节点信息"
+      },
+      // 表单数据（无需赋值，由混入对象赋值）
+      formField: {
+        oemCode: "1",
+        groupCode: "1",
+        nodeId: "",
+        updateControlId: "",
+        serverType: "",
+        nodeGroupCode: "",
+        nodeCode: "",
+        nodeName: "",
+        statusCode: "",
+        isCanRejected: "",
+        responNodeCode: "",
+        isReview: "",
+        isEnd: "",
+        isNext: "",
+        isReject: "",
+        isAsse: "",
+        page: "",
+        orderNo: "",
+        isEnable: ""
+      }
+    };
+  },
+  methods: {
+    //保存
+    save() {
+      debugger;
+      let that = this;
+      let valueList = that.formField.nodeGroupCode.split(",");
+      if (valueList.length > 1) {
+        that.formField.nodeGroupCode = valueList[0];
+        that.formField.serverType = valueList[1];
+      }
+      //保存表单
+      this.saveForm();
+    }
+  }
+};
+</script>

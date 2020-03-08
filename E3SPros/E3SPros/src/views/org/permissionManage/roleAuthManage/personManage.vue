@@ -1,0 +1,235 @@
+<template>
+  <section class="memberManageDialog">
+    <el-dialog
+      :title="$t('sys.button.memberManagement')"
+      :visible.sync="memberEditVisibled"
+      width="800px"
+      center
+      @close="sendCode"
+      :close-on-click-modal="false"
+      :append-to-body="true"
+    >
+      <one-table-template
+        ref="multipleTable"
+        :dynamicButtons="tableButtons"
+        :dynamicComponents="tableComponents"
+        :dynamicApiConfig="apiConfig"
+        :dynamicTableCols="tableCols"
+        :dynamicFormFields="formField"
+        :dynamicIsInitTable="true"
+        :dynamicIsShowSelect="isMul"
+        :dynamicIsShowMoreBtn="false"
+      />
+    </el-dialog>
+    <memberManage :key="memberManage" :roleId="roleId" :memberManageComVisible="memberManageComVisible" @changeCode="getNewMember"></memberManage>
+  </section>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { valueObjectMixins } from '@/components/mixins/valueObjectMixins';
+import { orgApis } from "@/api/graphQLApiList/org";
+import { requestGraphQL } from "@/api/commonRequest";
+import memberManage from './memberManage'
+import OneTableTemplate from "@/components/templates/popupsOneTable";
+export default {
+  // 组件混入对象：{data[listQuery] methods[queryTable]}
+  mixins: [oneTableWithViewTemplateMixins, valueObjectMixins],
+  components: {
+    OneTableTemplate,memberManage
+  },
+  props: {
+    memberEditVisible: {
+      type: Boolean,
+      default: function() {
+        return false;
+      }
+    },
+    editDatad: {
+      type: null,
+      default: ""
+    }
+  },
+  data() {
+    return {
+      roleId:'',
+      memberManage:'',
+      memberManageComVisible:false,
+      // 网格查询API配置对象
+      apiConfig: orgApis.sysRoleUserQueryByPage,
+      memberEditVisibled: this.memberEditVisible,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text:this.$t('sys.button.query')
+        },//查询
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.addMember(),
+          text: this.$t('sys.button.addMember')
+        },//"添加成员"
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.delData(),
+          text: this.$t('sys.button.delMember')
+        }//"删除成员"
+      ],
+      // 动态组件-查询条件
+      tableComponents: [
+        // 显示组件
+        {
+          compKey: "compKey1",
+          span: 10,
+          labelName: this.$t('org.label.logInName'),
+          codeField: "userName",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },// 用户名称
+        {
+          compKey: "compKey2",
+          span: 10,
+          labelName: this.$t('org.label.staffName'),
+          codeField: "empName",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        }// 员工姓名
+      ],
+      // 动态生成网格列
+      tableCols: [
+        { prop: "userId", label: "用户Id", hidden:true, align: "center" },
+        { prop: "userName", label: this.$t('org.label.logInName'), width: 215, align: "center" },// 用户名称
+        { prop: "empName", label: this.$t('org.label.staffName'), width: 215, align: "center" },// 员工姓名
+        { prop: "orgName", label: this.$t('org.label.orgName'), width: 215, align: "center" }//所属组织
+      ],
+      //表单查询数据（查询条件）
+      formField: {
+        userName: "",
+        empName: "",
+        roleId: this.editDatad.roleId || ""
+      }
+    };
+  },
+  created() {
+    this.formField = {
+      userName: "",
+      empName: "",
+      roleId: this.editDatad.roleId || ""
+    };
+  },
+  methods: {
+    delData(){
+      const that = this.$refs.multipleTable;
+      let selectData = that.$refs.multipleTable.selection;
+      if (selectData.length < 1) {
+        that.$message({ message: this.$t('org.message.moreOneData'), type: "warning" });//请至少选择一条数据
+        return false;
+      }
+      this.$confirm(this.$t('org.message.confirmDeletion'), this.$t('org.label.warnning'), {
+          confirmButtonText: this.$t('sys.button.confirm'),
+          cancelButtonText: this.$t('sys.button.cancel'),
+          type: 'warning'
+        }).then(() => {
+          this.delMember()
+        }).catch(() => {
+        });
+    },
+    //删除角色
+    delMember() {
+      const that = this.$refs.multipleTable;
+      let selectData = that.$refs.multipleTable.selection;
+      let length = selectData.length - 1
+       for(let k = 0; k<selectData.length; k++ ){
+          let queryObj = {
+            type: "mutation",
+            apiConfig: orgApis.sysRoleUserMutationDel,
+            apiServices: [{}],
+            variables: {
+              dataInfo: {
+                roleId: this.formField.roleId,
+                userId: selectData[k].userId
+              }
+            }
+          };
+            //转换了中台请求格式数据
+          var paramD = that.$getParams(queryObj);
+          requestGraphQL(paramD).then(response => {
+            if (response.data[orgApis.sysRoleUserMutationDel.ServiceCode].result ==="1") {
+              //通关如果的状态确认是编辑还是添加
+              if(k === length){
+                this.$message({ message: this.$t('sys.tips.esTip14')/*删除成功*/, type: "success" });
+                this.queryTable(1);
+              }
+            }else{
+              this.$message({ message: response.data[orgApis.sysRoleUserMutationDel.ServiceCode].msg, type: "warning" });
+              this.queryTable(1);
+            }
+          });
+       }
+
+    },
+    addMember(){
+      //增加角色
+      this.roleId = this.editDatad.roleId
+      this.memberManage +=1
+      this.memberManageComVisible = true
+
+    },
+    getNewMember(val) {
+      this.memberManageComVisible = false
+      this.queryTable(1)
+    },
+    addMemberData(val){
+      let arr = val
+      let length = arr.length-1
+      for(let i in arr){
+        let obj = {}
+        obj.roleId = this.editDatad.roleId
+        obj.userId = arr[i].userId
+        let queryObj = {
+          //保存需要传 type="mutation"
+          type:'mutation',
+          // api配置
+          apiConfig: orgApis.sysRoleUserMutationSave,
+          // 需要调用的API服务配置
+          apiServices: [{
+            //表格中台返回网格的字段
+            apiQueryRow:[]
+          }],
+            //条件/实体参数（变量），根据typeParam中的定义配置
+            variables: {
+              //  pageSize: 1000,
+              //  pageIndex: 1,
+               //当前中台使用的名称有dataInfo、info，具体查看API文档
+               dataInfo: obj
+            }
+        }
+        //转换了中台请求格式数据
+        var paramD = this.$getParams(queryObj);
+        this.$requestGraphQL(paramD).then(response =>{
+            if(response.data[orgApis.sysRoleUserMutationSave.ServiceCode].result === '1'){
+                //通关如果的状态确认是编辑还是添加
+                if(i === length){
+                  this.$message({message:this.$t('sys.tips.esTip5')/*保存成功*/,type: 'success'});
+                  this.queryTable(1)
+                }
+            }else{
+              this.$message({ message: response.data[orgApis.sysRoleUserMutationSave.ServiceCode].msg, type: "warning" });
+            }
+        })
+      }
+    }
+  }
+};
+</script>
+<style scoped>
+
+</style>

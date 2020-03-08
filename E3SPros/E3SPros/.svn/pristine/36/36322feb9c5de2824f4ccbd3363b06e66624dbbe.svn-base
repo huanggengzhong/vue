@@ -1,0 +1,123 @@
+<!--
+* description: 短信发送查看回复-新增、修改弹窗
+* author: hejin
+* createdDate: 2019-08-04
+-->
+<template>
+  <section class="editCarBrand">
+    <el-dialog
+      :close-on-click-modal="false"
+      title="短信回复查看"
+      :append-to-body="true"
+      :visible.sync="curPopupsVisible"
+      @close="sendCode"
+      :key="popupsTableKey"
+      width="1000px"
+    >
+      <div class="filter-container filter-params">
+        <one-table-template
+          ref="multipleTable"
+          :dynamicButtons="tableButtons"
+          :dynamicComponents="tableComponents"
+          :dynamicApiConfig="apiConfig"
+          :dynamicTableCols="tableCols"
+          :dynamicFormFields="formField"
+          :dynamicIsShowSelect="false"
+          :dynamicIsInitTable="false"
+          :dynamicIsColumnDrop="false"
+        />
+      </div>
+    </el-dialog>
+  </section>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { crmApis } from "@/api/graphQLApiList/crm";
+import OneTableTemplate from "@/components/templates/popupsOneTable";
+
+export default {
+  name: "crmMessageSendQueryEdit",
+  // 组件混入对象
+  mixins: [oneTableWithViewTemplateMixins],
+   components: {
+    OneTableTemplate,
+  },
+  // 阻塞路由预加载网格中组件的数据
+  beforeRouteEnter(to, from, next) {
+    CacheConfig.initData(to.path, function() {
+      next();
+    });
+  },
+  data() {
+      var p = new Promise(function(resolve, reject) {
+      setTimeout(function() {
+        console.log("异步 start");
+        resolve("异步 end");
+      }, 1000);
+    });
+    console.log("同步 start");
+    return {
+      // 保存API配置对象
+      apiConfig: crmApis.pcDbCantactWayMutationSaveById,
+      // 动态组件-按钮
+      tableButtons: [],
+      // 动态组件-查询条件
+      tableComponents: [
+        {
+          compKey: "compKey1",
+          labelName: "电话",
+          codeField: "",
+          component: () => import("@/components/crm/textbox/crmTextInput"),
+          type: "inputText",
+          isMust: true,
+          disabled:true,
+        },
+        {
+          compKey: "compKey2",
+          labelName: "发送内容",
+          codeField: "",
+          component: () => import("@/components/crm/textbox/crmTextInput"),
+          type: "inputText",
+          isMust: true,
+          inputType:"textarea",
+          disabled:true,
+          span:12,
+
+        }
+      ],
+      // 静态组件-查询条件
+      staticTableComponents: [],
+      // 标题
+      textMap: {
+        edit: "查看短信回复"
+      },
+
+      tableCols: [
+        {
+          prop: "",
+          label: "回复内容",
+          width: null,
+          align: "center"
+        },
+        {
+          prop: "",
+          label: "回复时间",
+          width: null,
+          align: "center"
+        }
+      ],
+      // 表单数据（无需赋值，由混入对象赋值）
+      formField: {
+        cantactWayId: "",
+        cantactWayCode: "",
+        cantactWayName: "",
+        isEnable: "",
+        updateControlId: ""
+      }
+    };
+  },
+  methods: {
+    //保存
+  }
+};
+</script>

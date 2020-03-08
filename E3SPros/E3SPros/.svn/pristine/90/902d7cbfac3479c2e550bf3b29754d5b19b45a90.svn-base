@@ -1,0 +1,217 @@
+<!--
+* description: 客户信息
+* author: liyanm
+* createdDate: 2019-07-27
+ *   
+-->
+<template>
+  <div class="handedCars">
+    <span class="handedCar">客户信息</span>
+<div class="filter-container filter-params">
+    <el-row :gutter="26">
+      <component
+        v-for="comp in tableComponentsone.filter(o => o.isMust === true)"
+        :ref="comp.isRequire ? comp.isRequire+ comp.compKey : comp.compKey"
+        :validrule="comp.validrule"
+        :key="comp.compKey"
+        :codeField="comp.codeField"
+        :textField="comp.textField"
+        :popupsKey="comp.compKey"
+        :is="comp.component"
+        :code="formField[comp.codeField]"
+        @changeCode="getComponentCode"
+        @focusCode="getFocusCode"
+        :disabled="comp.disabled"
+        :isRequire="comp.isRequire"
+        :isMul="comp.isMul"
+        :span="comp.span || 6"
+        :labelName="comp.labelName"
+        :lookuptype="comp.lookuptype"
+        :dateOptionsType="comp.dateOptionsType"
+      ></component>
+    </el-row>
+  </div>
+  </div>
+</template>
+
+<script>
+import { formMixins } from "@/components/mixins/formMixins";
+import { veApis } from "@/api/graphQLApiList/ve";
+import OneTableTemplate from "@/components/templates/popupsOneTable";
+import { CacheConfig } from "@/cache/configCache/index";
+  export default {
+     name: "orgBrandManage",
+  // 组件混入对象
+  mixins: [formMixins],
+    data() {
+    return {
+      tableComponentsone: [
+        {
+          compKey: "compKey207",
+           labelName: this.$t("ve.label.COHR"),
+          //公司简称
+          span:5,
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputText",
+          disabled:true,
+          isMust: true
+        },   
+           {
+          compKey: "compKey29",
+           labelName: this.$t("ve.label.Conme"),
+          //公司全称
+          span:14,
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputText",
+          disabled:true,
+          isMust: true
+        },
+         {
+          compKey: "compKey236",
+           labelName: this.$t("ve.label.companyTel"),
+          //公司电话
+          span:5,
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputText",
+          disabled:true,
+          isMust: true
+        },
+       
+          {
+          compKey: "compKey136",
+           labelName: this.$t("ve.label.province"),
+          //省份
+               span:6,
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputText",
+             disabled:false,
+          isMust: true
+        },
+            {
+          compKey: "compKey136",
+           labelName: this.$t("ve.label.city"),
+          //城市
+               span:6,
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputText",
+             disabled:false,
+          isMust: true
+        },
+           {
+          compKey: "compKey146",
+           labelName: this.$t("ve.label.area"),
+          //县区
+               span:6,
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputText",
+            disabled:false,
+          isMust: true
+        },
+         {
+          compKey: "compKey156",
+           labelName: this.$t("ve.label.LNSIZE"),
+          //公司规模
+               span:6,
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputText",
+           disabled:false,
+          isMust: true
+        },
+          {
+          compKey: "compKey256",
+           labelName: this.$t("ve.label.detailedAddress"),
+          //详细地址
+          span:12,
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputFile",
+          disabled:true,
+          isMust: true
+        },
+       {
+          compKey: "compKey246",
+           labelName: this.$t("ve.label.FaxNumber"),
+          //传真号码
+          span:6,
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputFile",
+          disabled:true,
+          isMust: true
+        },
+
+        
+           {
+          compKey: "compKey466",
+           labelName: this.$t("ve.label.CompanyNature"),
+          //公司性质
+          span:5,
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputFile",
+             disabled:false,
+          isMust: true
+        },
+         {
+          compKey: "compKey366",
+           labelName: this.$t("ve.label.principal"),
+          //负责人
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputFile",
+          disabled:true,
+          isMust: true
+        },
+        {
+          compKey: "compKey216",
+           labelName: this.$t("ve.label.institutionCode"),
+          //机构代码
+          codeField: "carSeriesCn",
+          parentFileds:'carBrandCode',
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "inputFile",
+          disabled:true,
+          isMust: true
+        },
+
+              
+      ],
+      
+    }
+    }
+  }
+</script>
+
+<style lang="scss" scoped>
+.tab-content div[data-v-db326a18]{
+   text-align: left;
+}
+.handedCars{
+  margin-top: 20px;
+   text-align: left;
+}
+.filter-params{
+  border: 1px solid rgb(228, 208, 208);
+}
+.handedCar{
+  text-align: left;
+}
+</style>

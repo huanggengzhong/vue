@@ -1,0 +1,80 @@
+<template>
+  <div style="height:100%">
+    <!-- <el-radio-group v-model="isCollapse" style="margin-bottom: 20px;">
+        <el-radio-button :label="false">展开</el-radio-button>
+        <el-radio-button :label="true">收起</el-radio-button>
+    </el-radio-group>-->
+    <el-menu
+      default-active="2"
+      class="el-menu-vertical-demo"
+      background-color="#255359"
+      text-color="#fff"
+      @select="handleOpen()"
+      active-text-color="#ffd04b"
+      :collapse="isCollapse"
+    >
+      <el-submenu index="1">
+        <template slot="title">
+          <i class="iconfont iconicon-gps"></i>
+          <span>投诉</span>
+        </template>
+        <el-menu-item-group>
+          <template slot="title">分组一</template>
+          <el-menu-item index="1-1">选项1</el-menu-item>
+          <el-menu-item index="1-2">选项2</el-menu-item>
+        </el-menu-item-group>
+        <el-menu-item-group title="分组2">
+          <el-menu-item index="1-3">选项3</el-menu-item>
+        </el-menu-item-group>
+        <el-submenu index="1-4">
+          <template slot="title">选项4</template>
+          <el-menu-item index="1-4-1">选项1</el-menu-item>
+        </el-submenu>
+      </el-submenu>
+      <el-menu-item index="2">
+        <i class="el-icon-menu"></i>
+        <span slot="title">线索</span>
+      </el-menu-item>
+      <el-menu-item
+        index="3"
+        disabled
+      >
+        <i class="el-icon-document"></i>
+        <span slot="title">导航三</span>
+      </el-menu-item>
+      <el-menu-item index="4">
+        <i class="el-icon-setting"></i>
+        <span slot="title">导航四</span>
+      </el-menu-item>
+    </el-menu>
+  </div>
+</template>
+<script>
+export default {
+  name: "sidebar",
+  data() {
+    return {
+      isCollapse: true
+    };
+  },
+  methods: {
+    handleOpen() {
+      let that = this;
+      if (that.isCollapse) {
+        this.isCollapse = false;
+        console.log(that.isCollapse);
+      } else {
+        this.isCollapse = true;
+      }
+    },
+    handleClose(key, keyPath) {
+      console.log(key, keyPath);
+    }
+  }
+};
+</script>
+<style scoped>
+.el-menu-vertical-demo {
+  height: 100%;
+}
+</style>

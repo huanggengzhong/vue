@@ -1,0 +1,214 @@
+<template>
+  <div class="app-container app-container-table">
+    <!-- <div class="filter-container filter-button" ref="searcheHeight">
+      <el-button type="primary" size="small" @click.native="fetchData()">查询</el-button>
+      <el-button size="small" @click.native="newData()">新增</el-button>
+      <el-button size="small" @click.native="modifyData()">修改</el-button>
+      <el-button size="small" @click.native="resetData()">重置</el-button>
+    </div> -->
+    <div class="filter-container filter-params">
+      <mix-form
+        ref="supplierManagerForm"
+        :dynamicFormFields="supplierManagerForm"
+        :dynamicFieldsData="supplierManagerData"
+      ></mix-form>
+      
+      <mix-button
+        name="searchBtns"
+        :dynamicButtons="btns"
+        :isShowMore="false"
+      ></mix-button>
+    </div>
+    <mix-table
+      ref="supplierListTable"
+      :queryParams="supplierQueryParams"
+      :dynamicTableCols="supplierCols"
+      :isPaging="true"
+    />
+    <supplierDialog
+      ref="supplierDialog"
+      :supplierDialogVisible="supplierDialogVisible"
+      @close1="supplierDialogClose"
+    />
+  </div>
+</template>
+
+<script>
+import { the_Height } from "@/components/se/seMixins/makeHeightForTemplate";
+import { supplierDoQueryList } from "@/api/pa/orderAuditItem/orderAuditItem";
+import { paApis } from "@/api/graphQLApiList/pa";
+import mixTable from "@/components/basicComponent/mixTable";
+import mixForm from "@/components/basicComponent/mixForm";
+import mixButton from "@/components/basicComponent/mixButton";
+import supplierDialog from "./supplierManagementDialog";
+
+export default {
+  mixins: [the_Height],
+  components: {
+    mixTable,
+    mixForm,
+    mixButton,
+    supplierDialog
+  },
+
+  data() {
+    return {
+      bounce: true,
+      supplierDialogVisible: false,
+      //按钮
+      btns: {
+        left: [
+          { name: 'add', label: '新增', event: "newData", argument: { type: 'ADD'} },
+        ],
+        right: [
+          { name: 'search', label: '查询', event: "fetchData"},
+          { name: 'reset', label: '重置', event: "resetData" },
+        ]
+      },
+      //表单
+      supplierManagerForm: [
+        { label: "供应商编码", codeField: "supplierCode", type: "inputTxt" },
+        {
+          label: "供应商名称",
+          codeField: "supplierShortName",
+          type: "inputTxt"
+        },
+        {
+          label: "供应商类型",
+          codeField: "supplierType",
+          type: "dropdownList",
+          options: [
+            { value: 1, label: "经销商" },
+            { value: 2, label: "非经销商" }
+          ]
+        }
+      ],
+      supplierManagerData: {
+        supplierCode: "",
+        supplierShortName: "",
+        supplierType: ""
+      },
+      //表格
+      supplierCols: [
+        { label: "供应商编码", codeField: "supplierCode", width: 120 },
+        { label: "供应商名称", codeField: "supplierShortName", width: 300 },
+        { label: "供应商类型", codeField: "supplierType", width: 120 },
+        { label: "供应商地址", codeField: "supplierAddr", width: 250 },
+        { label: "邮政编码", codeField: "zip" },
+        { label: "业务联系人", codeField: "linkMan", width: 120 },
+        { label: "业务联系人电话", codeField: "linkManTel", width: 120 },
+        { label: "财务联系人", codeField: "modifyName", width: 120 },
+        { label: "财务联系人电话", codeField: "supplierTel", width: 120 },
+        { label: "传真", codeField: "supplierFax", width: 120 },
+        { label: "Email", codeField: "email", width: 120 },
+        { label: "税率", codeField: "taxNo" },
+        { label: "备注", codeField: "remark", width: 300 },
+        {
+          label: "可用状态",
+          codeField: "isEnable",
+          comps: { type: "checkBox" }
+        },
+        {
+          label: "系统数据",
+          codeField: "isSystem",
+          comps: { type: "checkBox" }
+        },
+        { label: "厂商数据", codeField: "groupId", comps: { type: "checkBox" } }
+      ],
+      supplierQueryParams: {
+        APIUrl: paApis.paDbDlrSupplierQueryFindAllWindow.APIUrl,
+        InputType: paApis.paDbDlrSupplierQueryFindAllWindow.InputType,
+        ServiceCode: paApis.paDbDlrSupplierQueryFindAllWindow.ServiceCode,
+        dataInfo: {
+          supplierCode: "",
+          supplierShortName: "",
+          supplierType: ""
+        },
+        apiQueryRow: [
+          "supplierId",
+          "supplierCode",
+          "supplierShortName",
+          "supplierFullName",
+          "supplierType",
+          "supplierAddr",
+          "taxNo",
+          "linkMan",
+          "linkManTel",
+          "modifyName",
+          "supplierTel",
+          "supplierFax",
+          "email",
+          "zip",
+          "remark",
+          "isEnable",
+          "isSystem",
+          "groupId",
+          "updateControlId"
+        ]
+      }
+    };
+  },
+
+  created() {},
+  methods: {
+    //查询
+    fetchData() {
+      this.$refs.supplierListTable.queryList();
+    },
+    //新增
+    newData(formName) {
+      this.supplierDialogVisible = true;
+      this.$refs.supplierListTable.currentRow = [];
+      this.$refs.supplierDialog.setEditData(
+        this.$refs.supplierListTable.currentRow
+      );
+    },
+    //修改
+    modifyData() {
+      if (this.$refs.supplierListTable.currentRow.length == 0) {
+        // 获取某行数据
+        this.$alert("请选择一行进行修改！", "信息提示", {
+          confirmButtonText: "确定",
+          type: "warning",
+          callback: action => {}
+        });
+      } else {
+        this.supplierDialogVisible = true;
+        this.$refs.supplierDialog.setEditData(
+          this.$refs.supplierListTable.currentRow
+        );
+      }
+    },
+    //重置
+    resetData() {
+      this.supplierManagerData.supplierCode = "";
+      this.supplierManagerData.supplierShortName = "";
+      this.supplierManagerData.supplierType = "";
+    },
+    //获取弹窗的值
+    supplierDialogClose(val) {
+      this.supplierDialogVisible = val;
+    },
+    //表格自适应
+    makeHeight(mh) {
+      var str = this.$refs.supplierListTable.$refs.paginationHeight.$el
+        .offsetHeight;
+      var str1 = this.$refs.supplierListTable.$refs.resultTitleHeight
+        .offsetHeight;
+      console.log(">>>>>" + str + ">>>" + str1 + ">>>mh>>" + mh);
+      // 减去margin-top/bottom值
+      if (!this.$utils.isIE() || isResize) {
+        this.tableHeight = mh - this.tableMarginHeight - str - str1 - 7;
+        this.$refs.supplierListTable.tableHeight = this.tableHeight;
+        console.log(">>>>>" + this.tableHeight);
+      } else {
+        // IE浏览器需要减去额外高度
+        this.tableHeight =
+          mh - this.tableMarginHeight - this.ieHeight - str - str1 - 7;
+        this.$refs.supplierListTable.tableHeight = this.tableHeight;
+        console.log(">>>>>" + this.tableHeight);
+      }
+    }
+  }
+};
+</script>

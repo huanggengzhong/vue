@@ -1,0 +1,433 @@
+<template>
+  <section class="opentable">
+    <el-dialog :title="title"
+	:append-to-body="true"
+      :close-on-click-modal="false"
+      :lock-scroll="true"
+	  :visible.sync="stockSpecialCarVisibled" center width="1000px" @close="close">
+        <div class="filter-container filter-title"  style="height: 30px;" ref="conTitleHeight">{{$t('ve.label.VehicleInformation1')/*车辆信息*/}}</div>
+
+
+          <div class="filter-container filter-params">
+            <el-form :model="ruleForm" :rules="rules" ref="ruleForm" class="demo-ruleForm">
+              <el-row :gutter="24" class="padding10">
+                <el-col :span="8">
+                  <el-form-item :label="$t('org.label.carConfig')/*车型配置*/" prop="">
+                    <el-input v-model="ruleForm.carConfigCn" :placeholder="$t('sys.tips.esTip0')/*请选择*/" size="small"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item :label="$t('org.label.carColor')/*车身颜色*/" prop="">
+                    <el-input v-model="ruleForm.carColorCode" :placeholder="$t('sys.tips.esTip0')/*请选择*/" size="small"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item :label="$t('org.label.carIncolor')/*内饰色*/" prop="">
+                    <el-input v-model="ruleForm.carIncolorCode" :placeholder="$t('sys.tips.esTip0')/*请选择*/" size="small"></el-input>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="24" class="padding10">
+                <el-col :span="8">
+                  <el-form-item :label="$t('org.label.InventoryLocation')/*库存地点*/" prop="">
+                    <el-input v-model="ruleForm.InventoryLocation" :placeholder="$t('sys.tips.esTip0')/*请选择*/" size="small"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item :label="$t('ve.label.vin')/*VIN码*/" prop="">
+                    <el-input v-model="ruleForm.vin" :placeholder="$t('sys.tips.esTip0')/*请选择*/" size="small"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item :label="$t('org.label.sellingPrice')/*销售价*/" prop="">
+                    <el-input v-model="ruleForm.costPrice" :placeholder="$t('sys.tips.esTip0')/*请选择*/" size="small"></el-input>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row :gutter="24" >
+                <el-col :span="8" class="padding10">
+                  <el-form-item :label="$t('org.label.costPrice')/*成本价*/" prop="">
+                    <el-input v-model="ruleForm.costPrice" :placeholder="$t('sys.tips.esTip0')/*请选择*/" size="small"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8" class="padding10">
+                  <el-form-item :label="$t('org.label.InventoryDays')/*库存天数*/" prop="">
+                    <el-input v-model="ruleForm.Inventory" :placeholder="$t('sys.tips.esTip0')/*请选择*/" size="small"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8" class="padding10">
+                  <el-form-item :label="$t('org.label.SpecialAmount')/*特价金额*/" prop="">
+                    <el-input v-model="ruleForm.insurance" :placeholder="$t('sys.tips.esTip0')/*请选择*/" size="small"></el-input>
+                  </el-form-item>
+                </el-col>
+              <el-col :span="8" :offset="2">
+                  <el-form-item label="" prop="">
+                    <el-checkbox v-model="checked">{{$t('ve.label.IsSpecialCar')/*是否特价车*/}}</el-checkbox>
+                  </el-form-item>
+                </el-col>
+              <el-col :span="9" :offset="4">
+                <el-form-item class="dialog-footer">
+                    <el-button type="primary" @click="savaGrid">{{$t('sys.button.save')/*保存*/}}</el-button>
+                    <el-button @click="close">{{$t('sys.button.cancel')/*取 消*/}}</el-button>
+                </el-form-item>
+                </el-col>
+              </el-row>
+
+            </el-form>
+          </div>
+
+          <div class="filter-container filter-title" style="height: 30px;">{{$t('ve.label.StockCar')/*库存车*/}}</div>
+				<el-table :row-class-name="tableRowClassName" v-loading="listLoading" class="multipleTable" :data="list" element-loading-text="Loading" border fit stripe :height="tableHeight" :header-cell-style="tableHeaderRowClassName" :cell-class-name="addTdClass" ref="multipleTable" @row-click="rowClick" @select="select">
+					<el-table-column type="selection" width="55" :label="$t('sys.content.gridChoose')+'+'/*选择*/" filed="chose" current-row-key="choose" />
+					<el-table-column align="center" :label="$t('sys.content.gridIndex')/*序号*/" width="60" type='index' prop="id">
+					</el-table-column>
+					<el-table-column :label="$t('ve.label.vin')/*VIN码*/" align="center" current-row-key="carBrandCn">
+					<template slot-scope="scope">
+						{{ scope.row.vin }}
+					</template>
+					</el-table-column>
+					<el-table-column :label="$t('org.label.isEnable')/*状态*/" align="center" current-row-key="carSeriesCn">
+					<template slot-scope="scope">
+						{{ scope.row.state }}
+					</template>
+					</el-table-column>
+					<el-table-column :label="$t('org.label.sellingPrice')/*销售价*/" align="center" current-row-key="carSeriesCode">
+					<template slot-scope="scope">
+						{{ scope.row.costPrice }}
+					</template>
+					</el-table-column>
+                    <el-table-column :label="$t('org.label.minimumSalePrice')/*最低销售价*/" align="center" current-row-key="carSeriesCode">
+					<template slot-scope="scope">
+						{{ scope.row.costPrice }}
+					</template>
+					</el-table-column>
+                    <el-table-column :label="$t('org.label.costPrice')/*成本价*/" align="center" current-row-key="carSeriesCode">
+					<template slot-scope="scope">
+						{{ scope.row.costPrice }}
+					</template>
+					</el-table-column>
+                    <el-table-column :label="$t('org.label.SpecialPrice')/*特价*/" align="center" current-row-key="carSeriesCode">
+					<template slot-scope="scope">
+						{{ scope.row.specialAmount }}
+					</template>
+					</el-table-column>
+                    <el-table-column :label="$t('org.label.SpecialAmount')/*特价金额*/" align="center" current-row-key="carSeriesCode">
+					<template slot-scope="scope">
+						{{ scope.row.specialAmount }}
+					</template>
+					</el-table-column>
+                    <el-table-column :label="$t('org.label.InventoryLocation')/*库存地点*/" align="center" current-row-key="carSeriesCode">
+					<template slot-scope="scope">
+						{{ scope.row.InventoryLocation }}
+					</template>
+					</el-table-column>
+				</el-table>
+				<el-pagination background @size-change="handleSizeChange" @current-change="handleCurrentChange" :page-sizes="[10, 20, 30]" :page-size="10" prev-text="上一页" next-text="下一页" layout="prev, pager, next, sizes, ->, total" ref="paginationHeight" :total="pageTotal" :current-page.sync="listQuery.pageIndex" style="margin-bottom:10px">
+				</el-pagination>
+    </el-dialog>
+  </section>
+</template>
+<script>
+import { orgApis } from '@/api/graphQLApiList/org';
+import { veApis } from '@/api/graphQLApiList/ve';
+import { requestGraphQL } from '@/api/commonRequest';
+export default {
+    name: 'stockSpecialCar',
+	props: {
+		stockSpecialCarVisible: {
+			type: Boolean,
+			default: function() {
+				return false;
+			},
+		},
+		initData:{
+			type: Object,
+			default: function(){
+				return {}
+			}
+		}
+    },
+    // 阻塞路由预加载网格中组件的数据
+    beforeRouteEnter(to, from, next) {
+    CacheConfig.initData(to.path, function(){next()})
+    },
+	data() {
+		return {
+			title:this.$t('org.label.SpecialCarSettings'),/*特价车设置*/
+			stockSpecialCarVisibled: this.stockSpecialCarVisible,
+			//表单查询数据
+			formField: {
+				carSeriesCode: '',
+				carSeriesCn: '',
+				carBrandCn: '',
+			},
+			ruleForm: this.initData,
+			rules: {
+				selePrice: [
+					{ required: true, message: '', trigger: 'blur' },
+					{ min: 1, message: '', trigger: 'blur' },
+				],
+				// carSeries: [{ required: true, message: '请选择活动区域', trigger: 'change' }],
+				// carTypeConfig: [{ required: true, message: '请选择活动区域', trigger: 'change' }],
+				// carColor: [
+				// 	{ required: true, message: '请选择品牌', trigger: 'blur' },
+				// 	{ min: 1, message: '品牌选择不能为空', trigger: 'blur' },
+				// ],
+				// status: [{ required: true, message: '请选择设置状态', trigger: 'change' }],
+				// isEnable: [{ required: true, message: '请选择启用状态', trigger: 'change' }],
+				// date: [{ type: 'string', required: false, message: '请选择日期', trigger: 'change' }],
+			},
+			//表的值
+			list: null,
+			listLoading: true,
+			//设置网格总共的条数，查询完更改
+			pageTotal: 0,
+			checked: true,
+			listQuery: {
+				pageIndex: 1,
+				pageSize: 10,
+				limit: 20,
+			},
+			tableHeaderRowClassName({ row, rowIndex }) {
+				if (rowIndex === 0) {
+					return 'background-color:rgb(239, 239, 239);height:32px;';
+				}
+			},
+            tableHeight: 260,
+            tableComponents:[
+        // 显示组件
+        {
+          compKey: "compKey1",
+          labelName: this.$t('org.label.carBrand')/*品牌*/,
+          codeField: "carBrandCode",
+          span:8,
+          component: () => import("@/components/org/carBrand/carBrand"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey2",
+          labelName: this.$t('org.label.planMonth')/*计划年月*/,
+          codeField: "planMonth",
+          span:8,
+          dateType: "month",
+          component: () => import("@/components/org/datePicker/datePicker"),
+          type: "datePicker",
+          dateOptionsType: "1",
+          isMust: true
+        },
+        {
+          compKey: "compKey3",
+          labelName: this.$t('org.label.carType')/*车型*/,
+          span:8,
+          codeField: "carConfigId",
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "propus",
+          isMust: true
+        },
+        {
+          compKey: "compKey4",
+          labelName: this.$t('org.label.carColor')/*车身颜色*/,
+          span:8,
+          codeField: "carColorId",
+          component: () => import("@/components/org/carColor"),
+          type: "propus",
+          isMust: true
+        },
+        {
+          compKey: "compKey5",
+          labelName: this.$t('org.label.carIncolor')/*内饰色*/,
+          span:8,
+          codeField: "carIncolorId",
+          component: () => import("@/components/org/TrimPopupColor"),
+          type: "propus",
+          isMust: false
+        },
+        {
+          label: this.$t('org.label.isEnable')/*状态*/,
+          span:8,
+          compKey: "compKey6",
+          codeField: "isEnable",
+          component: () => import("@/components/org/isEnable/isEnable"),
+          type: "dropdownList",
+          isMust: false
+        }
+      ],
+		};
+	},
+	created() {
+		this.queryTable();
+	},
+	watch: {
+		formField(val) {
+			this.carSeriesCode = this.carSeriesCode + 1;
+			this.carSeriesCn = this.carSeriesCn + 1;
+			this.carBrandCn = this.carBrandCn + 1;
+		},
+	},
+	methods: {
+		// 查询网格
+		queryTable(page) {
+			const that = this;
+			that.currentRow = null;
+			that.listLoading = true;
+			let queryObj = {
+				// api配置
+				apiConfig: veApis.carSellSetMock1,
+				// 需要调用的API服务配置
+				apiServices: [
+					{
+						//表格中台返回网格的字段
+						apiQueryRow: ['carBrandCn', 'carBrandCode', 'carSeriesCn'],
+					},
+				],
+				//条件/实体参数（变量），根据typeParam中的定义配置
+				variables: {
+					pageSize: that.listQuery.pageSize,
+					pageIndex: page || that.listQuery.pageIndex,
+					//当前中台使用的名称有dataInfo、info，具体查看API文档
+					dataInfo: that.formField,
+				},
+			};
+			//转换了中台请求格式数据
+			var paramD = that.$getParams(queryObj);
+			// 调用中台API方法（可复用）
+			requestGraphQL(paramD).then(response => {
+				if (
+					response.data[queryObj.apiConfig.ServiceCode].result === '1' &&
+					response.data[queryObj.apiConfig.ServiceCode].rows
+				) {
+					if (page) {
+						//查询完返回指定的page页数
+						that.listQuery.pageIndex = page;
+					}
+					that.pageTotal = response.data[queryObj.apiConfig.ServiceCode].records;
+					that.list = response.data[queryObj.apiConfig.ServiceCode].rows;
+					that.listLoading = false;
+				}
+			});
+		},
+		//保存表格
+		savaGrid() {
+			const that = this;
+			let selectData = that.$refs.multipleTable.selection;
+			if (selectData.length == 0) {
+				this.$message({ message:this.$t('org.message.moreOneData')/*请至少选择一条数据*/ , type: 'warning' });
+				return false;
+			}
+			let queryObj = {
+				// 保存mutation
+				type: 'mutation',
+				// api配置
+				apiConfig: orgApis.mdmCarBrandBizSave,
+				//条件/实体参数（变量），根据typeParam中的定义配置
+				variables: {
+					//当前中台使用的名称有dataInfo、info，具体查看API文档
+					dataInfo: that.brandObj,
+				},
+			};
+			//转换了中台请求格式数据
+			var paramD = that.$getParams(queryObj);
+			requestGraphQL(paramD).then(response => {
+				if (response.data[queryObj.apiConfig.ServiceCode].result === '1') {
+					that.queryTable(1);
+					that.listLoading = false;
+					that.dialogFormVisible = false;
+
+					that.$message({
+						message: this.$t('sys.tips.esTip5')/*保存成功*/,
+						type: 'success',
+						duration: 2000,
+					});
+					this.close()
+				}
+			});
+			this.changecode();
+		},
+		//动态添加样式
+		addTdClass({ row, column, rowIndex, columnIndex }) {
+			//判断行和列的位置并且动态添加className
+			if (rowIndex % 2 != 0 && (columnIndex == 5 || columnIndex == 7 || columnIndex == 8)) {
+				return 'inputBackground';
+			}
+		},
+		//改变页现实的条数并重新查询
+		handleSizeChange(val) {
+			this.listQuery.pageSize = val;
+			this.textQuery();
+		},
+		//单击复选框事件
+		select(selection, row) {
+			//  console.log(selection);
+			//  console.log(row)
+        },
+        rowClick(row){
+            this.ruleForm = row
+        },
+		changecode() {
+			this.$emit('visible', false);
+		},
+		close(){
+			this.stockSpecialCarVisibled = false
+			this.$emit('close', false);
+		},
+		//把每一行的索引放进row
+		tableRowClassName({ row, rowIndex }) {
+			row.index = rowIndex;
+		},
+		//翻页
+		handleCurrentChange(val) {
+			this.listQuery.pageIndex = val;
+			this.textQuery();
+		},
+		goback() {
+			this.changecode();
+		},
+		sendCodeHandleVisible() {
+			this.$emit('visible', false);
+		},
+	},
+};
+</script>
+
+<style lang="scss" scoped>
+/deep/ .filter-params label {
+	margin-right: 0px;
+}
+/deep/ .el-input__inner {
+	height: 28px;
+	line-height: 28px;
+}
+/deep/ .el-input__icon {
+	line-height: 0;
+}
+/deep/ .el-input__prefix {
+	top: 0px;
+}
+/deep/ .filter-params .el-col {
+	margin-bottom: 0px;
+}
+/deep/ .el-dialog__wrapper .el-dialog {
+	height: 466px;
+}
+/deep/ .filter-title {
+	height: 0;
+	border-bottom: none;
+}
+/deep/ .filter-params .el-col .el-input {
+	width: 59%;
+}
+/deep/ .filter-params .el-col label {
+	width: 40%;
+}
+/deep/.filter-container.filter-params {
+    padding: 0;
+}
+/deep/.el-tabs--border-card>.el-tabs__content {
+    padding: 15px 15px 0;
+}
+.padding10{
+	padding-bottom: 10px ;
+}
+</style>
+

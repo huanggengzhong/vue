@@ -1,0 +1,1969 @@
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button">
+      <el-button type="primary" size="small" @click="carOwnerCustModel()">选择客户</el-button>
+      <template>
+        <el-button size="small" @click="openseBuRepairModeModal()">导入模板</el-button>
+      </template>
+      <el-button size="small" @click="isSave()">保存预约单</el-button>
+      <el-button size="small" @click="insertData()">退出</el-button>
+    </div>
+    <div class="filter-container filter-params">
+      <el-form
+        :model="dataInfo.main"
+        :rules="rules"
+        ref="dataInfo"
+        inline-message="true"
+        class="demo-ruleForm"
+      >
+        <el-row :gutter="26">
+          <el-col :span="6">
+            <el-form-item prop="vin">
+              <lableName curLabelName="VIN码" :isShowLabel="true" :isRequire="true"></lableName>
+              <el-input v-model="dataInfo.main.vin" placeholder size="small" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item prop="custName">
+              <lableName curLabelName="客户名称" :isShowLabel="true" :isRequire="true"></lableName>
+              <!-- <label>客户名称</label> -->
+              <el-input
+                v-model="dataInfo.main.custName"
+                placeholder
+                size="small"
+                onkeyup="value=value.replace(/[^\u4E00-\u9FA5]/g,'')"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item prop="custTel">
+              <lableName curLabelName="客户电话" :isShowLabel="true" :isRequire="true"></lableName>
+              <!-- <label>客户电话</label> -->
+              <el-input
+                v-model="dataInfo.main.custTel"
+                placeholder
+                size="small"
+                onkeyup="value=value.replace(/[^\d]/g,'')"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item prop="reserveOrderCode">
+              <lableName curLabelName="预约单号" :isShowLabel="true"></lableName>
+              <!-- <label>预约单号</label> -->
+              <el-input
+                v-model="dataInfo.main.reserveOrderCode"
+                placeholder
+                size="small"
+                disabled="true"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="26">
+          <el-col :span="6">
+            <el-form-item prop="carLicense">
+              <lableName curLabelName="车牌号" :isShowLabel="true" :isRequire="true"></lableName>
+              <!-- <label>车牌号</label> -->
+              <el-input v-model="dataInfo.main.carLicense" placeholder size="small" />
+            </el-form-item>
+          </el-col>
+
+          <!-- <LookupValue
+          :span="6"
+          :isMul="isMul"
+          :isShowLabel="isshow"
+          :code="dataInfo.carSeriesCn"
+          :lookuptype="cheliangpinpai1"
+          :labelName="cheliangpinpai"
+          @changeCode="getcheliangpinpai"
+          />-->
+          <brand
+            :span="6"
+            :isMul="false"
+            :key="brandKey"
+            :labelName="cheliangpinpai"
+            :code="dataInfo.main.carBrandCode"
+            @changeCode="getcheliangpinpai"
+            :isRequire="true"
+            :disabled="isDisabled"
+          ></brand>
+          <!-- <LookupValue
+          :span="6"
+          :isMul="isMul"
+          :isShowLabel="isshow"
+          :code="dataInfo.main.carSeriesCode"
+          :lookuptype="chexi1"
+          :labelName="chexi"
+          @changeCode="getchexi"
+          />-->
+          <carSeriesSelect
+            ref="carSeriesSelect"
+            :code="dataInfo.main.carSeriesCode"
+            @changeCode="getchexi"
+            :span="6"
+            :isMul="false"
+            :disabled="isDisabled"
+          />
+          <!-- <LookupValue
+          :span="6"
+          :isMul="isMul"
+          :isShowLabel="isshow"
+          :code="dataInfo.carTypeCn"
+          :lookuptype="chexing1"
+          :labelName="chexing"
+          @changeCode="getchexing"
+          />-->
+          <partsCarTypeSelect
+            ref="partsCarTypeSelect"
+            :code="dataInfo.main.carTypeCode"
+            @changeCode="getchexing"
+            :span="6"
+            :isMul="false"
+            :disabled="isDisabled"
+          />
+        </el-row>
+        <el-row :gutter="26">
+          <el-col :span="6">
+            <el-form-item prop="reserveMan">
+              <lableName curLabelName="预约人" :isShowLabel="true" :isRequire="isshowss"></lableName>
+              <el-input v-model="dataInfo.main.reserveMan" placeholder size="small" />
+              <!-- onkeyup="value=value.replace(/[^\u4E00-\u9FA5]/g,'')" -->
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item prop="reserveTel">
+              <lableName curLabelName="预约人电话" :isShowLabel="true" :isRequire="isshowss"></lableName>
+              <el-input
+                v-model="dataInfo.main.reserveTel"
+                placeholder
+                size="small"
+                onkeyup="value=value.replace(/[^\d]/g,'')"
+              />
+            </el-form-item>
+          </el-col>
+
+          <seCommonQueryServiceSaDDL
+            :span="6"
+            :labelName="labelName"
+            @changeCode="getCommonQueryServiceSa"
+            :code="dataInfo.main.saEmpId"
+          />
+          <LookupValue
+            :span="6"
+            :isMul="isMul"
+            :isShowLabel="isshow"
+            :code="dataInfo.main.reserveSourceId"
+            :lookuptype="yuyuelaiyuan1"
+            :labelName="yuyuelaiyuan"
+            @changeCode="getyuyuelaiyuan"
+            :disabled="true"
+          />
+        </el-row>
+
+        <el-row :gutter="26">
+          <el-col :span="6">
+            <lableName curLabelName="预约进店日期" :isShowLabel="true" :isRequire="isshowss"></lableName>
+            <el-date-picker
+              v-model="dataInfo.main.preComeDate"
+              type="datetime"
+              format="yyyy-MM-dd HH:mm:ss"
+              value-format="yyyy-MM-dd HH:mm:ss"
+              placeholder="选择日期时间"
+              @change="getRongliang"
+            ></el-date-picker>
+          </el-col>
+          <LookupValue
+            :span="6"
+            :isMul="isMul"
+            :isShowLabel="isshow"
+            :code="dataInfo.main.reserveType"
+            :lookuptype="yuyueleixing1"
+            :labelName="yuyueleixing"
+            @changeCode="getyuyueleixing"
+            :isRequire="isshowss"
+          />
+          <LookupValue
+            :span="6"
+            :isMul="isMul"
+            :isShowLabel="isshow"
+            :code="dataInfo.main.reserveState"
+            :lookuptype="yuyuezhuangtai1"
+            :labelName="yuyuezhuangtai"
+            @changeCode="getyuyuezhuangtai"
+            :isRequire="isshowss"
+          />
+        </el-row>
+
+        <el-row :gutter="26">
+          <el-col :span="24">
+            <el-form-item label="预约内容" prop="csDesc">
+              <!-- <lableName curLabelName="预约内容" :isShowLabel="true" :isRequire="isshowss"></lableName> -->
+              <!-- <lable style="float:left;">预约内容</lable> -->
+              <el-input
+                type="textarea"
+                :autosize="{ minRows: 2, maxRows: 4}"
+                placeholder="请输入内容"
+                v-model="dataInfo.main.csDesc"
+                style="height: 50px;"
+              ></el-input>
+              <!-- style="width:80%;" -->
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="26">
+          <el-col :span="15" style="float:left">
+            <label v-show="yuyue">备注</label>
+            <el-input v-model="beizhu" placeholder size="small" v-show="yuyue" />
+          </el-col>
+
+          <el-col :span="6">
+            <el-checkbox
+              label="快速预约"
+              v-model="kuaisuyuyue"
+              @change="getkuaisuyuyue"
+              :disabled="fastAppoint"
+            ></el-checkbox>
+          </el-col>
+        </el-row>
+      </el-form>
+      <div style="height:300px;overflow:auto">
+        <el-row :gutter="26">
+          <el-col :span="3">
+            <div
+              style="background-color:gainsboro;height:30px;width:100px;float:center;text-align:center;font-size: 20px;"
+            >维修工时</div>
+          </el-col>
+
+          <el-col :span="18">
+            <el-input
+              v-model="dataInfo.gongshi"
+              size="small"
+              style="float:left"
+              placeholder="请输入工时编码或工时名称"
+            ></el-input>
+            <el-button type="primary" size="small" style="float:left">高级搜索</el-button>
+          </el-col>
+        </el-row>
+
+        <el-table
+          v-loading="listLoading"
+          :data="wiLocal"
+          element-loading-text="Loading"
+          border
+          fit
+          stripe
+          :header-cell-style="tableHeaderRowClassName"
+          highlight-current-row
+          height="150px"
+          @contextmenu.prevent.native="openMenu($event,'wiLocal')"
+          @row-contextmenu="openseChooseWiSelect"
+          ref="WiTable"
+        >
+          <el-table-column align="center" label="序号" width="60">
+            <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+          </el-table-column>
+          <el-table-column label="工时编号">
+            <template slot-scope="scope">{{ scope.row.wiCode }}</template>
+          </el-table-column>
+          <el-table-column label="维修内容">
+            <template slot-scope="scope">{{ scope.row.wiName }}</template>
+          </el-table-column>
+          <el-table-column label="销售工时">
+            <template slot-scope="scope">{{ scope.row.saleWiQty }}</template>
+          </el-table-column>
+          <el-table-column label="工时单价">
+            <template slot-scope="scope">{{ scope.row.wiPrice }}</template>
+          </el-table-column>
+          <el-table-column label="预估费用">
+            <template slot-scope="scope">{{ scope.row.wiDueAmount }}</template>
+          </el-table-column>
+          <el-table-column label="业务类别+" width="300px">
+            <LookupValue
+              slot-scope="scope"
+              :span="24"
+              :isMul="isMul"
+              :isShowLabel="isshow"
+              :code="scope.row.businessType"
+              :lookuptype="yewuleibie1"
+              :comType="scope.$index+','+'wi'"
+              @changeCode="getyewuleibie"
+            />
+          </el-table-column>
+        </el-table>
+
+        <el-row :gutter="26">
+          <el-col :span="3">
+            <div
+              style="background-color:gainsboro;height:30px;width:100px;float:center;text-align:center;font-size: 20px;"
+            >维修备件</div>
+          </el-col>
+          <el-col :span="18">
+            <el-input
+              v-model="listQuery.dataInfo.carBrandCode"
+              placeholder="请输入备件编码或备件名称"
+              size="small"
+              style="float:left"
+            ></el-input>
+            <el-button type="primary" size="small" style="float:left">高级搜索</el-button>
+          </el-col>
+        </el-row>
+
+        <el-table
+          v-loading="listLoading"
+          :data="partLocal"
+          element-loading-text="Loading"
+          border
+          fit
+          stripe
+          :header-cell-style="tableHeaderRowClassName"
+          highlight-current-row
+          height="150px"
+          @contextmenu.prevent.native="openMenu($event,'beijian')"
+          @row-contextmenu="choosebeijian"
+          ref="PartTable"
+        >
+          <el-table-column align="center" label="序号" width="60">
+            <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+          </el-table-column>
+          <el-table-column label="备件编码">
+            <template slot-scope="scope">{{ scope.row.partNo }}</template>
+          </el-table-column>
+          <el-table-column label="备件名称">
+            <template slot-scope="scope">{{ scope.row.partName }}</template>
+          </el-table-column>
+
+          <el-table-column label="数量+">
+            <el-input
+              v-model=" scope.row.partQty"
+              size="small"
+              slot-scope="scope"
+              @change="getPartDueAmount"
+              onkeyup="value=value.replace(/^(0+)|[^\d]+/g,'')"
+            ></el-input>
+            <!-- <template slot-scope="scope">{{ scope.row.partQty }}</template> -->
+          </el-table-column>
+          <el-table-column label="备件单价">
+            <template slot-scope="scope">{{ scope.row.partPrice }}</template>
+          </el-table-column>
+          <el-table-column label="预估费用">
+            <template slot-scope="scope">{{ scope.row.partDueAmount }}</template>
+          </el-table-column>
+          <el-table-column label="业务类别+" width="300px">
+            <LookupValue
+              slot-scope="scope"
+              :span="24"
+              :isMul="isMul"
+              :isShowLabel="isshow"
+              :code="scope.row.businessType"
+              :lookuptype="yewuleibie1"
+              :comType="scope.$index+','+'part'"
+              @changeCode="getyewuleibie"
+            />
+          </el-table-column>
+        </el-table>
+
+        <el-row :gutter="26">
+          <el-col :span="3">
+            <div
+              style="background-color:gainsboro;height:30px;width:100px;float:center;text-align:center;font-size: 20px;"
+            >其它费用</div>
+          </el-col>
+          <el-col :span="18">
+            <el-input v-model="dataInfo.gongshi" size="small" style="float:left"></el-input>
+            <!-- </el-col>
+            <el-col :span="3">-->
+            <el-button type="primary" size="small" style="float:left">高级搜索</el-button>
+          </el-col>
+        </el-row>
+        <el-table
+          v-loading="listLoading"
+          :data="otherLocal"
+          element-loading-text="Loading"
+          border
+          fit
+          stripe
+          :header-cell-style="tableHeaderRowClassName"
+          highlight-current-row
+          height="150px"
+          @contextmenu.prevent.native="openMenu($event,'qita')"
+          @row-contextmenu="openchooseOtherFeeType"
+          ref="OtherTable"
+        >
+          <el-table-column align="center" label="序号" width="60">
+            <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+          </el-table-column>
+          <el-table-column label="其它费用编码">
+            <template slot-scope="scope">{{ scope.row.costTypeCode }}</template>
+          </el-table-column>
+          <el-table-column label="其他费用名称">
+            <template slot-scope="scope">{{ scope.row.costTypeName }}</template>
+          </el-table-column>
+
+          <el-table-column label="金额+">
+            <el-input
+              v-model=" scope.row.otherAmount"
+              size="small"
+              slot-scope="scope"
+              @change="getotherAmount"
+              onkeyup="value=value.replace(/^(0+)|[^\d]+/g,'')"
+            ></el-input>
+            <!-- <template slot-scope="scope">{{ scope.row.otherAmount }}</template> -->
+          </el-table-column>
+          <el-table-column label="预估费用">
+            <template slot-scope="scope">{{ scope.row.otherDueAmount }}</template>
+          </el-table-column>
+          <el-table-column label="业务类别+" width="300px">
+            <LookupValue
+              slot-scope="scope"
+              :span="24"
+              :isMul="isMul"
+              :isShowLabel="isshow"
+              :code="scope.row.businessType"
+              :lookuptype="yewuleibie1"
+              :comType="scope.$index+','+'other'"
+              @changeCode="getyewuleibie"
+            />
+          </el-table-column>
+        </el-table>
+        <!-- </el-form> -->
+        <div
+          style="background-color:gainsboro;height:50px;width:100%;float:center;text-align:center;"
+        >
+          <el-row gutter="26">
+            <el-col :span="3">
+              <div
+                style="background-color:gainsboro;height:30px;width:100px;float:center;text-align:center;font-size: 20px;"
+              >费用统计</div>
+            </el-col>
+            <el-col :span="5">
+              <label class="demonstration">工时费:</label>
+              <el-input v-model="dataInfo.main.wiDueAmount" size="small" readonly="true" />
+            </el-col>
+            <el-col :span="5">
+              <label class="demonstration">备件费:</label>
+              <el-input v-model="dataInfo.main.partDueAmount" size="small" readonly="true" />
+            </el-col>
+            <el-col :span="5">
+              <label class="demonstration">其它费:</label>
+              <el-input v-model="dataInfo.main.otherDueAmount" size="small" readonly="true" />
+            </el-col>
+            <el-col :span="5">
+              <label class="demonstration">合计金额:</label>
+              <el-input v-model="dataInfo.main.reserveDueAmount" size="small" readonly="true" />
+            </el-col>
+          </el-row>
+        </div>
+        <!-- <el-scrollbar>
+         <ul v-show="menu['wiLocal'].visible" :style="{left:menu['wiLocal'].left+'px',top:menu['wiLocal'].top+'px'}" class="contextmenu">
+         
+          <li @click="openseChooseWiSelect()">新增工时</li>
+
+        </ul>
+        </el-scrollbar>-->
+        <!-- <el-menu  :style="{left:menu['wiLocal'].left+'px',top:menu['wiLocal'].top+'px'}" class="contextmenu">
+            <el-menu-item @click="openseChooseWiSelect()">新增工时</el-menu-item>
+        </el-menu>-->
+      </div>
+    </div>
+    <chooseOtherFeeType ref="chooseOtherFeeType" @changeCode="getchooseOtherFeeType" />
+    <paChoosePart
+      :paChoosePartVisible="paChoosePartVisible"
+      :title="title"
+      @seChooseWiData="getCarTypeCode1"
+      @close="closeChooseWiSelect"
+    ></paChoosePart>
+
+    <seBuRepairModeModal
+      ref="seBuRepairModeModal"
+      :title="title"
+      :seBuRepairModeModalVisible="seBuRepairModeModalVisible"
+      @sentCode="getseBuRepairModeModal"
+      @close="closeseBuRepairModeModal"
+    ></seBuRepairModeModal>
+
+    <seCarOwnerCustModal
+      ref="seCarOwnerCustModal"
+      :isMul="isMul"
+      :seCarOwnerCustModalVisible="seCarOwnerCustModalVisible"
+      @sentCarOwnerCustModal="getCarOwnerCustData"
+      @close="closeCarOwnerCust"
+    ></seCarOwnerCustModal>
+
+    <seChooseWiSelect
+      ref="seChooseWiSelect"
+      :seChooseWiSelectVisible="seChooseWiSelectVisible"
+      :title="title"
+      @seChooseWiData="getCarTypeCode"
+      @close="closeChooseWiSelect1"
+    ></seChooseWiSelect>
+    <el-dialog :visible.sync="shifouyuyue" width="30%" :close-on-click-modal="false">
+      <div style="height:120px">
+        <div class="filter-container filter-params">
+          <span class="demonstration">该时间段已经超预约容量，是否继续预约？:</span>
+          <el-input v-model="jilushu" placeholder size="small" v-show="false" />
+        </div>
+      </div>
+      <div class="filter-container filter-button">
+        <el-button type="primary" size="small" @click="continueYuyyue()" style="float:left">继续预约</el-button>
+        <el-button type="primary" size="small" @click="breakYuyue()" style="float:center">重新选择</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import chooseOtherFeeType from "@/components/se/chooseOtherFeeType/chooseOtherFeeType";
+import paChoosePart from "@/components/se/paChoosePart";
+import lableName from "@/components/lableName";
+import seCommonQueryServiceSaDDL from "@/components/se/seCommonQueryServiceSaDDL";
+import seBuRepairModeModal from "@/components/se/seBuRepairModeModal";
+import seCarOwnerCustModal from "@/components/se/seCarOwnerCustModal";
+// import savemodel from "@/views/se/repair/appointment/seBuReserveOrderMutationSave/savemodel";
+// import sechoosecustom from '@/views/se/repair/appointment/seBuReserveOrderMutationSave/sechoosecustom'
+import LookupValue from "@/components/org/LookupValue";
+import { seApis } from "@/api/graphQLApiList/se";
+import { requestGraphQL } from "@/api/commonRequest";
+import {
+  seBuReserveOrderQueryInfo,
+  seBuReserveOrderMutationSave,
+  seReserveCanQueryFactQty,
+  seBuReserveOrderQueryStatus
+} from "@/api/se/repair/appointment/seReserveOrderQueryFindAll";
+import seChooseWiSelect from "@/components/se/seChooseWiSelect";
+import brand from "@/components/org/carBrand/carBrand";
+import carSeriesSelect from "@/components/se/chooseCarSeriesSelect";
+import partsCarTypeSelect from "@/components/se/partsCarTypeSelect";
+export default {
+  props: {
+    span: {
+      type: Number,
+      default: function() {
+        return 6;
+      }
+    }
+  },
+  name: "seBuReserveOrderMutationSave",
+  components: {
+    lableName,
+    LookupValue,
+    seCarOwnerCustModal,
+    seChooseWiSelect,
+    seBuRepairModeModal,
+    seCommonQueryServiceSaDDL,
+    paChoosePart,
+    chooseOtherFeeType,
+    brand,
+    carSeriesSelect,
+    partsCarTypeSelect
+  },
+  // filters: {
+  //   statusFilter(status) {
+  //     const statusMap = {
+  //       published: "success",
+  //       draft: "gray",
+  //       deleted: "danger"
+  //     };
+  //     return statusMap[status];
+  //   }
+  // },
+  data() {
+    return {
+      pickerOptions: {
+        disabledDate: time => {
+          return time.getTime() <= new Date();
+        }
+      },
+      title: 1,
+      beizhu: "",
+      yuyue: false,
+      jilushu: 0,
+      tujianriqi: "",
+      year: "",
+      month: "",
+      day: "",
+      hh: "",
+      hhs: "",
+      shifouyuyue: false,
+      getrealrongliang: 0,
+      rongliang: "",
+      seBuRepairModeModalVisible: false,
+      paChoosePartVisible: false,
+      seChooseWiSelectVisible: false,
+      // savemodelVisible: false,
+      seCarOwnerCustModalVisible: false,
+      diapaly1: false,
+      diapalys: false,
+      isshow: true,
+      isshowss: true,
+      yewuleibie1: "SE0005",
+      labelName: "服务代表",
+      yuyuelaiyuan: "预约来源",
+      yuyuelaiyuan1: "SE0171",
+      yuyueleixing: "预约性质",
+      yuyueleixing1: "SE0046",
+      cheliangpinpai: "车辆品牌",
+      cheliangpinpai1: "SE0001",
+      chexi: "车系",
+      chexi1: "SE0002",
+      chexing: "车型",
+      chexing1: "se0003",
+      yuyuezhuangtai: "预约状态",
+      yuyuezhuangtai1: "SE0024",
+      fastAppoint: false,
+      isDisabled: true,
+      wiLocal: [
+        {
+          wiCode: "",
+          wiName: "",
+          saleWiQty: "",
+          wiPrice: 0.0,
+          wiDueAmount: 0,
+          businessType: "",
+          reserveWiId: ""
+        }
+      ],
+      partLocal: [
+        {
+          partNo: "",
+          partName: "",
+          partQty: 0,
+          partPrice: 0,
+          partDueAmount: 0,
+          businessType: "",
+          reservePartId: ""
+        }
+      ],
+      otherLocal: [
+        {
+          costTypeCode: "",
+          costTypeName: "",
+          otherAmount: "",
+          otherDueAmount: "",
+          businessType: "",
+          costTypeId: ""
+        }
+      ],
+      // aaaaaa: "",
+      formField: {
+        carSeriesCode: ""
+      },
+      reserveOrderIdInfo: {
+        reserveOrderId: ""
+      },
+      dataInfo: {
+        main: {
+          saName: "",
+          preGetDate: "2019-10-01 16:00:00",
+          reserveOrderId: "",
+          reserveOrderCode: "",
+          dlrCustNo: "",
+          custTel: "",
+          carLicense: "",
+          dlrCode: "",
+          carTypeCode: "",
+          reserveSourceId: "0",
+          factComeDate: "",
+          reserveType: "",
+          isFirst: "",
+          reserveTel: "",
+          saEmpId: "",
+          preComeDate: "",
+          carBrandCode: "",
+          vin: "",
+          csDesc: "",
+          custName: "",
+          isRemind: "",
+          reserveMan: "",
+          carSeriesCode: "",
+          // carSeriesCn: "", //
+          isWait: "",
+          reserveSource: "",
+          carId: "",
+          isClean: "",
+          dlrId: this.$store.getters.orgInfo.DLR_ID,
+          cancelType: "",
+          cancelReason: "",
+          saEmpId: "",
+          isRescue: "0", //默认为0，界面暂时没有维护
+          linkDate: "",
+          contactType: "",
+          otherItem: "",
+          dayConfirm: "",
+          hourConfirm: "",
+          reserveRepairType: "",
+          isEnable: "",
+          reserveMileage: 0,
+          reserveDueAmount: 0,
+          wiDueAmount: 0,
+          partDueAmount: 0,
+          otherDueAmount: 0,
+          reserveSourceCode: "",
+          updateControlId: "",
+          isDoor: "",
+          custAddress: "",
+          doorBeginDate: "",
+          doorEndDate: "",
+          reserveState: "1" //预约状态
+        },
+        wi: [
+          //预约工时信息
+          {
+            reserveWiId: "",
+            reserveOrderId: "",
+            wiCode: "",
+            wiName: "",
+            saleWorkQty: 0.0,
+            wiPrice: 0.0,
+            wiDiscountRate: 0,
+            businessType: "",
+            recallCaseType: "",
+            recallCaseCode: "",
+            wiReserveState: "",
+            repairTypeCode: "",
+            planBeginDate: "",
+            wiDueAmount: 0,
+            actionCode: "",
+            adaptCarTypeCode: "",
+            isWarranty: "",
+            servicePackageCode: "",
+            isEnable: "",
+            updateControlId: ""
+          }
+        ],
+
+        part: [
+          //预约备件信息
+          {
+            reservePartId: "",
+            reserveOrderId: "",
+            partNo: "",
+            partName: "",
+            partQty: 0,
+            partPrice: 0,
+            partDiscountRate: 0.0,
+            partDueAmount: 0,
+            businessType: "",
+            recallCaseType: "",
+            recallCaseCode: "",
+            actionCode: "",
+            servicePackageCode: "",
+            isEffective: "",
+            isWarranty: "",
+            isEnable: "",
+            updateControlId: "",
+            accountCostId: ""
+          }
+        ],
+
+        other: [
+          //其它费用信息
+          {
+            reserveOtherId: "",
+            reserveOrderId: "",
+            costTypeId: "",
+            costTypeCode: "",
+            costTypeName: "",
+            otherAmount: "",
+            businessType: "",
+            recallCaseType: "",
+            recallCaseCode: "",
+            servicePackageCode: "",
+            actionCode: "",
+            remark: "",
+            isEnable: "",
+            updateControlId: ""
+          }
+        ]
+        //工时搜索
+        // gongshi: "",
+        //维修工时
+        // wiLocal:"",
+        //维修备件
+        // partLocal:"",
+        //其它费用
+        // otherLocal: "",
+        /* businessType: "",
+        reserveOrderCode: "",
+        reserveOrderId: "",
+        reserveOrderCode: "",
+        dlrCustNo: "",
+        custTel: "",
+        carLicense: "",
+        dlrCode: "",
+        carTypeCode: "",
+        carTypeCn: "",
+        reserveSourceId: "",
+        reserveStateName: "",
+        preGetDate: "",
+        factComeDate: "",
+        reserveType: "",
+        reserveTypeName: "",
+        isFirst: "",
+        reserveTel: "",
+        saEmpId: "",
+        preComeDate: "",
+        carBrandCode: "",
+        carBrandCn: "",
+        vin: "",
+        csDesc: "",
+        custName: "",
+        isRemind: "",
+        reserveMan: "",
+        carSeriesCode: "",
+        carSeriesCn: "",
+        isWait: "",
+        reserveSource: "",
+        reserveSourceName: "",
+        carId: "",
+        isClean: "",
+        dlrId: "",
+        cancelType: "",
+        cancelTypeName: "",
+        cancelReason: "",
+        saEmpId: "",
+        reserveSourceId: "",
+        isRescue: "",
+        linkDate: "",
+        contactType: "",
+        otherItem: "",
+        dayConfirm: "",
+        hourConfirm: "",
+        reserveRepairType: "",
+        creator: "",
+        createdDate: "",
+        modifier: "",
+        lastUpdatedDate: "",
+        isEnable: "",
+        reserveMileage: "",
+        reserveSourceCode: "",
+        updateControlId: "",
+        payKind: "",
+        payKindName: "",
+        isDoor: "",
+        custAddress: "",
+        doorBeginDate: "",
+        doorEndDate: "" */
+      },
+      dialogVisible: false,
+      isMul: false,
+      code: "1",
+      list: null,
+      listLoading: false,
+
+      jiuyuan: "",
+      kuaisuyuyue: "",
+      //预约单明细
+      kanban: "",
+      brandKey: "",
+      listQuery: {
+        dataInfo: {
+          dlrId: "",
+          preComeDateBegin: "",
+          preComeDateEnd: "",
+          saempid: "",
+          partNo: ""
+        },
+        pageIndex: 1,
+        pageSize: 10,
+        limit: 20,
+        operatePartId: "",
+        operatePartCode: "",
+        wiSmallKindId: "",
+        repairSmallKindCode: "",
+        isSystem: "",
+        flag: 0,
+        pageTotal: 0,
+        isEnable: ""
+      },
+      rules: {
+        vin: [{ required: true, message: "请输入订单号", trigger: "change" }],
+        custName: [
+          { required: true, message: "请输入客户名称", trigger: "change" }
+        ],
+        custTel: [
+          { required: true, message: "请输入客户电话", trigger: "change" }
+        ],
+        carLicense: [
+          { required: true, message: "请输入车牌号", trigger: "change" }
+        ],
+        reserveMan: [
+          { required: true, message: "请输入预约人", trigger: "change" }
+        ],
+        reserveTel: [
+          { required: true, message: "请输入预约人电话", trigger: "change" }
+        ],
+        csDesc: [
+          { required: true, message: "请输入预约内容", trigger: "change" }
+        ]
+      },
+      tableHeaderRowClassName({ row, rowIndex }) {
+        if (rowIndex === 0) {
+          return "background-color:rgb(239, 239, 239);height:32px;";
+        }
+      }
+    };
+  },
+  created() {
+    // this.dataInfo.main.vin = this.$route.params.the_data.vin;
+    // this.dataInfo.carTypeCn = this.$route.params.the_data.carTypeCn;
+    // this.dataInfo.carSeriesCn = this.$route.params.the_data.carSeriesCn;
+    // this.dataInfo.carSeriesCn = this.$route.params.the_data.cellrow.carBrandCode;
+    // this.dataInfo.carLicense = this.$route.params.the_data.cellrow.carLicense;
+    // this.dataInfo.reserveOrderCode = this.$route.params.the_data.cellrow.reserveOrderCode;
+    // this.dataInfo.main.reserveMan = this.$route.params.the_data.cellrow.reserveMan;
+    // this.dataInfo.reserveTel = this.$route.params.the_data.cellrow.reserveTel;
+    // this.dataInfo.saEmpId = this.$route.params.the_data.cellrow.saEmpId;
+    // this.dataInfo.main.reserveSource = this.$route.params.the_data.cellrow.reserveSource;
+    // this.dataInfo.main.preComeDate = this.$route.params.the_data.cellrow.preComeDate;
+    // this.dataInfo.reserveType = this.$route.params.the_data.cellrow.reserveType;
+    // this.dataInfo.reserveSourceId = this.$route.params.the_data.cellrow.reserveSourceId;
+  },
+  mounted() {
+    this.$nextTick(() => {
+      // 页面渲染完成后的回调
+      if (
+        this.$route.params.the_data != "" &&
+        this.$route.params.the_data != undefined &&
+        this.$route.params.the_data
+      ) {
+        this.dataInfo.main.dlrId = this.$store.getters.orgInfo.DLR_ID;
+        this.reserveOrderIdInfo.reserveOrderId = this.$route.params.the_data.cellrow.reserveOrderId;
+        this.getfindshuju();
+      }
+    });
+  },
+  methods: {
+    //其它费用
+    openchooseOtherFeeType() {
+      //打开
+      let obj = {}; //传入的查询条件
+      this.$refs.chooseOtherFeeType.open(obj);
+    },
+    //选择维修工时
+    getCarTypeCode(val) {
+      this.seChooseWiSelectVisible = false;
+      console.log(val);
+      var j = val.length;
+
+      var f = this.wiLocal.length;
+
+      for (var i = 0; i < this.wiLocal.length; i++) {
+        if (this.wiLocal[i].wiCode == "" && this.wiLocal.length == 1) {
+          //是否虚数据
+          j = i;
+          f = f - 1;
+        }
+      }
+
+      if (val != "") {
+        var k = 0;
+        if (j == 0) {
+          k = val.length - 1;
+        } else {
+          k = val.length;
+        }
+        for (var i = 0; i < k; i++) {
+          this.wiLocal.push({
+            wiCode: "", //工时编码
+            wiName: "", //维修内容
+            saleWiQty: "", //销售工时
+            wiPrice: 0.0, //工时单价
+            wiDueAmount: 0, //预估费用
+            businessType: "", //业务类别
+            reserveWiId: "" //预约单ID
+          });
+          this.dataInfo.wi.push({
+            reserveWiId: "",
+            reserveOrderId: "",
+            wiCode: "",
+            wiName: "",
+            saleWorkQty: 0.0,
+            wiPrice: 0.0,
+            wiDiscountRate: 0,
+            businessType: "",
+            recallCaseType: "",
+            recallCaseCode: "",
+            wiReserveState: "",
+            repairTypeCode: "",
+            planBeginDate: "",
+            wiDueAmount: 0,
+            actionCode: "",
+            adaptCarTypeCode: "",
+            isWarranty: "",
+            servicePackageCode: "",
+            isEnable: "",
+            updateControlId: ""
+          });
+        }
+
+        for (var i = f; i < val.length + f; i++) {
+          this.wiLocal[i].wiCode = val[i - f].wiCode;
+          this.wiLocal[i].wiName = val[i - f].wiName;
+          this.wiLocal[i].saleWiQty = parseFloat(val[i - f].saleWiQty);
+          this.wiLocal[i].wiPrice = parseFloat(val[i - f].wiRepairQty);
+          this.wiLocal[i].wiDueAmount =
+            parseFloat(val[i - f].saleWiQty) *
+            parseFloat(val[i - f].wiRepairQty);
+          this.wiLocal[i].reserveWiId = val[i - f].wiId;
+          // this.wiLocal[i].businessType = val[i - f].dlrCode;//下拉框获取
+          // this.dataInfo.main.wiDueAmount =
+          //   parseFloat(this.wiLocal[i].wiDueAmount) +
+          //   parseFloat(this.dataInfo.main.wiDueAmount);
+        }
+      }
+
+      /*
+      //导入模板
+       for (var h = 0; h < val.length; h++) {
+        var j = 4;
+        var f = this.partLocal.length;
+        for (var i = 0; i < this.partLocal.length; i++) {
+          if (
+            this.partLocal[i].partNo == "" &&
+            this.partLocal.length == 1
+          ) {
+            j = i;
+            f = f - 1;
+          }
+        }
+        if (val[h].SeDbWiPart != "") {
+          var k = 0;
+          if (j == 0) {
+            k = val[h].SeDbWiPart.length - 1;
+          } else {
+            k = val[h].SeDbWiPart.length;
+          }
+          for (var i = 0; i < k; i++) {
+            this.partLocal.push({
+              partNo: "",
+              partName: "",
+              partQty: "",
+              partPrice: "",
+              partDueAmount: "",
+              businessType: "",
+              reservePartId: ""
+            });
+          }
+
+          for (var i = f; i < val[h].SeDbWiPart.length + f; i++) {
+            this.partLocal[i].partNo =
+              val[h].SeDbWiPart[i - f].partNo;
+            this.partLocal[i].partName =
+              val[h].SeDbWiPart[i - f].partName;
+            this.partLocal[i].partQty =
+              val[h].SeDbWiPart[i - f].partQty;
+            this.partLocal[i].partPrice = 5;
+            // val[h].SeDbWiPart[i-f].salePrice
+            this.partLocal[i].partDueAmount =
+              parseFloat(this.partLocal[i].partPrice) *
+              parseFloat(val[h].SeDbWiPart[i - f].partQty);
+            this.partLocal[i].businessType = "";
+            // val[h].SeDbWiPart[i-f].pubSeriesName
+            this.partLocal[i].reservePartId = "";
+            this.dataInfo.main.partDueAmount =
+              parseFloat(this.partLocal[i].partDueAmount) +
+              parseFloat(this.dataInfo.main.partDueAmount);
+          }
+        }
+      }
+      for (var h = 0; h < val.length; h++) {
+        var j = 7;
+        var f = this.otherLocal.length;
+
+        for (var i = 0; i < this.otherLocal.length; i++) {
+          if (
+            this.otherLocal[i].costTypeCode == "" &&
+            this.otherLocal.length == 1
+          ) {
+            j = i;
+            f = f - 1;
+          }
+        }
+        if (val[h].SeDbWiRelation != "") {
+          var k = 0;
+          if (j == 0) {
+            k = val[h].SeDbWiRelation.length - 1;
+          } else {
+            k = val[h].SeDbWiRelation.length;
+          }
+          for (var i = 0; i < k; i++) {
+            this.otherLocal.push({
+              costTypeCode: "",
+              costTypeName: "",
+              otherAmount: "",
+              otherDueAmount: "",
+              businessType: "",
+              costTypeId: ""
+            });
+          }
+
+          for (var i = f; i < val[h].SeDbWiRelation.length + f; i++) {
+            this.otherLocal[i].costTypeCode =
+              val[h].SeDbWiRelation[i - f].parentWiCode;
+            this.otherLocal[i].costTypeName =
+              val[h].SeDbWiRelation[i - f].parentWiId;
+            this.otherLocal[i].otherAmount =
+              val[h].SeDbWiRelation[i - f].repairSmallKindCode;
+            this.otherLocal[i].otherDueAmount = parseFloat(
+              val[h].SeDbWiRelation[i - f].repairSmallKindCode
+            );
+            this.otherLocal[i].businessType =
+              val[h].SeDbWiRelation[i - f].dlrCode;
+            this.otherLocal[i].costTypeId = "";
+            this.dataInfo.main.otherDueAmount =
+              parseFloat(this.otherLocal[i].otherDueAmount) +
+              parseFloat(this.dataInfo.main.otherDueAmount);
+          }
+        }
+      } */
+      console.log(this.otherLocal);
+      this.getMoney();
+    },
+    //选择维修备件
+    getCarTypeCode1(val) {
+      console.log(val);
+      var j = val.length;
+
+      var f = this.partLocal.length;
+
+      for (var i = 0; i < this.partLocal.length; i++) {
+        if (this.partLocal[i].partNo == "" && this.partLocal.length == 1) {
+          j = i;
+          f = f - 1;
+        }
+      }
+
+      this.paChoosePartVisible = false;
+      // this.partLocal = val;
+      if (val != "") {
+        var k = 0;
+        if (j == 0) {
+          k = val.length - 1;
+        } else {
+          k = val.length;
+        }
+        for (var i = 0; i < k; i++) {
+          this.partLocal.push({
+            partNo: "", //备件编码
+            partName: "", //备件名称
+            partQty: 0, //备件数量
+            partPrice: 0, //备件单价
+            partDueAmount: 0, //预估费用
+            businessType: "", //业务类别
+            reservePartId: "" //备件名称
+          });
+          this.dataInfo.part.push({
+            reservePartId: "",
+            reserveOrderId: "",
+            partNo: "",
+            partName: "",
+            partQty: 0,
+            partPrice: 0,
+            partDiscountRate: 0.0,
+            partDueAmount: 0,
+            businessType: "",
+            recallCaseType: "",
+            recallCaseCode: "",
+            actionCode: "",
+            servicePackageCode: "",
+            isEffective: "",
+            isWarranty: "",
+            isEnable: "",
+            updateControlId: "",
+            accountCostId: ""
+          });
+        }
+
+        for (var i = f; i < val.length + f; i++) {
+          this.partLocal[i].partNo = val[i - f].partNo;
+          this.partLocal[i].partName = val[i - f].partName;
+          // this.partLocal[i].partQty = val[i - f].canUseQty;
+          this.partLocal[i].partQty = 0; //弹窗取不到，自定义？
+          this.partLocal[i].partPrice = parseFloat(val[i - f].dlrPrice);
+          //类型装换
+          if (
+            this.partLocal[i].partPrice == 0 ||
+            this.partLocal[i].partPrice == undefined ||
+            this.partLocal[i].partPrice == null ||
+            isNaN(this.partLocal[i].partPrice)
+          ) {
+            this.partLocal[i].partPrice = 0;
+          }
+          this.partLocal[i].partDueAmount =
+            parseFloat(this.partLocal[i].partPrice) *
+            parseFloat(this.partLocal[i].partQty);
+          this.partLocal[i].reservePartId = partId;
+          // this.partLocal[i].businessType = val[i - f].pubSeriesName;//下拉框获取
+          // this.dataInfo.main.partDueAmount =
+          //   parseFloat(this.partLocal[i].partDueAmount) +
+          //   parseFloat(this.dataInfo.main.partDueAmount);
+        }
+      }
+      this.getMoney();
+    },
+    //选择其它费用
+    getchooseOtherFeeType(code) {
+      //获取到选中行
+      console.log(code);
+
+      var j = code.length;
+
+      var f = this.otherLocal.length;
+
+      for (var i = 0; i < this.otherLocal.length; i++) {
+        if (
+          this.otherLocal[i].costTypeCode == "" &&
+          this.otherLocal.length == 1
+        ) {
+          j = i;
+          f = f - 1;
+        }
+      }
+
+      if (code != "") {
+        var k = 0;
+        if (j == 0) {
+          k = code.length - 1;
+        } else {
+          k = code.length;
+        }
+        for (var i = 0; i < k; i++) {
+          this.otherLocal.push({
+            costTypeCode: "", //其他费用编码
+            costTypeName: "", //其他费用名称
+            otherAmount: "", //其他费用金额
+            otherDueAmount: "", //其他费用预估费用
+            businessType: "", //其他费用业务类别
+            costTypeId: "" //其它费用ID
+          });
+          this.dataInfo.other.push({
+            reserveOtherId: "",
+            reserveOrderId: "",
+            costTypeId: "",
+            costTypeCode: "",
+            costTypeName: "",
+            otherAmount: "",
+            businessType: "",
+            recallCaseType: "",
+            recallCaseCode: "",
+            servicePackageCode: "",
+            actionCode: "",
+            remark: "",
+            isEnable: "",
+            updateControlId: ""
+          });
+        }
+        for (var i = f; i < code.length + f; i++) {
+          this.otherLocal[i].costTypeCode = code[i - f].costTypeCode;
+          this.otherLocal[i].costTypeName = code[i - f].costTypeName;
+          this.otherLocal[i].otherAmount = code[i - f].maxFee; //金额取maxFee
+          this.otherLocal[i].otherDueAmount = code[i - f].maxFee; //预估费用取maxFee
+          this.otherLocal[i].costTypeId = code[i - f].costTypeId; //找不到对应字段
+          // this.otherLocal[i].businessType = code[i - f].dlrCode;//下拉框获取
+          // this.dataInfo.main.otherDueAmount =
+          // parseFloat(this.otherLocal[i].otherDueAmount) +
+          // parseFloat(this.dataInfo.main.otherDueAmount);
+
+          //赋值费用统计_其他费
+          this.dataInfo.main.otherDueAmount =
+            this.otherLocal[i].otherDueAmount +
+            this.dataInfo.main.otherDueAmount;
+        }
+      }
+      this.getMoney();
+    },
+    closeChooseWiSelect() {
+      this.paChoosePartVisible = false;
+    },
+    choosebeijian() {
+      this.paChoosePartVisible = true;
+    },
+    getMoney() {
+      this.dataInfo.main.reserveDueAmount =
+        parseFloat(this.dataInfo.main.wiDueAmount) +
+        parseFloat(this.dataInfo.main.partDueAmount) +
+        parseFloat(this.dataInfo.main.otherDueAmount);
+    },
+    //维修备件_数量计算预估费用
+    getPartDueAmount() {
+      this.dataInfo.main.partDueAmount = 0;
+      for (var i = 0; i < this.partLocal.length; i++) {
+        if (this.partLocal[i].partQty == 0) {
+          this.partLocal[i].partQty = 0;
+        }
+        if (
+          this.partLocal[i].partPrice == undefined ||
+          this.partLocal[i].partPrice == null ||
+          this.partLocal[i].partPrice == 0 ||
+          isNaN(this.partLocal[i].partPrice)
+        ) {
+          this.partLocal[i].partPrice = 0;
+        }
+        this.partLocal[i].partDueAmount =
+          parseFloat(this.partLocal[i].partQty) *
+          parseFloat(this.partLocal[i].partPrice);
+        this.dataInfo.main.partDueAmount =
+          this.partLocal[i].partDueAmount + this.dataInfo.main.partDueAmount;
+      }
+      this.getMoney();
+    },
+    //其它费用_金额计算预估费用
+    getotherAmount() {
+      this.dataInfo.main.otherDueAmount = 0;
+      for (var i = 0; i < this.otherLocal.length; i++) {
+        this.otherLocal[i].otherDueAmount = parseFloat(
+          this.otherLocal[i].otherAmount
+        );
+        // Integer.parseFloat(this.partLocal[i].partQty)
+        this.dataInfo.main.otherDueAmount =
+          parseFloat(this.otherLocal[i].otherDueAmount) +
+          this.dataInfo.main.otherDueAmount;
+      }
+      this.getMoney();
+    },
+    //计算维修工时费用
+    getWixiugongshi() {
+      this.dataInfo.main.wiDueAmount = 0;
+      for (var i = 0; i < this.wiLocal.length; i++) {
+        if (this.wiLocal[i].wiDueAmount == "") this.wiLocal[i].wiDueAmount = 0;
+
+        this.dataInfo.main.wiDueAmount =
+          this.wiLocal[i].partDueAmount + this.dataInfo.main.wiDueAmount;
+      }
+      this.getMoney();
+    },
+    //快速预约
+    getkuaisuyuyue() {
+      if (this.kuaisuyuyue) {
+        this.yuyue = true;
+        this.isDisabled = false;
+      } else {
+        this.yuyue = false;
+        this.isDisabled = true;
+      }
+    },
+    continueYuyyue() {
+      var riqi = new Date(this.dataInfo.main.preComeDate);
+
+      this.year = riqi.getFullYear();
+      this.month = riqi.getMonth() + 1;
+      this.day = riqi.getDate();
+      this.hh = riqi.getHours();
+
+      this.shifouyuyue = false;
+      this.dataInfo.main.preComeDate =
+        this.year + "-" + this.month + "-" + this.day + " " + this.hh + ":00";
+    },
+    breakYuyue() {
+      var riqi = new Date(this.dataInfo.main.preComeDate);
+
+      this.year = riqi.getFullYear();
+      this.month = riqi.getMonth() + 1;
+      this.day = riqi.getDate();
+      this.hh = riqi.getHours() + 1;
+      // this.dataInfo.main.preComeDate =
+      //   this.year + "-" + this.month + "-" + this.day + " " + this.hh + ":00";
+      // this.shifouyuyue = false;
+      seReserveCanQueryFactQty(this.dataInfo).then(response => {
+        if (response.data.result === "1" && response.data.rows != "")
+          this.rongliang = response.data.rows;
+
+        this.hhs = this.hh + ":00";
+
+        for (var i = 0; i < this.rongliang.length; i++) {
+          var realriqi = new Date(this.rongliang[i].preComeDate);
+          if (this.year == realriqi.getFullYear()) {
+            if (this.month == realriqi.getMonth() + 1) {
+              if (this.day == realriqi.getDate()) {
+                if (this.rongliang[i].timeQuantum == this.hhs) {
+                  if (this.rongliang[i].reserveCanQty <= 0) {
+                    this.jilushu = i + 1;
+
+                    for (var j = this.jilushu; j < this.rongliang.length; j++) {
+                      if (this.rongliang[j].reserveCanQty > 0) {
+                        var dates = this.rongliang[j].preComeDate;
+                        var times = this.rongliang[j].timeQuantum;
+                        this.dataInfo.main.preComeDate = dates + " " + times;
+                        j = this.rongliang.length;
+                      }
+                    }
+                  }
+                } //小时段
+              } //天数
+            } //月份
+          } //年份
+        }
+
+        this.jilushu = 0;
+      });
+      this.shifouyuyue = false;
+    },
+    //查看预约容量
+    getRongliang() {
+      var riqi = new Date(this.dataInfo.main.preComeDate);
+      this.year = riqi.getFullYear();
+      this.month = riqi.getMonth() + 1;
+      this.day = riqi.getDate();
+      this.hh = riqi.getHours();
+      if (this.hh <= 18 && this.hh >= 8) {
+        seReserveCanQueryFactQty(this.dataInfo).then(response => {
+          if (response.data.result === "1" && response.data.rows != "")
+            this.rongliang = response.data.rows;
+          this.hhs = this.hh + ":00";
+          for (var i = 0; i < this.rongliang.length; i++) {
+            var realriqi = new Date(this.rongliang[i].preComeDate);
+            if (this.year == realriqi.getFullYear()) {
+              if (this.month == realriqi.getMonth() + 1) {
+                if (this.day == realriqi.getDate()) {
+                  if (this.rongliang[i].timeQuantum == this.hhs) {
+                    if (this.rongliang[i].reserveCanQty <= 0) {
+                      if (this.rongliang[i].isReserveCan == 1) {
+                        this.jilushu = i;
+                        this.shifouyuyue = true;
+                      }
+                      if (this.rongliang[i].isReserveCan == 0) {
+                        this.$alert(
+                          "该时间段已经超过预约容量，已经为您推荐到最近的可预约时间段"
+                        );
+                        this.jilushu = i + 1;
+                        for (
+                          var j = this.jilushu;
+                          j < this.rongliang.length;
+                          j++
+                        ) {
+                          if (this.rongliang[j].reserveCanQty > 0) {
+                            var dates = this.rongliang[j].preComeDate;
+                            var times = this.rongliang[j].timeQuantum;
+                            this.dataInfo.main.preComeDate =
+                              dates + " " + times;
+                            j = this.rongliang.length;
+                          }
+                        }
+                      }
+                    } else {
+                      this.$alert("预约成功！");
+                      this.dataInfo.main.preComeDate =
+                        this.year +
+                        "-" +
+                        this.month +
+                        "-" +
+                        this.day +
+                        " " +
+                        hhs;
+                    } //小时段
+                  } //天数
+                } //月份
+              } //年份
+            }
+          }
+          this.jilushu = 0;
+        });
+      } else {
+        this.$alert("预约时间段在8:00到18:00之间！");
+        this.dataInfo.main.preComeDate = "";
+      }
+    },
+    //导入模板弹窗
+    openseBuRepairModeModal() {
+      this.seBuRepairModeModalVisible = true;
+    },
+    getseBuRepairModeModal(val) {
+      this.seBuRepairModeModalVisible = false;
+      console.log(val[0].SeDbRepairModeWi[0]);
+      // for(var i=0;i<(val[0].SeDbRepairModeWi).length;i++){
+
+      //     this.wiLocal.wiCode=this.val[0].SeDbRepairModeWi[0].wiCode
+      //     this.wiLocal.wiName=this.val[0].SeDbRepairModeWi[0].wiName
+      //     this.wiLocal.saleWiQty=this.val[0].SeDbRepairModeWi[0].wiQty
+      //     this.wiLocal.wiPrice= 50
+      //     this.wiLocal.wiDueAmount=100
+      //     this.wiLocal.businessType=this.val[0].SeDbRepairModeWi[0].businessType
+      // }
+
+      this.wiLocal = val[0].SeDbRepairModeWi;
+      this.partLocal = val[0].repairModePartId;
+      //  console.log(this.wiLocal);
+      //  this.otherLocal = val[0];
+    },
+    closeseBuRepairModeModal(val) {
+      this.seBuRepairModeModalVisible = false;
+    },
+    //工时选择弹窗
+    //str//传入工时弹窗的查询条件，如{wiName:'123',wiCode:'12345', operatePartId:'1', operatePartId:'1', carTypeCode:'1', isSystemDisabled:'0'}
+    //obj2//传入工时弹窗的  车型弹窗的查询条件，如{carBrandCode:'1', carSeriesCode:'1231412', carSeriesCn:'1215152'}
+    openseChooseWiSelect() {
+      var str = {
+        wiName: "",
+        wiCode: "",
+        operatePartId: "1",
+        operatePartId: "1",
+        isSystemDisabled: "0",
+        carTypeCode: ""
+      };
+      str.wiName = this.dataInfo.gongshi;
+      str.wiCode = this.dataInfo.gongshi;
+
+      // str.carTypeCode = this.dataInfo.main.carTypeCn;
+      var obj2 = { carBrandCode: "", carSeriesCode: "", carSeriesCn: "" };
+      this.$refs.seChooseWiSelect.open(str, obj2);
+    },
+
+    closeChooseWiSelect1() {
+      this.seChooseWiSelectVisible = false;
+    },
+    //是否保存
+    isSave() {
+      /* if (
+        this.dataInfo.main.reserveMan != "" &&
+        this.dataInfo.reserveTel != "" &&
+        this.dataInfo.main.preComeDate != "" &&
+        this.dataInfo.reserveType != ""
+      ) {
+        this.saveYuYue();
+      }
+      if (
+        this.dataInfo.main.reserveMan == "" ||
+        this.dataInfo.reserveTel == "" ||
+        this.dataInfo.main.preComeDate == "" ||
+        this.dataInfo.reserveType == ""
+      ) {
+        this.$alert("必填信息不能为空");
+      } */
+      this.saveYuYue("dataInfo");
+    },
+    //保存预约单
+    saveYuYue(formName) {
+      this.$refs[formName].validate(valid => {
+        console.log(valid);
+        if (valid) {
+          this.dataInfo.main.isEnable = "1";
+          // if(this.dataInfo.main.wiDueAmount='') {this.dataInfo.main.wiDueAmount=0;}
+          // if(this.dataInfo.main.partDueAmount='') {this.dataInfo.main.partDueAmount=0;}
+          // if(this.dataInfo.main.otherDueAmount='') {this.dataInfo.main.otherDueAmount=0;}
+          this.dataInfo.main.reserveDueAmount =
+            parseFloat(this.dataInfo.main.wiDueAmount) +
+            parseFloat(this.dataInfo.main.otherDueAmount) +
+            parseFloat(this.dataInfo.main.partDueAmount);
+          if (this.wiLocal != " ") {
+            // this.dataInfo.wi = this.wiLocal;
+
+            for (var i = 0; i < this.wiLocal.length; i++) {
+              this.dataInfo.wi[i].wiCode = this.wiLocal[i].wiCode;
+              this.dataInfo.wi[i].wiName = this.wiLocal[i].wiName;
+              this.dataInfo.wi[i].saleWorkQty = this.wiLocal[i].saleWiQty;
+              this.dataInfo.wi[i].wiPrice = this.wiLocal[i].wiPrice;
+              this.dataInfo.wi[i].wiDueAmount = this.wiLocal[i].wiDueAmount;
+              this.dataInfo.wi[i].businessType = this.wiLocal[i].businessType;
+              this.dataInfo.wi[i].reserveWiId = this.wiLocal[i].reserveWiId;
+
+              // this.dataInfo.wi[i].businessType = "";
+              // this.dataInfo.wi[i].reserveOrderId = this.wiLocal[i].reserveOrderId;
+              /* this.dataInfo.wi[
+            i
+          ].reserveOrderId = this.dataInfo.main.reserveOrderId; */
+            }
+          }
+          if (this.partLocal != " ") {
+            // this.dataInfo.part = this.partLocal;
+
+            for (var i = 0; i < this.partLocal.length; i++) {
+              this.dataInfo.part[i].partNo = this.partLocal[i].partNo;
+              this.dataInfo.part[i].partName = this.partLocal[i].partName;
+              this.dataInfo.part[i].partQty = parseFloat(
+                this.partLocal[i].partQty
+              );
+              this.dataInfo.part[i].partPrice = this.partLocal[i].partPrice;
+              this.dataInfo.part[i].partDueAmount = this.partLocal[
+                i
+              ].partDueAmount;
+              this.dataInfo.part[i].businessType = this.partLocal[
+                i
+              ].businessType;
+              this.dataInfo.part[i].reservePartId = this.partLocal[
+                i
+              ].reservePartId;
+
+              // this.dataInfo.part[i].businessType = "30705";
+              /* this.dataInfo.part[
+            i
+          ].reserveOrderId = this.dataInfo.main.reserveOrderId; */
+            }
+          }
+          if (this.otherLocal != " ") {
+            // this.dataInfo.other = this.otherLocal;
+
+            for (var i = 0; i < this.otherLocal.length; i++) {
+              this.dataInfo.other[i].costTypeCode = this.otherLocal[
+                i
+              ].costTypeCode;
+              this.dataInfo.other[i].costTypeName = this.otherLocal[
+                i
+              ].costTypeName;
+              this.dataInfo.other[i].otherAmount = this.otherLocal[
+                i
+              ].otherAmount; //其他费用金额
+              this.dataInfo.other[i].otherAmount = this.otherLocal[
+                i
+              ].otherDueAmount; //其他费用预估费用(暂用金额字段)
+              this.dataInfo.other[i].businessType = this.otherLocal[
+                i
+              ].businessType;
+              this.dataInfo.other[i].costTypeId = this.otherLocal[i].costTypeId;
+
+              // this.dataInfo.other[i].businessType = "30705";
+              // this.dataInfo.other[i].costTypeId = "123";
+              /* this.dataInfo.other[
+            i
+          ].reserveOrderId = this.dataInfo.main.reserveOrderId; */
+            }
+          }
+          // this.dataInfo.businessType = this.otherLocal[0].businessType;
+          seBuReserveOrderMutationSave(this.dataInfo).then(response => {
+            if (
+              response.data[seApis.seBuReserveOrderMutationSave.ServiceCode]
+                .result === "1"
+            ) {
+              this.$message({
+                message: "该预约单已保存！",
+                type: "success",
+                duration: 2000
+              });
+            } else {
+              this.$message({
+                message: "预约单保存失败！",
+                type: "warning",
+                duration: 2000
+              });
+            }
+          });
+        } else {
+          this.isValiad = true;
+          console.log("error submit!!");
+          return false;
+        }
+      });
+    },
+    //获取预约登记的具体信息
+    getfindshuju() {
+      seBuReserveOrderQueryInfo(
+        this.listQuery.pageSize,
+        this.listQuery.pageIndex,
+        this.reserveOrderIdInfo
+      ).then(response => {
+        if (
+          response.data[seApis.seBuReserveOrderQueryInfo.ServiceCode].result ===
+            "1" &&
+          response.data[seApis.seBuReserveOrderQueryInfo.ServiceCode].rows != ""
+        ) {
+          this.listQuery.pageTotal =
+            response.data[seApis.seBuReserveOrderQueryInfo.ServiceCode].records;
+          this.kanban =
+            response.data[seApis.seBuReserveOrderQueryInfo.ServiceCode].rows;
+        }
+        this.dataInfo.main.wiDueAmount = 0;
+        this.dataInfo.main.partDueAmount = 0;
+        this.dataInfo.main.otherDueAmount = 0;
+
+        this.dataInfo.main.vin = this.kanban[0].vin;
+        this.dataInfo.main.custName = this.kanban[0].dlrCustNo;
+        this.dataInfo.main.custTel = this.kanban[0].custTel;
+        this.dataInfo.main.reserveOrderCode = this.kanban[0].reserveOrderCode;
+        this.dataInfo.main.carLicense = this.kanban[0].carLicense;
+        // this.dataInfo.main.carSeriesCn = this.kanban[0].carBrandCn;
+        this.dataInfo.main.carSeriesCode = this.kanban[0].carSeriesCn;
+        // this.dataInfo.main.carTypeCn = this.kanban[0].carTypeCn;
+        this.dataInfo.main.reserveMan = this.kanban[0].reserveMan;
+        this.dataInfo.main.reserveTel = this.kanban[0].reserveTel;
+        this.dataInfo.main.saEmpId = this.kanban[0].saEmpId;
+        this.dataInfo.main.reserveSource = this.kanban[0].reserveSource;
+        this.dataInfo.main.preComeDate = this.kanban[0].preComeDate;
+        this.dataInfo.main.reserveType = this.kanban[0].reserveType;
+        this.dataInfo.main.reserveSourceId = this.kanban[0].reserveSourceId;
+
+        this.wiLocal = this.kanban[0].wi;
+
+        this.partLocal = this.kanban[0].part;
+
+        this.otherLocal = this.kanban[0].other;
+        this.otherLocal[0].otherDueAmount = this.kanban[0].other[0].otherAmount;
+        for (var i = 0; i < this.wiLocal.length; i++) {
+          this.dataInfo.main.wiDueAmount =
+            parseFloat(this.wiLocal[i].wiDueAmount) +
+            this.dataInfo.main.wiDueAmount;
+        }
+        for (var i = 0; i < this.partLocal.length; i++) {
+          this.dataInfo.main.partDueAmount =
+            parseFloat(this.partLocal[i].partDueAmount) +
+            this.dataInfo.main.partDueAmount;
+        }
+        for (var i = 0; i < this.otherLocal.length; i++) {
+          this.dataInfo.main.otherDueAmount =
+            parseFloat(this.otherLocal[i].otherAmount) +
+            this.dataInfo.main.otherDueAmount;
+        }
+        this.dataInfo.main.reserveDueAmount =
+          this.dataInfo.main.wiDueAmount +
+          this.dataInfo.main.partDueAmount +
+          this.dataInfo.main.otherDueAmount;
+      });
+    },
+    //退出按钮
+    insertData() {
+      this.$router.push({
+        // name: "seBuReserveOrderMutationSave",
+        path: "/semodule/seModu-repairProcess/yuyue-guanli/yuyue-zhuizong"
+      });
+      this.$destroy();
+    },
+    closeCarOwnerCust(val) {
+      this.seCarOwnerCustModalVisible = val;
+    },
+    getCarOwnerCustData(val, selectval) {
+      this.seCarOwnerCustModalVisible = false;
+      this.dataInfo.main.vin = val[0].carInfo[0].vin;
+      this.dataInfo.main.carLicense = val[0].carInfo[0].carLicense;
+      this.dataInfo.main.carSeriesCode = val[0].carInfo[0].carSeriesName;
+      this.dataInfo.main.custTel = selectval.phone;
+      this.dataInfo.main.custName = selectval.custName;
+      this.dataInfo.main.dlrCustNo = selectval.dlrCustNo;
+      this.dataInfo.main.carId = selectval.carId;
+      let queryStatusDataInfo = {
+        queryType: "0",
+        vin: this.dataInfo.main.vin,
+        dlrId: this.$store.getters.orgInfo.DLR_ID,
+        carLicense: this.dataInfo.main.carLicense
+      };
+      seBuReserveOrderQueryStatus(10, 1, queryStatusDataInfo).then(response => {
+        if (
+          response.data[seApis.seBuReserveOrderQueryStatus.ServiceCode]
+            .result === "1" &&
+          response.data[seApis.seBuReserveOrderQueryStatus.ServiceCode].rows !=
+            ""
+        ) {
+          //客户已有预约单
+          //再传预约单Id进行查询
+          this.reset();
+          let queryDetailDataInfo = {
+            queryType: "1",
+            vin: this.dataInfo.main.vin,
+            dlrId: this.$store.getters.orgInfo.DLR_ID,
+            carLicense: this.dataInfo.main.carLicense,
+            reserveOrderId:
+              response.data[seApis.seBuReserveOrderQueryStatus.ServiceCode]
+                .rows[0].reserveOrderId
+          };
+          seBuReserveOrderQueryStatus(10, 1, queryDetailDataInfo).then(
+            response => {
+              if (
+                response.data[seApis.seBuReserveOrderQueryStatus.ServiceCode]
+                  .result === "1" &&
+                response.data[seApis.seBuReserveOrderQueryStatus.ServiceCode]
+                  .rows != ""
+              ) {
+                //带出客户预约单详细
+                this.dataInfo.main.reserveType =
+                  response.data[
+                    seApis.seBuReserveOrderQueryStatus.ServiceCode
+                  ].rows[0].reserveType;
+                //带出其他...
+              }
+              this.fastAppoint = true;
+            }
+          );
+        }
+      });
+      // this.dataInfo.main.carTypeCn = val[0].carInfo[0].carTypeName;
+      // this.dataInfo.main.carSeriesCn = val[0].carInfo[0].carBrandCn;
+    },
+    carOwnerCustModel() {
+      this.seCarOwnerCustModalVisible = true;
+      this.$refs.seCarOwnerCustModal.resetList(); //清空弹窗列表
+    },
+
+    //关闭弹窗
+    getClose(data) {
+      this.diapalys = false;
+    },
+    getClose1(data) {
+      this.diapaly1 = false;
+    },
+    chooseCustom(data) {
+      this.diapalys = true;
+    },
+
+    //获取下拉列表值
+    getCommonQueryServiceSa(val1, val2) {
+      this.dataInfo.main.saEmpId = val1;
+      this.dataInfo.main.saName = val2;
+    },
+    getyuyuelaiyuan(val1, val2) {
+      this.dataInfo.main.reserveSourceId = val1;
+      this.dataInfo.main.reserveSource = val2;
+    },
+    getyuyueleixing(val) {
+      this.dataInfo.main.reserveType = val;
+    },
+    getcheliangpinpai(val) {
+      this.dataInfo.main.carBrandCode = val;
+    },
+    getchexi(val) {
+      this.formField.carSeriesCode = val;
+      this.dataInfo.main.carSeriesCode = val;
+      // this.$refs.partsCarTypeSelect.parentFileds = "carSeriesCode";
+      // this.$refs.partsCarTypeSelect.optionDatas = [];
+      this.$refs.partsCarTypeSelect.setQueryFields(this.formField);
+    },
+    getchexing(val) {
+      this.dataInfo.main.carTypeCode = val;
+    },
+    getyuyuezhuangtai(val) {
+      this.dataInfo.main.reserveState = val;
+    },
+    getyewuleibie(val, a, b, comType) {
+      //审核配置
+      // this.wiLocal.businessType = val;
+      let index = comType.split(",")[0]; // 行号
+      let type = comType.split(",")[1]; //列号
+      if (type == "wi") {
+        this.wiLocal[index].businessType = val;
+      }
+      if (type == "part") {
+        this.partLocal[index].businessType = val;
+      }
+      if (type == "other") {
+        this.otherLocal[index].businessType = val;
+      }
+    },
+    handleSizeChange(val) {
+      this.listQuery.pageSize = val;
+      this.fetchData();
+    },
+    handleCurrentChange(val) {
+      this.listQuery.pageIndex = val;
+      this.fetchData();
+    },
+    reset() {
+      this.dataInfo.main = {
+        reserveOrderId: "",
+        reserveOrderCode: "",
+        dlrCustNo: "",
+        custTel: "",
+        carLicense: "",
+        dlrCode: "",
+        carTypeCode: "",
+        reserveSourceId: "",
+        preGetDate: "",
+        factComeDate: "",
+        reserveType: "",
+        isFirst: "",
+        reserveTel: "",
+        saEmpId: "",
+        preComeDate: "",
+        carBrandCode: "",
+        vin: "",
+        csDesc: "",
+        custName: "",
+        isRemind: "",
+        reserveMan: "",
+        carSeriesCode: "",
+        // carSeriesCn: "", //
+        isWait: "",
+        reserveSource: "",
+        carId: "",
+        isClean: "",
+        dlrId: this.$store.getters.orgInfo.DLR_ID,
+        cancelType: "",
+        cancelReason: "",
+        saEmpId: "",
+        reserveSourceId: "",
+        isRescue: "",
+        linkDate: "",
+        contactType: "",
+        otherItem: "",
+        dayConfirm: "",
+        hourConfirm: "",
+        reserveRepairType: "",
+        isEnable: "",
+        reserveMileage: 0,
+        reserveDueAmount: 0,
+        wiDueAmount: 0,
+        partDueAmount: 0,
+        otherDueAmount: 0,
+        reserveSourceCode: "",
+        updateControlId: "",
+        isDoor: "",
+        custAddress: "",
+        doorBeginDate: "",
+        doorEndDate: ""
+      };
+      this.wiLocal = [
+        {
+          wiCode: "",
+          wiName: "",
+          saleWiQty: "",
+          wiPrice: 0.0,
+          wiDueAmount: 0,
+          businessType: "",
+          reserveWiId: ""
+        }
+      ];
+      this.partLocal = [
+        {
+          partNo: "",
+          partName: "",
+          partQty: 0,
+          partPrice: 0,
+          partDueAmount: 0,
+          businessType: "",
+          reservePartId: ""
+        }
+      ];
+      this.otherLocal = [
+        {
+          costTypeCode: "",
+          costTypeName: "",
+          otherAmount: "",
+          otherDueAmount: "",
+          businessType: "",
+          costTypeId: ""
+        }
+      ];
+    }
+  }
+};
+</script>
+<style scoped>
+.filter-params .el-col {
+  min-width: 0px;
+}
+
+.get {
+  text-align: left;
+}
+</style>
+<style lang="scss" scoped>
+//   .contextmenu {
+//     margin: 0;
+//     background: #fff;
+//     z-index: 3000;
+//     position: absolute;
+//     list-style-type: none;
+//     padding: 5px 0;
+//     border-radius: 4px;
+//     font-size: 12px;
+//     font-weight: 400;
+//     color: #333;
+//     box-shadow: 2px 2px 3px 0 rgba(0, 0, 0, .3);
+//     li {
+//       margin: 0;
+//       padding: 7px 16px;
+//       cursor: pointer;
+//       &:hover {
+//         background: #eee;
+//       }
+//     }
+//   }
+</style>
+

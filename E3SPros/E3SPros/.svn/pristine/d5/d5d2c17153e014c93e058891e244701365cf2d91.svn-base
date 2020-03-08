@@ -1,0 +1,503 @@
+<!--
+* 描述:提醒规则设置维护
+* 创建人: chq2
+* 创建时间: 2019-07-24
+* 记录：
+*  20190724 新建 chq2
+-->
+<template>
+  <div class="app-container app-container-table">
+      <div class="filter-container filter-button">
+        <el-button type="primary" @click="editTiXing()">维护提醒子规则</el-button>
+        <el-button type="primary" @click="save('form')">保存</el-button>
+      </div>
+      <div class="filter-container filter-params-crm">
+        <el-form label-position="right" ref="form">
+          <!------------第一行------------>
+          <el-row>
+          <el-col :span="6" class="crm-label-required">
+            <!--提醒升级-->
+            <sct_UpdateRemind :sct_UpdateRemind="UpdateRemind" ref="sct_UpdateRemind"></sct_UpdateRemind>
+          </el-col>
+          <el-col :span="6" class="crm-label-required">
+            <!--业务流程-->
+            <BusinessProcess :BusinessProcess="BProcess" ref="BusinessProcess"></BusinessProcess>
+          </el-col>
+          <el-col :span="6" class="crm-label-required">
+            <!--开始节点-->
+            <sct_BeginCode :sct_BeginCode="BCode" ref="sct_BeginCode"></sct_BeginCode>
+          </el-col>
+          <!------------第二行------------>
+          <el-col :span="6" class="crm-label-required">
+            <!--待处理节点-->
+            <ToBeProcessedNode :ToBeProcessedNode="TNode" ref="ToBeProcessedNode"></ToBeProcessedNode>
+          </el-col>
+          </el-row>
+          <el-row>
+          <el-col :span="6" class="crm-label-required">
+            <!--规则名称-->
+            <RuleName :RuleName="RName" ref="RuleName"></RuleName>
+          </el-col>
+          <el-col :span="6" class="crm-label-required">
+            <!--业务类别-->
+            <BusinessCategory :BusinessCategory="BCategory" ref="BusinessCategory"></BusinessCategory>
+          </el-col>
+          <!------------第三行------------>
+          <el-col :span="6" class="crm-label-required">
+            <!--品牌-->
+            <Brand :Brand="Bd" ref="Brand"></Brand>
+          </el-col>
+          <el-col :span="6" class="crm-label-required">
+            <!--是否特殊追踪-->
+            <SpecialTrack :SpecialTrack="STrack" ref="SpecialTrack"></SpecialTrack>
+          </el-col>
+          </el-row>
+          <el-row>
+          <el-col :span="6" class="crm-label-required">
+            <!--紧急度-->
+            <Urgency :Urgency="Uy" ref="Urgency"></Urgency>
+          </el-col>
+          <!------------第四行------------>
+          <el-col :span="6" class="crm-label-required">
+            <!--提醒开始时段-->
+            <RemindStartTime :RemindStartTime="RStartTime" ref="RemindStartTime"></RemindStartTime>
+          </el-col>
+          <el-col :span="6" class="crm-label-required">
+            <!--提醒结束时段-->
+            <RemindStopTime :RemindStopTime="RStopTime" ref="RemindStopTime"></RemindStopTime>
+          </el-col>
+          <el-col :span="6" class="crm-label-required">
+            <!--超时时长-->
+            <SuperLongTime :SuperLongTime="SLongTime" ref="SuperLongTime"></SuperLongTime>
+          </el-col>
+          </el-row>
+          <!------------第五行------------>
+          <el-row>
+          <el-col :span="6" class="crm-label-required">
+            <!--执行周期-->
+            <ExecuteCycle :ExecuteCycle="ECycle" ref="ExecuteCycle"></ExecuteCycle>
+          </el-col>
+          <el-col :span="6" class="crm-label-required">
+            <!--投诉级别-->
+            <ComplaintLevel :ComplaintLevel="CLevel" ref="ComplaintLevel"></ComplaintLevel>
+          </el-col>
+          <el-col :span="6" class="crm-label-required">
+            <!--是否启用-->
+            <EnableOrDisable :EnableOrDisable="EnableDisable" ref="EnableOrDisable"></EnableOrDisable>
+          </el-col>
+          </el-row>
+          <!------------第六行------------>
+          <el-col :span="12" class="long-col crm-label-required">
+            <txt_RuleDescription :txt_RuleDescription="RuleDescription" ref="txt_RuleDescription"></txt_RuleDescription>
+          </el-col>
+          <br>
+        </el-form>
+      </div>
+      <!--提醒子规则 弹出框开始-->
+      <el-dialog :visible.sync="TiXingChilddialogVisible" append-to-body width="900px" @open="query()" class="dialog" title="提醒子规则编辑">
+        <div class="filter-container filter-title-crm">
+          <div style="float:right">
+            <el-button type="primary" @click="handleSelect">保存</el-button>
+          </div>
+        </div>
+        <div class="filter-container filter-params-crm">
+          <el-form label-position="right">
+            <!--第一行-->
+            <el-row>
+              <el-col :span="8">
+                <sct_ObjectType :sct_ObjectType="sct_ObjectType" ref="sct_ObjectType"></sct_ObjectType>
+              </el-col>
+              <el-col :span="8">
+                <RemindWay :RemindWay="RemindWay" ref="RemindWay"></RemindWay>
+              </el-col>
+              <el-col :span="8">
+                <MessageModel :MessageModel="MessageModel" ref="MessageModel"></MessageModel>
+              </el-col>
+            </el-row>
+
+            <el-row>
+              <el-col :span="8">
+                <sct_ObjectForm :sct_ObjectForm="sct_ObjectForm" ref="sct_ObjectForm"></sct_ObjectForm>
+              </el-col>
+            </el-row>
+          </el-form>
+        </div>
+        <div class="filter-container filter-title">查询结果</div>
+        <el-table :data="tabledatas.tableData" highlight-current-row v-loading.body="false" element-loading-text="Loading" border fit>
+          <el-table-column type="index" label="序号" width="55"></el-table-column>
+          <el-table-column label="操作" align="center" width="150">
+            <template slot-scope="scope">
+              <el-button size="mini" type="text" @click="handle(scope.$index, scope.row)">编辑</el-button>
+              <el-button size="mini" type="text" @click="handleDelete(scope.$index, scope.row)">删除</el-button>
+            </template>
+          </el-table-column>
+          <el-table-column v-for="item in tabledatas.colnames" :key="item.value" :label="item.label" :prop="item.value" align="center"></el-table-column>
+        </el-table>
+        <el-pagination background layout="prev, pager, next" :total="9" :page-size="tabledatas.pagesize" :current-page="tabledatas.pageindex"></el-pagination>
+      </el-dialog>
+      <!--提醒子规则 弹出框结束-->
+    </div>
+</template>
+<script>
+import sct_UpdateRemind from "@/components/crm/Select/Complaint/sct_UpdateRemind.vue";
+import BusinessProcess from "@/components/crm/Select/Common/BusinessProcess.vue";
+import sct_BeginCode from "@/components/crm/Select/Common/sct_BeginCode.vue";
+import ToBeProcessedNode from "@/components/crm/Select/Complaint/ReminderUpdate/ToBeProcessedNode.vue";
+import RuleName from "@/components/crm/textbox/Public/RuleName.vue";
+import BusinessCategory from "@/components/crm/Select/Common/longtimeUnit.vue";
+import Brand from "@/components/crm/Select/Common/ResponsibleArea/Brand.vue";
+import SpecialTrack from "@/components/crm/Select/Whether/SpecialTrack.vue";
+import Urgency from "@/components/crm/Select/RemindUpgradeSet/Urgency.vue";
+import RemindStartTime from "@/components/crm/Time/RemindStartTime.vue";
+import RemindStopTime from "@/components/crm/Time/RemindStopTime.vue";
+import SuperLongTime from "@/components/crm/textbox/SuperLongTime.vue";
+import ExecuteCycle from "@/components/crm/textbox/ExecuteCycle.vue";
+import ComplaintLevel from "@/components/crm/Select/Complaint/ComplaintLevel.vue";
+import EnableOrDisable from "@/components/crm/Select/Whether/EnableOrDisable.vue";
+import txt_RuleDescription from "@/components/crm/textbox/Public/txt_RuleDescription.vue";
+import sct_ObjectType from "@/components/crm/Select/RemindUpgradeSet/sct_ObjectType.vue";
+import RemindWay from "@/components/crm/Select/Common/RemindWay.vue";
+import MessageModel from "@/components/crm/EjectWindows/MessageModel.vue";
+import sct_ObjectForm from "@/components/crm/Select/Common/sct_ObjectForm.vue";
+
+import { crmApis } from "@/api/graphQLApiList/crm";
+export default {
+  name: "RemindSet",
+  components: {
+    sct_UpdateRemind,
+    BusinessProcess,
+    sct_BeginCode,
+    ToBeProcessedNode,
+    RuleName,
+    BusinessCategory,
+    Brand,
+    SpecialTrack,
+    Urgency,
+    RemindStartTime,
+    RemindStopTime,
+    SuperLongTime,
+    ExecuteCycle,
+    ComplaintLevel,
+    EnableOrDisable,
+    txt_RuleDescription,
+    sct_ObjectType,
+    RemindWay,
+    MessageModel,
+    sct_ObjectForm
+  },
+  data() {
+    return {
+      toggleParam: false,
+      TiXingChilddialogVisible: false,
+      tabledatas: {
+        colnames: [
+          { label: "对象类型", value: "" },
+          { label: "提醒方式", value: "" },
+          { label: "对象形式", value: "" },
+          { label: "对象名称", value: "" },
+          { label: "信息模板", value: "" }
+        ],
+        tableData: [
+          {
+            date: "2016-05-01",
+            custName: "王小虎",
+            address: "上海市普陀区金沙江路 1518 弄"
+          }
+        ],
+        queryObj: {
+          // .后面是服务编码，.前面固定写死
+          apiConfig: crmApis.csBuComplaintDelayQueryFindAll,
+          apiQueryRow: [
+            "sct_ObjectType",
+            "RemindWay",
+            "MessageModel",
+            "sct_ObjectForm"
+          ],
+          params: {
+            sct_ObjectType: "",
+            RemindWay: "",
+            MessageModel: "",
+            sct_ObjectForm: ""
+          }
+        }
+      },
+      //初始化input
+      RuleName: {
+        input: ""
+      },
+      SLongTime: {
+        input: ""
+      },
+      ECycle: {
+        input: ""
+      },
+      RuleDescription: {
+        input: ""
+      },
+
+      //初始化value
+      UpdateRemind: {
+        value: ""
+      },
+      BProcess: {
+        value: ""
+      },
+      BCode: {
+        value: ""
+      },
+      TNode: {
+        value: ""
+      },
+      RName: {
+        value: ""
+      },
+      BCategory: {
+        value: ""
+      },
+      Bd: {
+        value: ""
+      },
+      STrack: {
+        value: ""
+      },
+      Uy: {
+        value: ""
+      },
+      RStartTime: {
+        value: ""
+      },
+      RStopTime: {
+        value: ""
+      },
+      CLevel: {
+        value: ""
+      },
+      EnableDisable: {
+        value: ""
+      },
+      //初始化value
+      sct_ObjectType: {
+        value: ""
+      },
+      RemindWay: {
+        value: ""
+      },
+      MessageModel: {
+        value: ""
+      },
+      sct_ObjectForm: {
+        value: ""
+      }
+    };
+  },
+  methods: {
+    query: function() {
+      let that = this;
+      let queryObj = {
+        // api配置
+        apiConfig: that.tabledatas.queryObj.apiConfig,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: that.tabledatas.queryObj.apiQueryRow
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.tabledatas.pagesize,
+          pageIndex: that.tabledatas.pageindex,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: that.tabledatas.queryObj.params
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result == "1" &&
+          response.data[queryObj.apiConfig.ServiceCode].rows != ""
+        ) {
+        }
+      });
+    },
+    save(formName){
+      let that=this
+      let flag = false;
+      let config = {
+        UpdateRemind: [
+          true,
+          this.$crmcf.crmRegExp("empty"),
+          "value",
+          that.$refs.sct_UpdateRemind.value,
+          "提醒升级",
+          "不能为空"
+        ],
+        BProcess: [
+          true,
+          this.$crmcf.crmRegExp("empty"),
+          "value",
+          that.$refs.BusinessProcess.value,
+          "业务流程",
+          "不能为空"
+        ],
+        // BCode: [
+        //   true,
+        //   this.$crmcf.crmRegExp("empty"),
+        //   "value",
+        //   that.$refs.sct_BeginCode.input,
+        //   "开始节点",
+        //   "不能为空"
+        // ],
+        // TNode: [
+        //   true,
+        //   this.$crmcf.crmRegExp("empty"),
+        //   "value",
+        //   that.$refs.ToBeProcessedNode.value,
+        //   "待处理节点",
+        //   "不能为空"
+        // ],
+        RName: [
+          true,
+          this.$crmcf.crmRegExp("empty"),
+          "input",
+          that.$refs.RuleName.input,
+          "规则名称",
+          "不能为空"
+        ],
+        // BCategory: [
+        //   true,
+        //   this.$crmcf.crmRegExp("empty"),
+        //   "value",
+        //   that.$refs.BusinessCategory.value,
+        //   "业务类别",
+        //   "不能为空"
+        // ],
+        Bd:[
+          true,
+          this.$crmcf.crmRegExp("empty"),
+          "value",
+          that.$refs.Brand.value,
+          "品牌",
+          "不能为空"
+        ],
+        // STrack:[
+        //   true,
+        //   this.$crmcf.crmRegExp("empty"),
+        //   "value",
+        //   that.$refs.SpecialTrack.value,
+        //   "是否特殊追踪",
+        //   "不能为空"
+        // ],
+        Uy:[
+          true,
+          this.$crmcf.crmRegExp("empty"),
+          "value",
+          that.$refs.Urgency.value,
+          "紧急度",
+          "不能为空"
+        ],
+        UStartTime:[
+          true,
+          this.$crmcf.crmRegExp("empty"),
+          "value",
+          that.$refs.RemindStartTime.value,
+          "开始时段",
+          "不能为空"
+        ],
+        UStopTime:[
+          true,
+          this.$crmcf.crmRegExp("empty"),
+          "value",
+          that.$refs.RemindStopTime.value,
+          "结束时段",
+          "不能为空"
+        ],
+        SLongTime:[
+          true,
+          this.$crmcf.crmRegExp("empty"),
+          "input",
+          that.$refs.SuperLongTime.input,
+          "超时时长",
+          "不能为空"
+        ],
+        // CLevel:[
+        //   true,
+        //   this.$crmcf.crmRegExp("empty"),
+        //   "value",
+        //   that.$refs.ComplaintLevel.value,
+        //   "投诉级别",
+        //   "不能为空"
+        // ],
+        EnableDisable:[
+          true,
+          this.$crmcf.crmRegExp("empty"),
+          "value",
+          that.$refs.EnableOrDisable.value,
+          "是否启用",
+          "不能为空"
+        ],
+        RuleDescription:[
+          true,
+          this.$crmcf.crmRegExp("empty"),
+          "input",
+          that.$refs.txt_RuleDescription.input,
+          "规则描述",
+          "不能为空"
+        ],
+      };
+      this.$crmcf.validForm(that, formName, config, function(flag) {
+        if (flag) {
+          let variables = {
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: {
+              ruleName: that.$refs.RuleName.input,
+              bussWf: that.$refs.BusinessProcess.value,
+              begNode: that.$refs.sct_BeginCode.value,
+              endNode: that.$refs.ToBeProcessedNode.value,
+              //ruleClassList:{},
+              begTime: that.$refs.RemindStartTime.value,
+              endTime:that.$refs.RemindStopTime.value,
+              serverLevel:that.$refs.ComplaintLevel.value,
+              serverUrgency:that.$refs.Urgency.value,
+              //isRise:"",
+              inOutTime:that.$refs.SuperLongTime.input,
+              inOutUnit:that.$refs.BusinessCategory.value,
+              carBrandCode:that.$refs.Brand.value,
+              isEnable:that.$refs.EnableOrDisable.value,
+              remark:that.$refs.txt_RuleDescription.input,
+              updateControlId:""
+            }
+          };
+          if(that.$route.params.updateControlId){
+            variables.dataInfo.updateControlId=that.$route.params.updateControlId
+          }
+          that.$crmcf.mutationSumbit(
+            that,
+            variables,
+            crmApis.csDbUpdateRemindSetMMutationRemindSave,
+            function() {
+              variables.dataInfo.updateControlId=""
+              
+            }
+          )
+        }
+      });
+    },
+    reset: function() {},
+    handle: function(index, rowData) {
+      let that = this;
+    },
+    editTiXing: function(index, rowData) {
+      let that = this;
+      that.TiXingChilddialogVisible = true;
+    },
+    changeToggleParam() {
+      this.toggleParam = !this.toggleParam;
+    }
+  }
+};
+</script>
+
+

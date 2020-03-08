@@ -1,0 +1,1141 @@
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button">
+      <el-upload class="upload-demo" ref="upload" style="width:68px;display:inline-block;" :file-list="fileList" name="excelFile" action :headers="uploadHeaders" :http-request="handleChange" :on-success="uploadSuccess" :auto-upload="true" :before-upload="beforeAvatarUpload" :before-remove="beforeRemove" :on-exceed="handleExceed" :limit="1" :show-file-list="false" list-type="text">
+        <el-button size="small">导入</el-button>
+      </el-upload>
+      <el-button size="small" type="text">导入模板</el-button>
+      <el-button size="small" @click="paChooseOpenModelActive()">选择备件</el-button>
+      <el-button size="small" @click="delMulData()">删除备件</el-button>
+      <el-button size="small" @click="savePartAttributel()">保存修改</el-button>
+      <el-button size="small" @click="dialogAllVisible = true">批量导入</el-button>
+      <el-button size="small" @click="reset()">重置</el-button>
+    </div>
+    <div class="filter-container filter-params">
+      <el-row :gutter="26">
+        <el-form :model="ruleForm" :rules="rules" ref="ruleForm" class="demo-ruleForm">
+          <el-row>
+            <el-col :span="6">
+              <el-form-item label="备件号" prop="partNo">
+                <el-input v-model="ruleForm.partNo" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="属性" prop="attr">
+                <el-select v-model="ruleForm.attr" placeholder="请选择" @change="changeCodeInside">
+                  <el-option v-for="item in ruleForm.listSelectAtt" :key="item.columnCode" :label="item.columnName" :value="item.columnCode"></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item v-show="Number(codeInside.attribute1) === 0" label="属性值" prop="attrValue">
+                <el-select v-model="ruleForm.attrValue" placeholder="请选择">
+                  <el-option v-for="(item, index) in ruleForm.listSelectAttValue" :key="`item.lookupValueCode${index}`" :label="item.lookupValueName" :value="item.lookupValueCode"></el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item v-show="Number(codeInside.attribute1) === 1" label="属性值" prop="attrValueCn">
+                <el-input v-model="ruleForm.attrValueCn" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="操作原因" prop="operateReason">
+                <el-input size="small" v-model="ruleForm.operateReason" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-form>
+      </el-row>
+    </div>
+    <el-table ref="multipleTable" :data="changeHandleSlectvalCenter" border fit stripe highlight-current-row @selection-change="handleSeletionChange">
+      <el-table-column align="center" label="序号" width="60">
+        <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+      </el-table-column>
+      <el-table-column label="选择+" type="selection" width="55"></el-table-column>
+      <el-table-column v-for="(item, index) in tableColumns" :key="index" :label="item.label" align="center">
+        <template slot-scope="scope">{{ scope.row[item.fieldName] }}</template>
+      </el-table-column>
+    </el-table>
+    <el-pagination background layout="prev, pager, next, sizes, ->, total" prev-text="上一页" next-text="下一页" :page-sizes="[10, 20, 30]" :page-size="10" :total="list?list.length:0" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+    <el-dialog title="批量导入" :visible.sync="dialogAllVisible" width="80%" :append-to-body="true" :close-on-click-modal="false" @close="closeImport">
+      <div class="filter-container filter-button">
+        <el-upload class="upload-demo" ref="uploadImport" style="width:68px;display:inline-block;" :file-list="fileListImport" name="excelFile" action :headers="uploadHeaders" :http-request="handleChangeImport" :on-success="uploadSuccessP" :auto-upload="true" :before-upload="beforeAvatarUploadImport" :before-remove="beforeRemoveImport" :on-exceed="handleExceedImport" :limit="1" :show-file-list="false" list-type="text">
+          <el-button type="primary" size="small">导入</el-button>
+        </el-upload>
+        <el-button size="small" type="text">excel模板下载</el-button>
+        <el-button size="small" @click="pldel">删除</el-button>
+        <el-button size="small" @click="plsubmit">提交</el-button>
+      </div>
+      <div class="filter-container filter-params">
+        <el-row>
+          <el-col :span="10">
+            <label>导入</label>
+            <el-input size="small" v-model="plattr.fileName" />
+          </el-col>
+        </el-row>
+      </div>
+      <el-table ref="plImport" :data="list" element-loading-text="Loading" border fit stripe highlight-current-row>
+        <el-table-column align="center" label="序号" width="60">
+          <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+        </el-table-column>
+        <el-table-column label="选择+" type="selection" width="55"></el-table-column>
+        <el-table-column label="备件品牌" align="center">
+          <template slot-scope="scope">{{ scope.row.partBrandName }}</template>
+        </el-table-column>
+        <el-table-column label="备件号" width="180" align="center">
+          <template slot-scope="scope">{{ scope.row.partNo }}</template>
+        </el-table-column>
+        <el-table-column label="备件名称" width="150" align="center">
+          <template slot-scope="scope">{{ scope.row.partName }}</template>
+        </el-table-column>
+        <el-table-column label="备件状态" width="150" align="center">
+          <template slot-scope="scope">{{ scope.row.creator }}</template>
+        </el-table-column>
+        <el-table-column label="销售开关" width="150" align="center">
+          <template slot-scope="scope">{{ scope.row.createTime }}</template>
+        </el-table-column>
+        <el-table-column label="重点备件" width="150" align="center">
+          <template slot-scope="scope">{{ scope.row.emphasisFlag }}</template>
+        </el-table-column>
+        <el-table-column label="SNP" width="150" align="center">
+          <template slot-scope="scope">{{ scope.row.createTime }}</template>
+        </el-table-column>
+        <el-table-column label="最小采购包装" width="150" align="center">
+          <template slot-scope="scope">{{ scope.row.createTime }}</template>
+        </el-table-column>
+        <el-table-column label="运输限制" width="150" align="center">
+          <template slot-scope="scope">{{ scope.row.transitLimit }}</template>
+        </el-table-column>
+      </el-table>
+      <el-pagination background layout="prev, pager, next, sizes, ->, total" prev-text="上一页" next-text="下一页" :page-sizes="[10, 20, 30]" :page-size="10" :total="list?list.length:0" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+    </el-dialog>
+    <!-- 备件选择弹窗 -->
+    <section>
+      <el-dialog title="备件选择" :visible.sync="dialogFormVisible" width="70%" :append-to-body="true" :close-on-click-modal="false">
+        <div class="filter-container filter-params">
+          <el-row :gutter="26">
+            <el-form :model="bcruleForm" :bcrules="bcrules" ref="bcruleForm" class="demo-ruleForm">
+              <el-row>
+                <LookupValue :span="8" :isMul="true" :isShowLabel="true" :code="bcruleForm.partBrandVal" :lookuptype="listQuery.lookuptypeBrand" :labelName="labelNameBrand" @changeCode="getLookupValueBrand" />
+                <el-col :span="8">
+                  <el-form-item label="备件号">
+                    <el-input size="small" v-model="bcruleForm.dialogPartNo" />
+                  </el-form-item>
+                </el-col>
+                <el-col :span="8">
+                  <el-form-item label="备件名称">
+                    <el-input size="small" v-model="bcruleForm.attrValueInput" />
+                  </el-form-item>
+                </el-col>
+              </el-row>
+              <el-row>
+                <el-col :span="8">
+                  <el-form-item label="供应商编码">
+                    <el-input size="small" v-model="bcruleForm.shopPartInput" />
+                  </el-form-item>
+                </el-col>
+                <LookupValue :span="8" :isMul="false" :isShowLabel="true" :code="bcruleForm.isButyVal" :lookuptype="lookupIsButyVal" :labelName="labelIsButyVal" @changeCode="getLookupIsButyVal" />
+                <el-col :span="8">
+                  <el-button @click="fetchData(1,0)">查询</el-button>
+                  <el-button @click="resetChoosePart()">重置</el-button>
+                  <el-button type="primary" @click="paChooseCloseModelActive()">选择</el-button>
+                </el-col>
+              </el-row>
+            </el-form>
+          </el-row>
+        </div>
+        <el-table :data="querySelectPartNoList" v-loading="dialogTableLoading" border @selection-change="handleSlect" ref="bjChoose">
+          <el-table-column property="num" label="序号" width="60">
+            <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+          </el-table-column>
+          <el-table-column property="choosenum" type="selection" label="选择+" width="60"></el-table-column>
+          <el-table-column property="partBrandName" label="备件品牌" align="center">
+            <template slot-scope="scope">{{ scope.row.partBrandName }}</template>
+          </el-table-column>
+          <el-table-column property="partno" label="备件号" align="center">
+            <template slot-scope="scope">{{ scope.row.partNo }}</template>
+          </el-table-column>
+          <el-table-column property="partname" label="备件名称" align="center">
+            <template slot-scope="scope">{{ scope.row.partName }}</template>
+          </el-table-column>
+          <el-table-column property="partstatename" label="备件状态" align="center">
+            <template slot-scope="scope">{{ scope.row.partStateName }}</template>
+          </el-table-column>
+          <el-table-column property="purStateName" label="备件开关" align="center">
+            <template slot-scope="scope">{{ scope.row.purStateName }}</template>
+          </el-table-column>
+        </el-table>
+        <el-pagination background ref="paginationHeight" layout="prev, pager, next, sizes, ->, total" prev-text="上一页" next-text="下一页" :page-sizes="[10, 20, 30]" :page-size="10" :total="listQuery.pageTotal" @size-change="pageSizeChange" @current-change="pageIndexChange" />
+
+      </el-dialog>
+    </section>
+  </div>
+</template>
+<script>
+import { paApis } from '@/api/graphQLApiList/pa'
+import { requestGraphQL } from '@/api/commonRequest'
+import { orgApis } from '@/api/graphQLApiList/org'
+import LookupValue from '@/components/org/LookupValue'
+import config from '@/utils/config'
+
+export default {
+  name: 'testTbale',
+  components: {
+    LookupValue,
+    config
+  },
+  data() {
+    return {
+      fileListImport: [],
+      partNoImport: {
+        //导入备件号
+        uploadData: {}
+      },
+      codeInside: { attribute1: '1', attribute2: '' },
+      tableColumns: [
+        { label: '备件品牌', fieldName: 'partBrandName' },
+        { label: '备件号', fieldName: 'partNo' },
+        { label: '备件名称', fieldName: 'partName' },
+        { label: '备件状态', fieldName: 'partStateName' },
+        { label: '销售开关', fieldName: 'purStateName' },
+        { label: '重点备件', fieldName: 'emphasisFlagName' },
+        { label: 'SNP', fieldName: 'createTime' },
+        { label: '最小采购包装', fieldName: 'createTime' },
+        { label: '运输限制', fieldName: 'transitLimitName' }
+      ],
+      ruleForm: {
+        //主页查询条件
+        partNo: '',
+        attrValueCn: '',
+        operateReason: '',
+        isWriteLog: '1',
+        listSelectAtt: [],
+        listSelectAttValue: [],
+        attrValue: '',
+        attr: ''
+      },
+      rules: {
+        partNo: [{ required: true, message: '备件编号不能为空' }],
+        attr: [{ required: true, message: '属性不能为空' }],
+        attrValue: [{ required: true, message: '属性不能为空' }],
+        attrValueCn: [{ required: true, message: '属性值不能为空' }]
+      },
+      //备件选择弹出框---查询条件
+      bcruleForm: {
+        partBrandVal: '', //选择备件弹出框-备件品牌
+        isButyVal: '', //选择备件弹出框-是否精品
+        dialogPartNo: '', //选择备件弹出框-备件号
+        inputPartName: '', //选择备件弹出框-备件名称
+        shopPartInput: '' //选择备件弹出框-供应商编码
+      },
+      bcrules: {
+        partBrandVal: [{ required: true, message: '备件品牌不能为空' }]
+      },
+      //批量导入属性
+      plattr: {
+        fileName: ''
+      },
+      fileList: [],
+      uploadHeaders: {
+        Authorization: this.$store.getters.token
+      },
+      labelIsButyVal: '是否精品',
+      labelNameBrand: '备件品牌',
+      lookupIsButyVal: 'DB0064',
+      dialogFormVisible: false,
+      dialogAllVisible: false,
+      list: null,
+      code: '1',
+      handleSlectval: [],
+      changeHandleSlectval: [],
+      handleSeletionChangeVal: [],
+      handleSeletionChangeValSave: null,
+      changeHandleSlectvalCenter: [],
+      dialogTableLoading: false,
+      isRest: false,
+      listQuery: {
+        pageIndex: 1,
+        pageSize: 10,
+        pageTotal: '',
+        limit: 20,
+        type: undefined,
+        status: '',
+        lookuptypeBrand: 'PA0008'
+      },
+      initData: {
+        pageIndex: 1,
+        pageSize: 10,
+        dataInfo: {
+          inPartNos: ''
+        }
+      },
+      pa0110: [],
+      querySelectPartNoList: []
+    }
+  },
+  created() {
+    this.getAttributesData()
+  },
+  // computed(){
+  //   this.ruleForm.partNo.join()
+  // },
+  methods: {
+    //选择备件
+    fetchData(page, flag) {
+      const that = this
+      this.dialogTableLoading = true
+      var formField={}
+      if(flag==0){
+        formField = {
+        partBrandCode: this.bcruleForm.partBrandVal,
+        partNo: this.bcruleForm.dialogPartNo,
+        partName: this.bcruleForm.inputPartName,
+        isRefine: this.bcruleForm.isButyVal,
+        supplierCode: this.bcruleForm.shopPartInput
+      }
+      }else{
+        formField={inPartNos:this.ruleForm.partNo}
+       
+      }
+      const queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+          paApis.paDbPartListQueryFindAll.InputType +
+          ')',
+        // 请求API
+        apiUrl: paApis.paDbPartListQueryFindAll.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: paApis.paDbPartListQueryFindAll.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+            // 表格中台返回网格的字段
+            apiQueryRow: [
+              'costPrice',
+              'dlrLeastSaleQty',
+              'dlrOrderSwitch',
+              'dlrPrice',
+              'elementCode',
+              'elementId',
+              'elementNameCn',
+              'emphasisFlag',
+              'emphasisFlagName',
+              'fitCarTypeId',
+              'isPvRequired',
+              'isPvRequiredName',
+              'lastUpdatedDate',
+              'leastPackIn',
+              'leastPackOut',
+              'logisticsFlag',
+              'logisticsFlagName',
+              'partBrandCode',
+              'partBrandName',
+              'partFlowState',
+              'partId',
+              'partName',
+              'partNo',
+              'partStateName',
+              'partTypeCode',
+              'partTypeId',
+              'partTypeName',
+              'partVarietyCode',
+              'partVarietyName',
+              'partWeight',
+              'planPrice',
+              'purStateName',
+              'pvPurSwitch',
+              'remark',
+              'replaceCode',
+              'replaceId',
+              'replacePartNo',
+              'saleStateName',
+              'stockStateName',
+              'storeSwitch',
+              'supplierCode',
+              'supplierId',
+              'transitLimit',
+              'transitLimitName',
+              'unit',
+              'updateControlId'
+            ]
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.initData.pageSize,
+          pageIndex: that.initData.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: formField
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj)
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[paApis.paDbPartListQueryFindAll.ServiceCode].result ===
+          '1'
+        ) {
+          if (page) {
+            //查询完返回指定的page页数
+            that.listQuery.pageIndex = page
+          }
+          that.listQuery.pageTotal = Number(
+            response.data[paApis.paDbPartListQueryFindAll.ServiceCode].records
+          )
+          that.querySelectPartNoList =
+            response.data[paApis.paDbPartListQueryFindAll.ServiceCode].rows
+            if(flag!=0){
+            that.changeHandleSlectvalCenter=that.querySelectPartNoList
+            }
+          that.dialogTableLoading = false
+        } else {
+          this.$message({
+            message:
+              '查询失败：' +
+              response.data[paApis.paDbPartListQueryFindAll.ServiceCode].msg,
+            type: 'warn',
+            uration: 2000
+          })
+        }
+      })
+    },
+    getAttributesData() {
+      const that = this
+      const queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfo1: ' +
+          orgApis.mdsLookupValueQueryByPage.InputType +
+          ', $dataInfo2: ' +
+          paApis.paDbPartListMutationAttribute.InputType +
+          ')',
+        // 请求API
+        apiUrl: orgApis.mdsLookupValueQueryByPage.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            // API服务编码&参数
+            apiServiceParam:
+              '(dataInfo: $dataInfo1, pageIndex: $pageIndex, pageSize: $pageSize)',
+            // 表格中台返回网格的字段
+            apiQueryRow: [
+              'oemCode',
+              'groupCode',
+              'lookupTypeCode',
+              'lookupValueCode',
+              'lookupValueName',
+              'attribute1',
+              'attribute2'
+            ]
+          },
+          {
+            // API服务编码&参数
+            apiServiceCode: paApis.paDbPartListMutationAttribute.ServiceCode,
+            // API服务编码&参数
+            apiServiceParam:
+              '(dataInfo: $dataInfo2, pageIndex: $pageIndex, pageSize: $pageSize)',
+            // 表格中台返回网格的字段
+            apiQueryRow: ['columnCode', 'columnName']
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo1: {
+            isEnable: '1',
+            lookupTypeCode: 'PA0110'
+          },
+          dataInfo2: {},
+          pageIndex: 1,
+          pageSize: 100
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj)
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (response.data.A.result === '1') {
+          that.pa0110 = response.data.A.rows
+          that.ruleForm.listSelectAtt = response.data.B.rows
+        } else {
+          this.$message({
+            message:
+              '查询失败：' +
+              response.data[orgApis.mdsLookupValueQueryByPage.ServiceCode].msg,
+            type: 'warn',
+            uration: 2000
+          })
+        }
+      })
+    },
+    //点击备件中的复选框获取单元格中的值
+    handleSlect(row) {
+      this.handleSlectval.push(row)
+    },
+    //得到选中数据
+    handleSeletionChange(arr) {
+      this.handleSeletionChangeVal = arr
+    },
+    //手动维护删除备件
+    delMulData() {
+      const that = this
+      let selectData = this.handleSeletionChangeVal
+      if (selectData.length == 0) {
+        this.$message({ message: '请勾选要删除的数据！', type: 'warning' })
+        return false
+      }
+      let arr = []
+      this.changeHandleSlectvalCenter.map(function(item, i) {
+        let flag = true
+        selectData.map(function(obj, j) {
+          if (item.partId === obj.partId) {
+            flag = false
+          }
+        })
+        if (flag) {
+          arr.push(item)
+        }
+      })
+      this.changeHandleSlectvalCenter = arr
+    },
+    //手动维护保存修改
+    savePartAttributel() {
+      debugger
+      const that = this
+      let selectData = that.$refs.multipleTable.selection
+      let obj = {}
+      if (selectData.length == 0) {
+        this.$message({ message: '请勾选要维护的数据', type: 'warning' })
+        return false
+      } else if (this.ruleForm.attr == '' || this.ruleForm.attrValue == '') {
+        this.$message({ message: '属性、属性值都不能为空', type: 'warning' })
+        return false
+      } else if (selectData.length > 1) {
+        let arr = []
+        for (let i = 0; i < selectData.length; i++) {
+          arr[i] = selectData[i].partId
+        }
+        obj.partIds = arr.toString()
+      } else if (selectData.length === 1) {
+        obj.partIds = selectData[0].partId
+      }
+      if (!this.ruleForm.listSelectAtt) {
+        this.$message({ message: '请选择要维护的属性', type: 'warning' })
+        return false
+      } else if (!this.ruleForm.listSelectAttValue) {
+        this.$message({ message: '请选择要维护的目标属性值', type: 'warning' })
+        return false
+      }
+      obj.attrKey = this.ruleForm.attr
+      obj.attrValue = this.ruleForm.attrValue || this.ruleForm.attrValueCn
+      obj.operateReason = this.ruleForm.operateReason
+      obj.isWriteLog = this.ruleForm.isWriteLog
+
+      const queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'mutation',
+        typeParam:
+          '($dataInfo: ' +
+          paApis.paDbPartListMutationSavePartAttributel.InputType +
+          ')',
+        // 请求API
+        apiUrl: paApis.paDbPartListMutationSavePartAttributel.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode:
+              paApis.paDbPartListMutationSavePartAttributel.ServiceCode,
+            apiServiceParam: '(dataInfo: $dataInfo)',
+            // 表格中台返回网格的字段
+            apiQueryRow: []
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: obj
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj)
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[
+            paApis.paDbPartListMutationSavePartAttributel.ServiceCode
+          ].result === '1'
+        ) {
+          this.$message({ message: '保存成功', type: 'success' })
+          that.$refs.multipleTable.clearSelection()
+        } else {
+          this.$message({
+            message:
+              '保存失败：' +
+              response.data[
+                paApis.paDbPartListMutationSavePartAttributel.ServiceCode
+              ].msg,
+            type: 'warn',
+            uration: 2000
+          })
+        }
+      })
+    },
+    //重置
+    reset() {
+      this.ruleForm = {
+        partNo: '',
+        attrValue: '',
+        attrValueCn: '',
+        operateReason: '',
+        attr:''
+      }
+    },
+    //选择备件-重置
+    resetChoosePart() {
+      this.bcruleForm = {
+        partBrandVal: '',
+        isButyVal: '',
+        dialogPartNo: '',
+        inputPartName: '',
+        shopPartInput: ''
+      }
+    },
+    handleSizeChange(val) {
+      this.listQuery.pageSize = val
+    },
+    handleCurrentChange(val) {
+      this.listQuery.pageIndex = val
+    },
+    paChooseOpenModelActive() {
+      this.paChooseModel()
+    },
+    paChooseModel() {
+      this.dialogFormVisible = true
+    },
+    paChooseCloseModelActive(val) {
+      if (this.$refs.bjChoose.selection.length == 0) {
+        this.$message({ message: '请勾选要选择的备件', type: 'warning' })
+        return false
+      }
+      this.changeHandleSlectvalCenter = this.$refs.bjChoose.selection
+      this.dialogFormVisible = false
+      this.$refs.bjChoose.clearSelection()
+    },
+    //导入路径-----备件号
+    beforeAvatarUpload(file) {
+      const extension = file.name.split('.')[1] === 'xls'
+      const extension2 = file.name.split('.')[1] === 'xlsx'
+      if (!extension && !extension2) {
+        this.$alert('上传文件只能为Excel文件', '提示', {
+          confirmButtonText: '确定',
+          type: 'warning'
+        })
+      }
+      return extension || extension2
+    },
+    beforeRemove(file, fileList) {
+      this.$alert(
+        `选择文件类型或大小不符，已移除 ${file.name}，请重新选择`,
+        '提示',
+        {
+          confirmButtonText: '确定',
+          type: 'warning'
+        }
+      )
+    },
+    handleExceed(files, fileList) {
+      this.$message.warning(
+        `当前限制选择 1 个文件，本次选择了 ${
+          files.length
+        } 个文件，共选择了 ${files.length + fileList.length} 个文件`
+      )
+    },
+    uploadSuccess(response) {
+      if (
+        response.data.result === '1' &&
+        response.data.rows != null &&
+        response.data.rows.length > 0
+      ) {
+        var tempList = response.data.rows
+        var implistTemp = []
+        //导入Excel模块列头、数据是否必填
+        var excelCols = [
+          { name: '查询编号', required: true },
+        ]
+        var isErrorTemplate = false // 模版错误
+        var firstRow = tempList[0]
+        excelCols.forEach(col => {
+          // 检查模版是否错误
+          if (firstRow.hasOwnProperty(col.name)==false) isErrorTemplate = true
+        })
+        if (isErrorTemplate) {
+          this.$alert('Excel模版错误', '提示', {
+            confirmButtonText: '确定',
+            type: 'warning'
+          })
+          this.$refs.upload.clearFiles()
+          this.changeHandleSlectvalCenter = []
+          return
+        }
+        var dataNullErrorMsg = ''
+        for (var i = 0; i < tempList.length; i++) {
+          // 检查数据是否为空
+          if (!this.$utils.isEmpty(dataNullErrorMsg)) break
+          var row = tempList[i]
+          for (var j = 0; j < excelCols.length; j++) {
+            var col = excelCols[j]
+            if (col.required == true && this.$utils.isEmpty(row[col.name])) {
+              dataNullErrorMsg = `Excel第${i + 2}行“${col.name}”不能为空`
+              break
+            }
+          }
+        }
+        if (!this.$utils.isEmpty(dataNullErrorMsg)) {
+          this.$alert(dataNullErrorMsg, '提示', {
+            confirmButtonText: '确定',
+            type: 'warning'
+          })
+          this.$refs.upload.clearFiles()
+          this.changeHandleSlectvalCenter = []
+          return
+        }
+        tempList.forEach(row => {
+          implistTemp.push(row.查询编号)
+        })
+        this.ruleForm.partNo = implistTemp.join()
+        this.fetchData(1,1)
+        this.$alert('文件导入成功', '提示', {
+          confirmButtonText: '确定',
+          type: 'success'
+        })
+      } else {
+        this.$alert(`文件导入失败${response.data.msg}`, '提示', {
+          confirmButtonText: '确定',
+          type: 'warning'
+        })
+      }
+      this.$refs.upload.clearFiles()
+    },
+    uploadUrl: function() {
+      return (
+        paApis.resolve.APIUrl + config.cH + 'v=' + paApis.resolve.ServiceCode
+      )
+    },
+    //处理文件选择器改变事件
+    handleChange(param) {
+      var url = this.uploadUrl() // API根据不同功能url不同，请配置到对应模块配置
+      var that = this
+      this.$requestImport(url, param, function(response) {
+        that.uploadSuccess(response)
+      })
+    },
+    //批量导入
+    beforeAvatarUploadImport(file) {
+      this.plattr.fileName = file.name
+      const extension = file.name.split('.')[1] === 'xls'
+      const extension2 = file.name.split('.')[1] === 'xlsx'
+      if (!extension && !extension2) {
+        this.$alert('上传文件只能为Excel文件', '提示', {
+          confirmButtonText: '确定',
+          type: 'warning'
+        })
+      }
+      return extension || extension2
+    },
+    beforeRemoveImport(file, fileList) {
+      this.$alert(
+        `选择文件类型或大小不符，已移除 ${file.name}，请重新选择`,
+        '提示',
+        {
+          confirmButtonText: '确定',
+          type: 'warning'
+        }
+      )
+    },
+    handleExceedImport(files, fileList) {
+      this.$message.warning(
+        `当前限制选择 1 个文件，本次选择了 ${
+          files.length
+        } 个文件，共选择了 ${files.length + fileList.length} 个文件`
+      )
+    },
+    uploadSuccessP(response) {
+      if (
+        response.data.result === '1' &&
+        response.data.rows != null &&
+        response.data.rows.length > 0
+      ) {
+        var tempList = response.data.rows
+        var implistTemp = []
+        //导入Excel模块列头、数据是否必填
+        var excelCols = [
+          { name: '配件号', required: true },
+          { name: '配件名称', required: true },
+          { name: '是否PV必备件', required: true },
+          { name: '化学品备件', required: true },
+          { name: '备件品种分类', required: true },
+          { name: '最小出库包装', required: true },
+          { name: '最小入库包装', required: true },
+          { name: '重点备件', required: true },
+          { name: '最小销售数量', required: true },
+          { name: '物流商流标识', required: true },
+          { name: '运输限制', required: true }
+        ]
+        var isErrorTemplate = false // 模版错误
+        var firstRow = tempList[0]
+        for (let i = 0; i < excelCols.length; i++) {
+          if (firstRow.hasOwnProperty(excelCols[i].name) == false) {
+            isErrorTemplate = false
+          } else {
+            isErrorTemplate = true
+          }
+        }
+        if (isErrorTemplate) {
+          this.$alert('Excel模版错误', '提示', {
+            confirmButtonText: '确定',
+            type: 'warning'
+          })
+          this.$refs.upload.clearFiles()
+          this.importList = []
+          return
+        }
+        // var dataNullErrorMsg = ''
+        // for (var i = 0; i < tempList.length; i++) {
+        //   // 检查数据是否为空
+        //   if (!this.$utils.isEmpty(dataNullErrorMsg)) break
+        //   var row = tempList[i]
+        //   for (var j = 0; j < excelCols.length; j++) {
+        //     var col = excelCols[j]
+        //     if (col.required == true && this.$utils.isEmpty(row[col.name])) {
+        //       dataNullErrorMsg = `Excel第${i + 2}行“${col.name}”不能为空`
+        //       break
+        //     }
+        //   }
+        // }
+        // if (!this.$utils.isEmpty(dataNullErrorMsg)) {
+        //   this.$alert(dataNullErrorMsg, '提示', {
+        //     confirmButtonText: '确定',
+        //     type: 'warning'
+        //   })
+        //   this.$refs.upload.clearFiles()
+        //   this.importList = []
+        //   return
+        // }
+        for (let i = 0; i < tempList.length; i++) {
+          var newRow = {
+            partNo: tempList[i].partNo,
+            partName: tempList[i].partName,
+            userPrice: tempList[i].userPrice,
+            oldSalePrice: tempList[i].oldSalePrice,
+            newSalePrice: tempList[i].newSalePrice,
+            partType: tempList[i].partType
+          }
+          implistTemp.push(newRow)
+        }
+        // tempList.forEach((index,row) => {
+        //   var newRow = {
+        //     partNo: row.备件号,
+        //     partName: row.备件名称,
+        //     userPrice: row.建议零售价,
+        //     oldSalePrice: row.原零售价,
+        //     newSalePrice: row.零售价,
+        //     partType: row.备件类别
+        //   }
+        //   implistTemp.push(newRow)
+        // })
+        this.importList = implistTemp
+        this.$alert('文件导入成功', '提示', {
+          confirmButtonText: '确定',
+          type: 'success'
+        })
+      } else {
+        this.$alert(`文件导入失败${response.data.msg}`, '提示', {
+          confirmButtonText: '确定',
+          type: 'warning'
+        })
+      }
+      this.$refs.uploadImport.clearFiles()
+    },
+    //处理文件选择器改变事件
+    handleChangeImport(param) {
+      var url =
+        '/ly/mp/busicen/prc/excel/paDbPartListMutationBatchImportPartAttributel.do' // API根据不同功能url不同，请配置到对应模块配置
+      var that = this
+      this.$requestImport(url, param, function(response) {
+        that.uploadSuccessP(response)
+      })
+    },
+    //批量导入---删除
+    pldel() {
+      const that = this
+      let plselectData = this.$refs.plImport.selection
+      if (plselectData.length == 0) {
+        this.$message({ message: '请选择需要删除的数据', type: 'warning' })
+        return false
+      } else {
+        let queryObj = {
+          //保存需要传 type="mutation"
+          type: 'mutation',
+          // api配置
+          apiConfig: paApis.paDbPartListMutationImportDeletePartNo,
+          // 需要调用的API服务配置
+          apiServices: [
+            {
+              //表格中台返回网格的字段
+              apiQueryRow: [
+                'id',
+                'brandName',
+                'carSeries',
+                'catType',
+                'carTypeConfig',
+                'isEnable',
+                'status',
+                'editDate'
+              ]
+            }
+          ],
+          //条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            pageSize: 1000,
+            pageIndex: 1,
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: plselectData
+          }
+        }
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj)
+        requestGraphQL(paramD).then(response => {
+          if (
+            response[paApis.paDbPartListMutationImportDeletePartNo.ServiceCode]
+              .result === '1' &&
+            response[paApis.paDbPartListMutationImportDeletePartNo.ServiceCode]
+              .rows != ''
+          ) {
+            this.$message({ message: '删除成功', type: 'success' })
+            that.$refs.plImport.clearSelection()
+          }
+        })
+      }
+    },
+    //批量导入--提交
+    plsubmit() {
+      const that = this
+      let plselectData = this.$refs.plImport.selection
+      if (plselectData.length == 0) {
+        this.$message({ message: '请选择需要提交的数据', type: 'warning' })
+        return false
+      } else {
+        let arr = []
+        for (let i in plselectData) {
+          let obj = {}
+          obj.partNo = plselectData[i].partNo
+          obj.partName = plselectData[i].partName
+          obj.isPvRequired = plselectData[i].isPvRequired
+          obj.emphasisFlag = plselectData[i].emphasisFlag
+          obj.partVarietyCode = plselectData[i].partVarietyCode
+          obj.leastPackOut = plselectData[i].leastPackOut
+          obj.leastPackIn = plselectData[i].leastPackIn
+          obj.dlrLeastSaleQty = plselectData[i].dlrLeastSaleQty
+          obj.transitLimit = plselectData[i].transitLimit
+          arr.push(obj)
+        }
+        // let queryObj = {
+        //   //保存需要传 type="mutation"
+        //   type: 'mutation',
+        //   // api配置
+        //   apiConfig: paApis.paDbPartListMutationImportSubmitPartNo,
+        //   // 需要调用的API服务配置
+        //   apiServices: [
+        //     {
+        //       //表格中台返回网格的字段
+        //       apiQueryRow: [
+        //         'id',
+        //         'brandName',
+        //         'carSeries',
+        //         'catType',
+        //         'carTypeConfig',
+        //         'isEnable',
+        //         'status',
+        //         'editDate'
+        //       ]
+        //     }
+        //   ],
+        //   //条件/实体参数（变量），根据typeParam中的定义配置
+        //   variables: {
+        //     pageSize: 1000,
+        //     pageIndex: 1,
+        //     //当前中台使用的名称有dataInfo、info，具体查看API文档
+        //     dataInfo: plselectData
+        //   }
+        // }
+
+        const queryObj = {
+          // 请求类型&参数 保存mutation  查询query
+          type: 'mutation',
+          typeParam:
+            '($dataInfo: ' +
+            paApis.paDbPartListMutationImportSubmitPartNo.InputType +
+            ')',
+          // 请求API
+          apiUrl: paApis.paDbPartListMutationImportSubmitPartNo.APIUrl,
+          // 需要调用的API服务配置
+          apiServices: [
+            {
+              // API服务编码&参数
+              apiServiceCode:
+                paApis.paDbPartListMutationImportSubmitPartNo.ServiceCode,
+              apiServiceParam: '(dataInfo: $dataInfo)',
+              // 表格中台返回网格的字段
+              apiQueryRow: []
+            }
+          ],
+          // 条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            // 当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: arr
+          }
+        }
+
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj)
+        requestGraphQL(paramD).then(response => {
+          if (
+            response.data[
+              paApis.paDbPartListMutationImportSubmitPartNo.ServiceCode
+            ].result === '1'
+          ) {
+            this.$message({ message: '保存成功', type: 'success' })
+            that.$refs.plImport.clearSelection()
+            this.dialogAllVisible = false
+          } else {
+            this.$message({
+              message:
+                '保存失败：' +
+                response.data[
+                  paApis.paDbPartListMutationImportSubmitPartNo.ServiceCode
+                ].msg,
+              type: 'warn',
+              uration: 2000
+            })
+            that.$refs.plImport.clearSelection()
+            this.dialogAllVisible = false
+          }
+        })
+      }
+    },
+    changeCodeInside(val) {
+      debugger
+      const PA0110 = this.pa0110
+      PA0110.map(o => {
+        let v = val.toLocaleLowerCase().split('_')
+        let w = v.map((o, i) => {
+          let r = ''
+          if (i !== 0) {
+            r = o.slice(0, 1).toUpperCase() + o.slice(1).toLowerCase()
+          } else {
+            r = o
+          }
+          return r
+        })
+        if (w.join('') === o.lookupValueCode) {
+          this.codeInside = o
+          return false
+        } else {
+          return true
+        }
+      })
+      if (Number(this.codeInside.attribute1) === 0) {
+        const that = this
+        const queryObj = {
+          // 请求类型&参数 保存mutation  查询query
+          type: 'query',
+          typeParam:
+            '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+            orgApis.mdsLookupValueQueryByPage.InputType +
+            ')',
+          // 请求API
+          apiUrl: orgApis.mdsLookupValueQueryByPage.APIUrl,
+          // 需要调用的API服务配置
+          apiServices: [
+            {
+              // API服务编码&参数
+              apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+              // API服务编码&参数
+              apiServiceParam:
+                '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+              // 表格中台返回网格的字段
+              apiQueryRow: [
+                'oemCode',
+                'groupCode',
+                'lookupTypeCode',
+                'lookupValueCode',
+                'lookupValueName'
+              ]
+            }
+          ],
+          // 条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            pageSize: 100,
+            pageIndex: 1,
+            // 当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: {
+              isEnable: '1',
+              lookupTypeCode: that.codeInside.attribute2
+            }
+          }
+        }
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj)
+        // 调用中台API方法（可复用）
+        requestGraphQL(paramD).then(response => {
+          if (
+            response.data[orgApis.mdsLookupValueQueryByPage.ServiceCode]
+              .result === '1'
+          ) {
+            that.ruleForm.listSelectAttValue =
+              response.data[orgApis.mdsLookupValueQueryByPage.ServiceCode].rows
+            that.ruleForm.listSelectAttValue =
+              response.data[orgApis.mdsLookupValueQueryByPage.ServiceCode].rows
+          } else {
+            this.$message({
+              message:
+                '查询失败：' +
+                response.data[orgApis.mdsLookupValueQueryByPage.ServiceCode]
+                  .msg,
+              type: 'warn',
+              uration: 2000
+            })
+          }
+        })
+      }
+    },
+    getLookupValueBrand(val) {
+      this.bcruleForm.partBrandVal = val
+    },
+    getLookupIsButyVal(val) {
+      this.bcruleForm.isButyVal = val
+    },
+    pageSizeChange(val) {
+      this.listQuery.pageSize = val
+      this.fetchData()
+    },
+    pageIndexChange(val) {
+      this.listQuery.pageIndex = val
+      this.fetchData()
+    },
+    //批量导入弹窗关闭
+    closeImport() {
+      this.plattr.fileName = ''
+      this.list = []
+    },
+    
+  }
+}
+</script>

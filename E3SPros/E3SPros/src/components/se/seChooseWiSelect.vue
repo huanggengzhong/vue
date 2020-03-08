@@ -1,0 +1,734 @@
+<template>
+    <section class="carType">
+        <el-dialog
+        :title="thimeTitle"
+        :visible.sync="seChooseWiSelectVisibles"
+        @close="close"
+        width="80%"
+        :append-to-body="true"
+        :close-on-click-modal="false">
+            <el-row>
+                <el-col :span="17" >
+                        <div class="filter-container filter-params">
+                            <el-row >
+                                <el-col :span="8">
+                                    <label class="margin-r-0">工时编码</label>
+                                    <el-input
+                                        v-model="listQuery.wiCode"
+                                        clearable
+                                        size="small"
+                                    />
+                                </el-col>
+                                <el-col :span="8">
+                                <label class="margin-r-0">维修内容</label>
+                                <el-input
+                                    v-model="listQuery.wiName"
+                                    clearable
+                                    size="small"
+                                />
+                                </el-col>
+                                <CarTypeModal :isMul="isMul" ref="CarTypeModal" @changeCode="getCarTypeCode" />
+                                <el-col :span="8">
+                                    <label class="margin-r-0">车型</label>
+                                    <el-input
+                                        v-model="listQuery.carTypeCode"
+                                        suffix-icon="el-icon-search"
+                                        placeholder="请选择"
+                                        size="small"
+                                        clearable
+                                        @focus="opencarTypeModal"
+                                    />
+                                </el-col>
+                                <el-col :span="8">
+                                    <label class="margin-r-0">工时大类</label>
+                                    <el-select
+                                    v-model="listQuery.operatePartId"
+                                    placeholder="请选择"
+                                    clearable
+                                    @change="changeOperatePart"
+                                    size="small">
+                                    <el-option v-for="(item, i) in wiSelectBig" 
+                                    :key="`wiSelectBig_${i}`" 
+                                    :label="item.text" 
+                                    :value="item.code">
+                                    </el-option>
+                                    </el-select>
+                                </el-col>
+                                <el-col :span="8">
+                                <label class="margin-r-0">工时小类</label>
+                                    <el-select
+                                    v-model="listQuery.repairSmallKindCode"
+                                    placeholder="请选择"
+                                    clearable
+                                    @change="changeRepairSmallKind"
+                                    size="small">
+                                    <el-option v-for="(item, i) in wiSelectSmall" 
+                                    :key="`wiSelectSmall_${i}`" 
+                                    :label="item.text" 
+                                    :value="item.code">
+                                    </el-option>
+                                    </el-select>
+                                </el-col>
+                                 <el-col :span="8">
+                                <label class="margin-r-0">工时来源</label>
+                                    <el-select
+                                    :disabled="isSystemDisabled"
+                                    v-model="listQuery.isSystem"
+                                    placeholder="请选择"
+                                    clearable
+                                    size="small">
+                                    <el-option v-for="item in wiSelectFrom" :key="item.value" :label="item.label" :value="item.value"></el-option>
+                                    </el-select>
+                                </el-col>
+                                <el-col :span="6" class="">
+                                    <el-checkbox v-model="saleWorkQty">选择工时为0的数据</el-checkbox>
+                                </el-col>
+                                <el-col :span="4" class="">
+                                    <el-checkbox v-model="appendcondition">显示已选工时</el-checkbox>
+                                </el-col>
+                                <el-col :span="14">
+                                    <div class="filter-container filter-button">
+                                        <el-button type="primary" size="small" @click="fetchData()">查询</el-button>
+                                        <!--<el-button size="small" @click="select">选择</el-button>-->
+                                        <el-button size="small" @click="reset">重置</el-button>
+                                    </div>
+                                </el-col>
+                            </el-row>
+                        </div>
+                        <div class="filter-container filter-title">查询结果</div>
+                        <el-table
+                            :data="list"
+                            element-loading-text="Loading"
+                            border
+                            stripe
+                            max-height="250"
+                            v-loading="listLoading"
+                            style="width: 100%"
+                            highlight-current-row
+                            @select="tableListSelect"
+                            ref="chooseWiTable"
+                            @select-all="tableListSelect">
+                            <el-table-column align="center" label="序号" width="55">
+                                <template slot-scope="scope">
+                                {{ scope.$index + 1 }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column  type="selection" width="60" align="center"/>
+                            <el-table-column label="工时编码">
+                                <template slot-scope="scope">
+                                {{ scope.row.wiCode }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="维修内容" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.wiName }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="车型编码" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.carTypeCode }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="标准工时" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.wiRepairQty }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="派工工时" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.wiWorkQty }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="工时大类" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.opratePlaceName }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="工时小类" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.repairSmallKindName }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="选择" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.isSelect }}
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <el-pagination
+                        background
+                        layout="prev, pager, next, sizes, ->, total"
+                        prev-text="上一页"
+                        next-text="下一页"
+                        :page-sizes="[10, 20, 30]"
+                        :page-size="10"
+                        :total="list?listRecords:0"
+                        @size-change="handleSizeChange"
+                        @current-change="handleCurrentChange"
+                        />
+                </el-col>
+                <el-col :span="7">
+                    <div class="filter-container filter-title">选择信息</div>
+                    <div class="filter-container filter-params">
+                        <el-row>
+                            <div class="filter-container filter-button">
+                                <el-button size="small" @click="affirm">确认</el-button>
+                                <el-button size="small" @click="delect">删除</el-button>
+                            </div>
+                        </el-row>
+                    </div>
+                    <el-table
+                        :data="tableList"
+                        ref="sonTableList"
+                        element-loading-text="Loading"
+                        min-height="410"
+                        border
+                        stripe
+                        @select="tableListChoose"
+                        highlight-current-row>
+                            <el-table-column align="center" label="序号" width="55">
+                                <template slot-scope="scope">
+                                {{ scope.$index + 1 }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column type="selection" width="65" align="center"/>
+                            <el-table-column label="工时编码" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.wiCode }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="维修内容" align="center">
+                                <template slot-scope="scope">
+                                {{ scope.row.wiName }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="车型编码" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.carTypeCode }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="维修工时" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.wiRepairQty }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="派工工时" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.wiWorkQty }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="工时大类" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.operatePartCode }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="工时小类" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.rrpairSmallKindCode }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="选择" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.isSelect }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="工时ID" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.wiId }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="工时编码" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.wiCode }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="车型ID" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.wiCartypeId }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="销售工时数" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.saleWiQty }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="维修大类名称" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.opratePlaceName }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="维修小类名称" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.rrpairSmallKindName }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="车辆品牌" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.carBrandCode }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="是否可用" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.isEnable }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="是否系统" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.isSystem }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="创建日期" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.createdDate }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="专营店编码" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.dlrCode }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="专营店ID" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.dlrId }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="厂商标识" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.oemCode }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="集团标识" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.groupCode }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="厂商标识ID " align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.oemId }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="集团标识ID" align="center" v-if="false">
+                                <template slot-scope="scope">
+                                {{ scope.row.groupId }}
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                </el-col>
+            </el-row>
+        </el-dialog>
+    </section>
+ </template>
+<script>
+import { getCarType } from '@/api/components'
+import { doSeChooseWiQuery } from '@/api/se/seChooseWiSelect'
+import { seApis } from '@/api/graphQLApiList/se'
+import { requestGraphQL } from '@/api/commonRequest'
+import partsCarTypeModal from "@/components/se/partsCarTypeModal";
+import CarTypeModal from "@/components/se/CarTypeModal/CarTypeModal";
+export default {
+  components: {
+    partsCarTypeModal,
+    CarTypeModal
+  },
+  props:{
+    seChooseWiSelectVisibles:{
+      type:Boolean,
+      default:function(){
+        return false
+      }
+    },
+    code:{
+      type:String,
+      default:function(){
+        return ''
+      }
+    },
+    title:{
+      type:Number,
+      default:function(){
+        return 1
+      }
+    }
+  },
+  data() {
+    return {
+        CarTypeModalData:{
+            carBrandCode:'1'
+        },
+        paChoosePartVisible: false,
+        isMul: false,
+        codeInside: this.code,
+        thimeTitle:'工时多选',
+        listLoading: false,
+        carTypeVisible: false,
+        list: [],
+        tableList: [],
+        //右表选择的数据
+        tableChooseList: [],
+        isSystemDisabled: false,
+        carTypeCodeDisabled: false,
+        listRecords: 0,
+        wiSelectBig: [],
+        wiSelectSmall: [],
+        wiSelectFrom: [
+            { label: '主机厂', value: '1'},
+            { label: '经销商', value: '0'}
+        ],
+        //optionDatas: [],
+        saleWorkQty: false,
+        appendcondition: false,
+        listQuery: {
+            oemCode: '',
+            groupCode: '',
+            dlrId: this.$store.getters.orgInfo.DLR_ID,
+            secondDlrId: '',
+            pfpCode: '',//主凶件号
+            carTypeCode:'',
+            wiCode: '',
+            wiName: '',
+            operatePartId: '',
+            repairSmallKindCode: '',
+            isSystem: '',
+            saleWorkQty: '0',//不勾选时传0
+            appendcondition: '0',
+        },
+        pageSize:10,
+        pageIndex: 1,
+        toCarTypeModalData:{},
+        //listInit:{},
+        selectData: [],
+    }
+  },
+  created() {
+      this.title? this.thimeTitle='工时多选':this.thimeTitle='工时单选';
+      this.initOperatePart();
+  },
+  methods: {
+    // open(obj, carType){
+    //     this.initOperatePart()
+    //     if(!obj){
+    //         obj = {
+    //             carTypeCodeDisabled: false, 
+    //             isSystemDisabled: false
+    //         }
+    //     }
+    //     if(!carType){
+    //         carType = {}
+    //     }
+    //     this.listQuery = obj
+    //     this.toCarTypeModalData = carType
+    //     if(obj.isSystemDisabled ){
+    //         this.isSystemDisabled = true
+    //     }
+    //     if(obj.carTypeCodeDisabled){
+    //         this.carTypeCodeDisabled = true
+    //     }
+    //     if(!obj.operatePartId){
+    //         this.listInit.operatePartId = obj.operatePartId
+    //         this.initRepairSmallKind()
+    //     }
+    // },
+    // getBrandCode(val) {
+    //   this.listQuery.brandCode = val
+    // },
+    fetchData() {
+        this.listLoading = true;
+        if (this.saleWorkQty == true) {
+            this.listQuery.saleWorkQty = '1';
+        } else {
+            this.listQuery.saleWorkQty = '0';
+        }
+
+        if (this.appendcondition == true) {
+            this.listQuery.appendcondition = '1';
+        } else {
+            this.listQuery.appendcondition = '0';
+        }
+        let obj = {
+            carTypeCode: this.listQuery.carTypeCode,
+            wiCode: this.listQuery.wiCode,
+            wiName: this.listQuery.wiName,
+            operatePartId: this.listQuery.operatePartId,
+            repairSmallKindCode: this.listQuery.repairSmallKindCode,
+            isSystem: this.listQuery.isSystem,
+            pfpCode: this.listQuery.pfpCode,
+            appendcondition: this.listQuery.appendcondition,
+            saleWorkQty: this.listQuery.saleWorkQty,
+            dlrId: this.listQuery.dlrId,
+            //appendcondition: this.listQuery.appendcondition ? '1':'0',
+            //scene: 1
+        }
+        doSeChooseWiQuery(this.pageSize, this.pageIndex, obj).then(response => {
+            this.listLoading = false
+            if (response.data[seApis.SeChooseWiQuery.ServiceCode].result === '1') {
+                this.list = response.data[seApis.SeChooseWiQuery.ServiceCode].rows
+                this.listRecords = response.data[seApis.SeChooseWiQuery.ServiceCode].records
+            } else {
+                this.$message({
+                    message: '查询失败：' + response.data[seApis.SeChooseWiQuery.ServiceCode].msg,
+                    type: 'warning',
+                    uration: 2000
+                })
+            }
+      });
+      this.tableList = [];
+    },
+    handleSizeChange(val) {
+      this.pageSize = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.pageIndex = val
+      this.fetchData()
+    },
+    getCarTypeCode(val){
+      this.listQuery.carTypeCode = val[0].carTypeCode;
+    },
+    sendData(data) {
+        if(data===null||data===undefined||data===''){
+            data=[]
+        }
+        this.$emit("seChooseWiData", data)
+        this.seChooseWiSelectVisibles = false
+    },
+    opencarTypeModal() {
+      this.$refs.CarTypeModal.open(this.toCarTypeModalData)
+    },
+    tableListSelect(selection){
+      for (var i = 0; i < selection.length; i++) {
+        let flag = true;
+        if (this.tableList.length != null) {
+          for (var j = 0; j < this.tableList.length; j++) {
+            if (selection[i].wiId == this.tableList[j].wiId) {
+              flag = false;
+            }
+          }
+        }
+        if (flag) {
+          this.tableList.push(selection[i]);
+        }
+      }
+    },
+    tableListChoose(selection){
+      this.tableChooseList = selection
+    },
+    // select(){
+    //     if(this.list.length === 0){
+    //         this.$alert('未选择数据！', '信息提示', {
+    //                     confirmButtonText: '确定',
+    //                     type: 'warning',
+    //                     callback: action => {
+    //                     }
+    //                 });
+    //     }else{
+    //         //单选
+    //         if(this.title === 0){
+    //             if(this.list.length>1){
+    //                 this.$alert('只能选择一条数据！', '信息提示', {
+    //                     confirmButtonText: '确定',
+    //                     type: 'warning',
+    //                     callback: action => {
+    //                     }
+    //                 });
+    //             }else{
+    //                 this.$refs.SeChooseWiSelects.getData(this.tableList,this.title)
+    //                 this.$refs.SeChooseWiSelects.limit(this.title)
+
+    //             }
+    //         //多选
+    //         }else{
+    //             this.$refs.SeChooseWiSelects.getData(this.tableList,this.title)
+    //             this.$refs.SeChooseWiSelects.limit(this.title)
+
+    //         }
+    //     }
+    // },
+    close() {
+      this.$emit("close", '!**!');
+      this.reset();
+    },
+    reset() {
+      this.listQuery.wiCode = '';
+      this.listQuery.wiName = '';
+      this.listQuery.carTypeCode = '';
+      this.listQuery.operatePartId = '';
+      this.listQuery.repairSmallKindCode = '';
+      this.listQuery.isSystem = '';
+      this.listQuery.saleWorkQty = '';
+      this.listQuery.appendcondition = '';
+    },
+    getData(data){
+        if(data===null||data===undefined||data===''){
+            this.$alert('没有需要保存的数据！', '信息提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                callback: action => {
+                }
+            });
+        }else{
+            this.sendData(data)
+        }
+    },
+    changeOperatePart(val) {
+      this.listQuery.operatePartId = val;
+      this.listQuery.repairSmallKindCode = "";
+      this.initRepairSmallKind(this.listQuery.operatePartId);
+    },
+    changeRepairSmallKind(val) {
+      this.listQuery.repairSmallKindCode = val;
+    },
+    //查询工时大类
+    initOperatePart(){
+	  const queryObj = {
+	    // api配置
+        apiConfig: seApis.seOperatePart,
+        type: 'query', 
+        typeParam: '($pageIndex: Int, $pageSize: Int, $dataInfo: '+ seApis.seOperatePart.InputType + ')',
+	    // 需要调用的API服务配置
+	    apiServices: [{
+          // API服务编码&参数
+          apiServiceCode: seApis.seOperatePart.ServiceCode,
+          apiServiceParam: '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+          // 表格中台返回网格的字段
+          apiQueryRow: [
+            'operatePartCode',
+            'operatePartId',
+            'opratePlaceName'
+          ]
+        }],
+	    // 条件/实体参数（变量），根据typeParam中的定义配置
+	    variables: {
+		  dataInfo: {}
+	    }
+      }
+	  // 转换了中台请求格式数据
+	  var paramD = this.$getParams(queryObj)
+	  // 调用中台API方法（可复用）
+	  requestGraphQL(paramD).then(response => {
+        var resData = response.data[seApis.seOperatePart.ServiceCode];
+	    if (resData.result === '1' ) {
+          let list = resData.rows;
+          //第一次加载，大类下拉框
+          var temp_array = [];
+          list.forEach(row => {
+            //返回数据，按大类ID去重后的数据
+            if(temp_array.filter(o=>o.code == row.operatePartId).length === 0) {
+              temp_array.push({
+                code: row.operatePartId,
+                text: row.opratePlaceName
+              });
+            }
+          });
+          this.wiSelectBig = temp_array;
+          //this.wiSelectBig = this.$utils.changeToOneDeepArray(response.data[seApis.seOperatePart.ServiceCode].rows)
+		}
+	  })
+    },
+    //获取工时小类
+    initRepairSmallKind(operatePartId) {
+      const queryObj = {
+	    // api配置
+		apiConfig: seApis.seRepairSmallKind,
+		// 需要调用的API服务配置
+		apiServices: [{
+          // API服务编码&参数
+          apiServiceCode: seApis.seRepairSmallKind.ServiceCode,
+          apiServiceParam: '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+          // 表格中台返回网格的字段
+          apiQueryRow: [
+            'wiSmallKindId',
+            'repairSmallKindCode',
+            'operatePartCode',
+            'repairSmallKindName',
+            'operatePartId',
+            'isSystem',
+            'dlrCode',
+            'dlrId',
+            'oemId',
+            'oemCode',
+            'groupId',
+            'groupCode',
+            'isEnable',
+            'updateControlId'
+          ]
+		}],
+		// 条件/实体参数（变量），根据typeParam中的定义配置
+		variables: {
+		  dataInfo: {
+            operatePartId: operatePartId
+          },
+          pageIndex: 1,
+          pageSize: -1
+		}
+	  }
+	  // 转换了中台请求格式数据
+	  var paramD = this.$getParams(queryObj)
+	  // 调用中台API方法（可复用）
+	  requestGraphQL(paramD).then(response => {
+        var resData = response.data[seApis.seRepairSmallKind.ServiceCode];
+        if (resData.result === '1' ) {
+          let list = resData.rows;
+          var temp_array = [];
+          list.forEach(row => {
+            temp_array.push({
+              code: row.repairSmallKindCode,
+              text: row.repairSmallKindName
+            });
+          });
+          this.wiSelectSmall = temp_array;
+		}
+	  })
+    },
+
+    affirm() {
+      var selection = this.$refs.sonTableList.selection;
+      if(selection.length === 0) {
+        this.$alert('未选中数据！', '信息提示', {
+          confirmButtonText: '确定',
+          type: 'warning',
+          callback: action => {}
+        });
+      } else {
+        this.$emit('seChooseWiData', selection);
+        this.$refs.chooseWiTable.clearSelection();
+        this.$refs.sonTableList.clearSelection();
+        this.tableList = [];
+      }
+    },
+    delect() {
+        if(this.tableChooseList.length === 0) {
+            this.$alert('请选择要删除的数据！', '信息提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                callback: action => {
+
+                }
+            });
+        } else {
+            for (var i = 0; i < this.tableChooseList.length; i++) {
+              for (var j = 0; j < this.tableList.length; j++) {
+                if (this.tableChooseList[i].wiId === this.tableList[j].wiId) {
+                  this.tableList.splice(j, 1);
+                }
+                //this.tableList.splice(j, 1);
+              }
+            }
+            // let data = [];
+            // for(let i =0, lens =  this.tableChooseList; i < lens; i++){
+            //     let obj = this.tableChooseList[i]
+            //     let flag = true
+            //     for(let j = 0; j < this.tableListSelect.length; j++){
+            //         if(obj.wiId === this.tableListSelect[j].wiId){
+            //             flag = flase
+            //         }
+            //     }
+            //     if(flag){
+            //         data.push(obj)
+            //     }
+            // }
+            // this.tableChooseList = data
+        }
+    }
+  }
+}
+</script>

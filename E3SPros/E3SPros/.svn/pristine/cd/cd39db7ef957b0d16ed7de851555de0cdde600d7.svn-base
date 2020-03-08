@@ -1,0 +1,544 @@
+<!--
+* description: 车型配置与颜色关系维护
+* author: linzewen
+* createdDate: 2019-08-08
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template
+      ref="multipleTable"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="false"
+    />
+    <edit
+      :dynamicEditRowData="editRowData"
+      :popupsVisible="editPopupsVisible"
+      :key="editPopupsKey"
+      :popupsState="editPopupsState"
+      @close="close"
+    ></edit>
+    <interiorColorDialog
+      @visible="handinColorDialogVisibleFunc"
+      :dialogVisible="inColorDialogVisible"
+      :editData="editData"
+      :key="intercalorKey"
+    />
+    <colorDialog
+      @changeCode="handColorDialogVisibleFunc"
+      :dialogVisible="colorDialogVisible"
+      :carcolorDatas="carcolorDatas"
+      :key="carcalorKey"
+    />
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from "@/components/mixins/oneTableWithViewTemplateMixins";
+import { valueObjectMixins } from "@/components/mixins/valueObjectMixins";
+import { orgApis } from "@/api/graphQLApiList/org";
+import OneTableTemplate from "@/components/templates/oneTable";
+import Edit from "./edit";
+import interiorColorDialog from "./interiorColorDialog";
+import colorDialog from "./colordialog";
+import { CacheConfig } from "@/cache/configCache/index";
+import LangSelect from "@/components/LangSelect";
+export default {
+  name: "vecarConfigAndColorSafeguard",
+  // 组件混入对象
+  mixins: [oneTableWithViewTemplateMixins, valueObjectMixins],
+  components: {
+    OneTableTemplate,
+    Edit,
+    interiorColorDialog,
+    colorDialog,
+    LangSelect
+  },
+  // 阻塞路由预加载网格中组件的数据
+  beforeRouteEnter(to, from, next) {
+    CacheConfig.initData(to.path, function() {
+      next();
+    });
+  },
+  data() {
+    return {
+      intercalorKey: "interiorColorDialog",
+      carcalorKey: "colorDialog",
+      currentRow: null,
+      inColorDialogVisible: false,
+      editData: {},
+      carcolorDatas: {},
+      colorDialogVisible: false,
+      // 网格查询API配置对象
+      apiConfig: orgApis.mdmVeCarConfigQueryListForPage,
+      // 动态组件-按钮
+      tableButtons: [
+        // 查询
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: this.$t("sys.button.query")
+        },
+        // 新增
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.add(),
+          text: this.$t("sys.button.add")
+        },
+        // 重置
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: this.$t("sys.button.reset")
+        },
+        // 导出
+        {
+          compKey: "btnKey4",
+          type: "",
+          size: "small",
+          clickEvent: () => this.exportExcel(),
+          text: this.$t("sys.button.export")
+        }
+      ],
+      // 动态组件-查询条件
+      tableComponents:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              // 品牌
+              {
+                compKey: "compKey1",
+                labelName: this.$t("org.label.carBrand"),
+                codeField: "carBrandCode",
+                component: () => import("@/components/org/carBrand/carBrand"),
+                type: "dropdownList",
+                isMul: false,
+                isMust: true
+              },
+              // 车系
+              {
+                compKey: "compKey2",
+                labelName: this.$t("org.label.carSerise"),
+                codeField: "carSeriesId",
+                parentFileds: "carBrandCode-carBrandCode",
+                component: () => import("@/components/org/CarCode"),
+                type: "dropdownList",
+                isMul: false,
+                isMust: true
+              },
+              // 车型
+              {
+                compKey: "compKey3",
+                labelName: this.$t("org.label.carType"),
+                codeField: "smallCarTypeId",
+                parentFileds: "value:carBrandCode|carSeriesId",
+                component: () => import("@/components/org/SmallCarType"),
+                type: "dropdownList",
+                isMul: false,
+                isMust: true
+              },
+              // 电机类型
+              {
+                compKey: "compKey4",
+                labelName: this.$t("org.label.motorType"),
+                lookuptype: "VE0624",
+                codeField: "motorType",
+                component: () => import("@/components/org/LookupValue"),
+                type: "dropdownList",
+                isMul: false,
+                isMust: true
+              },
+              // 车型配置编码
+              {
+                compKey: "compKey5",
+                labelName: this.$t("org.label.carConfigCode"),
+                codeField: "carConfigCode",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: false
+              },
+              // 车型配置名称
+              {
+                compKey: "compKey6",
+                labelName: this.$t("ve.label.carConfigCn"),
+                codeField: "carConfigCn",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: false
+              }
+              // 车型简码
+              // {
+              //   compKey: "compKey7",
+              //   labelName: this.$t("org.label.configCode"),
+              //   codeField: "carTypeShortCode",
+              //   component: () => import("@/components/org/commonInput"),
+              //   type: "inputText",
+              //   isMust: false
+              // }
+            ],
+      // 动态生成网格列
+      tableCols: this.getCols(),
+
+      //表单查询数据
+      formField: {
+        carBrandCode: "",
+        carSeriesId: "",
+        carConfigId: "",
+        batteryType: "",
+        smallCarTypeId: "", //车型小类id
+        motorType: "",
+        powerType: "",
+        isNewCar: "",
+        emissionStandard: "",
+        carConfigCode: "",
+        updateControlId: "",
+        carConfigCn: "",
+        carTypeShortCode: ""
+      }
+    };
+  },
+  methods: {
+    getCols() {
+      var cols = [
+        {
+          prop: "controlBtn",
+          label: this.$t("sys.content.operate"),
+          codeField: "controlBtn",
+          width: 250,
+          align: "center",
+          isComponent: true,
+          comps: [
+            //编辑
+            {
+              compKey: "propKey0",
+              labelName: this.$t("sys.button.edit"),
+              codeField: "editControlBtn",
+              clickEvent: this.edit,
+              component: () => import("@/components/org/linkButton")
+            },
+            //内饰色修改
+            {
+              compKey: "propKey1",
+              labelName: this.$t("sys.button.editInteriorColor") /*内饰色修改*/,
+              codeField: "editControlBtn",
+              clickEvent: this.openInColorDialog,
+              component: () => import("@/components/org/linkButton")
+            },
+            //车身颜色修改
+            {
+              compKey: "propKey2",
+              labelName: this.$t("sys.button.editColor") /*车身颜色修改*/,
+              codeField: "editControlBtn",
+              clickEvent: this.openColorDialog,
+              component: () => import("@/components/org/linkButton")
+            }
+          ]
+        }
+      ];
+      if (
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableCols.length > 0
+      ) {
+        cols = cols.concat(CacheConfig.cacheData[this.$route.path].tableCols);
+      } else {
+        cols = cols.concat([
+          {
+            prop: "carBrandCn",
+            label: "品牌",
+            width: 120,
+            align: "center",
+            hidden: false
+          },
+          {
+            prop: "carBrandCode",
+            label: "品牌编码",
+            width: null,
+            align: "center",
+            hidden: true
+          },
+          //车型车系要隐藏
+          {
+            prop: "mdmVeCarSeriesExtend.carSeriesCn",
+            label: "车系",
+            width: null,
+            align: "center",
+            hidden: false
+          },
+          {
+            prop: "smallCarTypeId",
+            label: "车型ID",
+            width: null,
+            align: "center",
+            hidden: true
+          },
+          {
+            prop: "mdmSmallCarTypeExtend.smallCarTypeCn",
+            label: "车型",
+            width: 150,
+            align: "center",
+            hidden: false
+          },
+          {
+            prop: "mdmSmallCarTypeExtend.smallCarTypeCode",
+            label: "车型编码",
+            width: 150,
+            align: "center",
+            hidden: false
+          },
+          {
+            prop: "carSeriesId",
+            label: "车系ID",
+            width: null,
+            align: "center",
+            hidden: true
+          },
+          // 车型配置id
+          {
+            prop: "carConfigId",
+            label: "车型配置ID",
+            width: 150,
+            align: "center",
+            hidden: true
+          },
+          {
+            prop: "updateControlId",
+            label: this.$t("org.label.carConfigId"),
+            width: 150,
+            align: "center",
+            hidden: true
+          },
+          // 车型配置编码
+          {
+            prop: "carConfigCode",
+            label: "车型配置编码",
+            width: 150,
+            align: "center"
+          },
+          // 车型配置名称
+          {
+            prop: "carConfigCn",
+            label: this.$t("ve.label.carConfigCn"),
+            width: 150,
+            align: "center"
+          },
+          // 电机类型
+          {
+            prop: "motorTypeName",
+            label: this.$t("org.label.motorType"),
+            width: 100,
+            align: "center"
+          },
+          {
+            prop: "motorType",
+            label: "电机类型编码",
+            width: null,
+            align: "center",
+            hidden: true
+          },
+          // 动力类型
+          {
+            prop: "powerTypeName",
+            label: this.$t("org.label.powerType"),
+            width: 100,
+            align: "center"
+          },
+          {
+            prop: "powerType",
+            label: "动力类型",
+            width: null,
+            align: "center",
+            hidden: true
+          },
+          // 电控类型
+          {
+            prop: "eleConTypeName",
+            label: this.$t("org.label.eleconType"),
+            width: 100,
+            align: "center"
+          },
+          {
+            prop: "eleConType",
+            label: "电控类型编码",
+            width: null,
+            align: "center",
+            hidden: true
+          },
+          // 电池类型
+          {
+            prop: "batteryTypeName",
+            label: this.$t("org.label.batteryType"),
+            width: 100,
+            align: "center"
+          },
+          {
+            prop: "batteryType",
+            label: "电池类型",
+            width: null,
+            align: "center",
+            hidden: true
+          },
+          // 车型简码
+          {
+            prop: "carTypeShortCode",
+            label: this.$t("org.label.configCode"),
+            width: 100,
+            align: "center",
+            hidden: true
+          },
+          // 排放标准
+          {
+            prop: "letStandardName",
+            label: this.$t("org.label.emissionStandard"),
+            width: 100,
+            align: "center"
+          },
+          {
+            prop: "letStandard",
+            label: "排放标准编码",
+            width: null,
+            align: "center",
+            hidden: true
+          },
+          // 是否新车型
+          {
+            prop: "isNewCarName",
+            label: this.$t("org.label.isNewCar"),
+            width: 100,
+            align: "center"
+          },
+          {
+            prop: "isNewCar",
+            label: "是否新车型编码",
+            width: 120,
+            align: "center",
+            hidden: true
+          },
+          // 供应状态
+          {
+            prop: "supplyStatusCn",
+            label: this.$t("org.label.supplyStatus"),
+            width: 100,
+            align: "center"
+          },
+          {
+            prop: "supplyStatus",
+            label: "供应状态编码",
+            width: null,
+            align: "center",
+            hidden: true
+          },
+          // 启用状态
+          {
+            prop: "isEnable",
+            label: this.$t("org.label.isEnableCn"),
+            width: 100,
+            align: "center"
+          },
+          // 适应气候名称
+          {
+            prop: "adaptClimate",
+            label: this.$t("ve.label.adaptClimate"),
+            width: null,
+            align: "center",
+            hidden: true
+          },
+          // 适应气候
+          {
+            prop: "adaptClimateName",
+            label: this.$t("ve.label.adaptClimate"),
+            width: 100,
+            align: "center",
+            hidden: false
+          },
+          {
+            prop: "isEnableCn",
+            label: "启用状态编码",
+            width: null,
+            align: "center",
+            hidden: true
+          }
+          // 排列顺序
+          // {
+          //   prop: "orderNo",
+          //   label: this.$t("org.label.orderNo"),
+          //   width: 100,
+          //   align: "center",
+          //   hidden:"true"
+          // }
+        ]);
+      }
+      return cols;
+    },
+    // getCarConfig(){
+    //     this.$children[2].saveFormField.carConfigId = this.$refs.multipleTable.currentRow.carConfigId;
+    // },
+    // 弹窗出现方法
+    openInColorDialog(index) {
+      debugger;
+      this.inColorDialogVisible = true;
+      this.editData.carConfigId = this.$refs.multipleTable.currentRow.carConfigId;
+      this.intercalorKey = this.intercalorKey + "1";
+    },
+    // 不知道干嘛用的，先放在这里
+    handinColorDialogVisibleFunc(val) {
+      this.inColorDialogVisible = val;
+      this.intercalorKey = this.intercalorKey + "1";
+      this.$children[2].saveFormField.carConfigId = "";
+      this.$children[2].saveFormField.carIncolorId = "";
+      this.$children[2].$refs.multipleTable.list = [];
+    },
+    // 弹窗出现方法
+    openColorDialog(index) {
+      debugger;
+      this.colorDialogVisible = true;
+      this.carcolorDatas.carConfigId = this.$refs.multipleTable.currentRow.carConfigId;
+      this.carcalorKey = this.carcalorKey + "1";
+    },
+    // 不知道干嘛用的，先放在这里
+    handColorDialogVisibleFunc(val) {
+      this.colorDialogVisible = false;
+      this.carcalorKey = this.carcalorKey + "1";
+      this.$children[3].listQuery.carConfigId = "";
+      this.$children[3].listQuery.carIncolorId = "";
+      this.$children[3].$refs.multipleTable.list = [];
+    }
+    //     // 编辑按钮事件
+    // edits(index) {
+    //   var curIndex = index
+    //   const that = this.$refs.multipleTable
+    //   if (curIndex === undefined || curIndex === null) {
+    //     var currentRow
+    //     if (that.isMul === true) {
+    //       // 多选
+    //       var selectData = that.selection
+    //       if (selectData.length > 0) {
+    //         currentRow = selectData[0]
+    //       }
+    //     } else {
+    //       // 单选
+    //       currentRow = that.currentRow
+    //     }
+    //     if (currentRow) {
+    //       curIndex = currentRow.index
+    //     }
+    //   }
+
+    //   if (curIndex === undefined || curIndex === null) {
+    //     this.$alert('请选择需要修改的数据', '提示')
+    //     return
+    //   }
+    //   this.editRowData = that.list[curIndex]
+    //   this.showEdit('edits')
+    // },
+  }
+};
+</script>

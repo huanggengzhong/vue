@@ -1,0 +1,466 @@
+<template>
+  <el-dialog
+    :title="$t('org.label.memberList')"
+    :visible.sync="memberManageComVisibles"
+    width="1000px"
+    center
+    style="height:614px"
+    :append-to-body="true"
+    :close-on-click-modal="false"
+    class="memberManageCom"
+  >
+      <!-- <TreeTable ref="multipleTable"
+          :treeObject="treeObject"
+          :dynamicButtons="tableButtons"
+          :dynamicComponents="tableComponents"
+          :dynamicFormFields="formField"
+          :dynamicTableCols="tableCols"
+          :dynamicApiConfig="apiConfig"
+          :dynamicIsShowMoreBtn="isMoreBtn"
+          :dynamicWidth="siderWidth"
+        /> -->
+     <el-row>
+        <div class="app-container orgManage">
+          <div class="content">
+            <el-row>
+              <el-col :span="10">
+                <div class="groupMenue">
+                  <div class="filter-container filter-title f-mt0">{{$t('org.label.organizationList')}}</div>
+                  <!-- 组织列表 -->
+                  <el-aside
+                      class="el-slide"
+                      :width="siderWidth"
+                      style="background-color: #fff;width: 333px;"
+                    >
+                      <el-tree
+                        class="filter-tree"
+                        :data="menueList"
+                        default-expand-all
+                        node-key="orgTreeId"
+                        ref="tree"
+                        :props="defaultProps"
+                        @node-click="handleNodeClick"
+                      >
+                      </el-tree>
+                    </el-aside>
+                  <!-- <el-tree :data="menueList" :props="defaultProps" @node-click="handleNodeClick"></el-tree> -->
+                </div>
+              </el-col >
+              <el-col :span="14" style="height: 562px;">
+                <div class="groupMenueEdit">
+                  <div class="filter-container filter-title f-mt0">{{$t('sys.content.searchTitle')}}</div>
+                  <!-- 查询条件 -->
+                  <div class="filter-container filter-params">
+                    <el-row :gutter="26">
+                      <el-col :span="16">
+                        <label>{{$t('org.label.staffName')}}</label><!-- 员工姓名 -->
+                        <el-input
+                          v-model="memberInfoParam.empName"
+                          :placeholder="this.$t('sys.tips.esTip13')"
+                          clearable
+                          size="small"
+                        />
+                      </el-col>
+                      <div class="filter-container filter-button">
+                        <el-button type="primary" size="small" @click="queryRoleTable(1)">{{$t('sys.button.query')}}</el-button>
+                        <!-- 查询 -->
+                        <el-button size="small" @click="sureMember">{{$t('sys.button.confirm')}}</el-button>
+                        <!-- 确定 -->
+                      </div>
+                    </el-row>
+                  </div>
+                  <div class="filter-container filter-title f-mt0">{{$t('org.label.memberList')}}</div>
+                  <!-- 成员列表 -->
+                  <el-table
+                    v-loading="listLoading"
+                    :data="memberTableList"
+                    element-loading-text="Loading"
+                    border
+                    height="341px"
+                    stripe
+                    @select="selectDatas"
+                    @select-all="selectDatas"
+                    :header-cell-style="tableHeaderRowClassName"
+                    highlight-current-row
+                  >
+                    <el-table-column :label="$t('sys.content.gridIndex')" width="60" type="index"></el-table-column>
+                    <!-- 序号 -->
+                    <el-table-column width="60" type="selection" v-if="memberIsMul"></el-table-column>
+                    <el-table-column prop="userName" :label="$t('org.label.userName')"></el-table-column>
+                    <!-- "用户名称" -->
+                    <el-table-column prop="empName" :label="$t('org.label.staffName')"></el-table-column>  <!-- "员工姓名" -->
+                    <el-table-column prop="orgName" :label="this.$t('org.label.orgName')"></el-table-column><!-- "所属组织" -->
+                  </el-table>
+                  <el-pagination
+                    background
+                    layout="prev, pager, next, sizes, ->, total"
+                    :prev-text="$t('sys.content.prevPage')"
+                    :next-text="$t('sys.content.nextPage')"
+                    :page-sizes="[10, 20, 30]"
+                    :pager-count="5"
+                    :page-size="10"
+                    :total="memberInfoParam.pageTotal?memberInfoParam.pageTotal:0"
+                    @size-change="handleMemSizeChange"
+                    @current-change="handleMemCurrentChange"
+                  />
+                </div>
+              </el-col>
+            </el-row>
+          </div>
+      </div>
+     </el-row>
+  </el-dialog>
+</template>
+<script>
+import { orgApis } from "@/api/graphQLApiList/org";
+import TreeTable from '@/components/templates/treeTable'
+import { requestGraphQL } from "@/api/commonRequest";
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins'
+
+export default {
+  mixins:[oneTableWithViewTemplateMixins],
+  name: "memberManageCom",
+   components: {
+    TreeTable
+    },
+  filters: {
+    statusFilter(status) {
+      const statusMap = {
+        published: "success",
+        draft: "gray",
+        deleted: "danger"
+      };
+      return statusMap[status];
+    }
+  },
+  props: {
+    memberManageComVisible: {
+      type: Boolean,
+      default: function() {
+        return false;
+      }
+    },
+    roleId:{
+      type:String,
+      default:function(){
+        return ''
+      }
+    }
+  },
+  data() {
+    return {
+        selectData:[],
+        // 树结构数据
+        treeObject:{
+          // 配置树网格查询API配置对象
+          treeApiConfig: orgApis.mdmOrgRelationRealQueryByPage,
+          // 树接口需要返回的字段
+          returnTreeCol:['orgName','orgCode','orgBelongType','orgTreeId','linkId','parentOrgTreeId','deptId'],
+          // 树的查询条件
+          treeQuery:{
+          //  orgTreeId:'-1'
+          },
+          //排序的对象 label现在是名字 , children 子节点
+          defaultProps: {
+            children: 'children',
+            label: 'orgName'
+          },
+        },
+        memberManageComVisibles:this.memberManageComVisible,
+        //设置菜单栏宽度
+        siderWidth:'250',
+        //设置是否显示更多按钮
+        isMoreBtn:false,
+        // 网格查询API配置对象
+        apiConfig: orgApis.mdmOrgEmployeeQueryFindAll,
+        // 动态组件-按钮
+        tableButtons: [
+          {compKey: 'btnKey1', type: 'primary', size: 'small', clickEvent: () => this.queryTable(1), text: this.$t('sys.button.query')},//查询
+          {compKey: 'btnKey2', type: '', size: 'small', clickEvent: () => this.add(), text: this.$t('sys.button.confirm')},
+        ],
+         // 动态组件-查询条件
+        tableComponents: [
+          {compKey: 'compKey1',span:12, labelName: this.$t('org.label.employeeName')/*员工姓名*/, codeField: 'empName', component: () => import('@/components/org/commonInput'), type: 'inputText', isMust: true},
+        ],
+        //查询条件
+        formField:{
+          empName: '',
+          orgId:''
+        },
+        // 动态生成网格列
+        tableCols: [
+          { prop: 'userName', label: this.$t('org.label.userName2')/*用户姓名*/, width: null, align: 'center' },
+          { prop: 'empCode', label: this.$t('org.label.empCode')/*员工编码*/, width: null, align: 'center',  hidden: true},
+          { prop: 'empName', label: this.$t('org.label.employeeName')/*员工姓名*/, width: null, align: 'center' },
+          { prop: 'orgName', label: this.$t('org.label.orgName')/*所属组织*/, width: null, align: 'center'},
+          { prop: 'orgName', label: this.$t('org.label.DeptName')/*所属部门*/, width: null, align: 'center'},
+          { prop: 'orgId', label: '所属部门Id', hidden: true, align: 'center'}
+          // { prop: 'updateControlId', label: '并发控制', width: null, align: 'center', hidden: true}
+        ],
+      listLoading: false,
+      menueList: [],
+      orgId: undefined,
+      orgName: undefined,
+      defaultProps: {
+        children: "children",
+        label: "orgName"
+      },
+      // 网格数据
+      memberIsMul: true,
+      memberInfoParam: {
+        pageSize:10,
+        pageIndex:1,
+        empName: ''
+      },
+      memberTableList: [],
+      codeInside: {},
+      tableHeaderRowClassName({ row, rowIndex }) {
+        if (rowIndex === 0) {
+          return "background-color:rgb(239, 239, 239);height:32px;";
+        }
+      }
+    };
+  },
+  created() {
+    this.queryMenue();
+  },
+  mounted() {
+      //调用加载树的方法 params1 父节点ID, params2当前节点id
+      // this.$refs.multipleTable.queryOrganization('parentOrgTreeId', 'orgTreeId')
+  },
+  methods: {
+    selectDatas(selection){
+      this.selectData = selection
+    },
+    // 树形结构
+    queryMenue(page) {
+      const that = this;
+      let queryObj = {
+        // api配置
+        apiConfig: orgApis.mdmOrgRelationRealQueryByPage,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: [
+              'orgName','orgRealId','orgCode','orgBelongType','orgTreeId','linkId','parentOrgTreeId'
+            ]
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: "",
+          pageIndex: "",
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {}
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result === "1" &&
+          response.data[queryObj.apiConfig.ServiceCode].rows != ""
+        ) {
+            var dataList =  response.data[queryObj.apiConfig.ServiceCode].rows
+            var tree = this.$utils.parseTreeFromList(dataList, 'parentOrgTreeId', 'orgTreeId');
+            that.menueList = tree;
+        }
+      });
+    },
+    handleNodeClick(a, b, c) {
+      this.orgName = a.orgName;
+      this.orgId = a.orgTreeId;
+      this.queryRoleTable(1)
+    },
+    // 成员网格
+    queryRoleTable(page) {
+      if (this.orgName == "" || this.orgName == undefined) {
+        this.$message({
+          message:  this.$t('org.message.selOrg')/*请先选择组织*/,
+          type: "warning",
+          duration: 1000
+        });
+      } else {
+        this.listLoading = true;
+        const that = this;
+        let obj = {}
+        obj.deptId = that.orgId
+        obj.empName = this.memberInfoParam.empName
+        let queryObj = {
+          // api配置
+          apiConfig: orgApis.mdmOrgEmployeeQueryFindAll,
+          // 需要调用的API服务配置
+          apiServices: [
+            {
+              //表格中台返回网格的字段
+              apiQueryRow: ["orgName", "empName","deptId", "empId","empCode","userId", "userName",  "updateControlId"]
+            }
+          ],
+          //条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            pageSize: that.memberInfoParam.pageSize,
+            pageIndex: page || that.memberInfoParam.pageIndex,
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: obj
+          }
+        };
+
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        // 调用中台API方法（可复用）
+        requestGraphQL(paramD).then(response => {
+          if (
+            response.data[orgApis.mdmOrgEmployeeQueryFindAll.ServiceCode].result ===
+              "1" &&
+            response.data[orgApis.mdmOrgEmployeeQueryFindAll.ServiceCode].rows != ""
+          ) {
+            if (page) {
+              //查询完返回指定的page页数
+
+              that.memberInfoParam.pageTotal =
+                response.data[
+                  orgApis.mdmOrgEmployeeQueryFindAll.ServiceCode
+                ].records;
+            }
+            that.memberTableList =
+              response.data[orgApis.mdmOrgEmployeeQueryFindAll.ServiceCode].rows;
+          }
+            that.listLoading = false;
+        });
+      }
+    },
+    handleMemSizeChange(val) {
+      this.memberInfoParam.pageSize = val;
+      this.queryRoleTable();
+    },
+    handleMemCurrentChange(val) {
+      this.memberInfoParam.pageIndex = val;
+      this.queryRoleTable();
+    },
+    sureMember() {
+      let arr = this.selectData
+      if(arr.length === 0){
+        this.$message({
+          message:  this.$t('org.message.selEmp')/*请先选择员工*/,
+          type: "warning",
+          duration: 1000
+        });
+      }else{
+        this.addMemberData(arr)
+      }
+    },
+    getMemberInfo(val) {
+      if (this.isMul) {
+        if (val[0] || val.length == "0") {
+          this.codeInside = {
+            code: [],
+            name: []
+          };
+          for (var i = 0; i < val.length; i++) {
+            this.codeInside.code.push(val[i].roleId);
+            this.codeInside.name.push(val[i].roleName);
+          }
+        }
+      } else {
+        this.codeInside.code = val.roleId;
+        this.codeInside.name = val.roleName;
+      }
+    },
+    closeMemberManage(type){
+        this.memberManageComVisibles = false
+        this.$emit('changeCode',type)
+
+    },
+    addMemberData(val){
+      let arr = val
+      let length = arr.length-1
+      for(let i = 0;i<arr.length; i++ ){
+        let obj = {}
+        obj.roleId = this.roleId
+        obj.userId = arr[i].userId
+        let queryObj = {
+          //保存需要传 type="mutation"
+          type:'mutation',
+          // api配置
+          apiConfig: orgApis.sysRoleUserMutationSave,
+          // 需要调用的API服务配置
+          apiServices: [{
+            //表格中台返回网格的字段
+            apiQueryRow:[]
+          }],
+            //条件/实体参数（变量），根据typeParam中的定义配置
+            variables: {
+              //  pageSize: 1000,
+              //  pageIndex: 1,
+               //当前中台使用的名称有dataInfo、info，具体查看API文档
+               dataInfo: obj
+            }
+        }
+        //转换了中台请求格式数据
+        var paramD = this.$getParams(queryObj);
+        this.$requestGraphQL(paramD).then(response =>{
+            if(response.data[orgApis.sysRoleUserMutationSave.ServiceCode].result === '1'){
+                //通关如果的状态确认是编辑还是添加
+                if(i === length){
+                  this.$message({message:this.$t('sys.tips.esTip5')/*保存成功*/,type: 'success'});
+                  this.closeMemberManage('1')
+                }
+            }else{
+              this.$message({ message: response.data[orgApis.sysRoleUserMutationSave.ServiceCode].msg, type: "warning" });
+            }
+        })
+      }
+    }
+  }
+};
+</script>
+<style scoped>
+.orgManage {
+  position: relative;
+  top: 46px;
+  padding-top: 0px;
+}
+.orgManageDialog {
+  height: 240px;
+  margin-top: calc(26vh) !important;
+}
+.orgManageBtn {
+  height: 38px;
+  position: relative;
+}
+.content {
+  height: calc(60.5vh);
+  background: #ffffff;
+}
+
+.groupMenue {
+  height: inherit;
+  width: 40%;
+}
+
+.el-dialog .el-dialog__body {
+    padding: 10px 20px;
+    height: 501px;
+
+}
+.groupMenueEdit {
+  height: 515px;
+  border-left: 10px solid #eee;
+}
+.f-mt0 {
+  margin-top: 0px;
+}
+.el-slide {
+  height: calc(90vh - 118px);
+  background: #fff;
+  position: relative;
+  float: left;
+  margin-top: 5px;
+  border-radius: 2px;
+  -webkit-box-shadow: 2px 3px 0px #c1c1c1;
+  box-shadow: 2px 3px 0px #c1c1c1;
+}
+
+</style>

@@ -1,0 +1,220 @@
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-title"></div>
+    <div class="filter-container filter-params" ref="conHeight">
+      <!-- 表格组件 -->
+      <mix-form
+        ref="detailForm"
+        isSearch="true"
+        :dynamicFormFields="detailFields"
+        :dynamicFieldsData="detailFieldsData"
+      ></mix-form>
+      <!-- 车型组件-->
+      <CarTypeModal :isMul="true" ref="multiCarType" />
+      <!--按钮组件  -->
+      <div>
+        <mix-button name="searchBtns" :dynamicButtons="btns" @toggle="togger" :isShowMore="true"></mix-button>
+      </div>
+      <mix-table
+        ref="tableList"
+        :isShowSelect="true"
+        :isDialog="true"
+        :queryParams="recallQueryParams"
+        :isMore="true"
+        :dynamicTableCols="recallCols"
+        :isPaging="true"
+      ></mix-table>
+    </div>
+  </div>
+</template>
+
+<script>
+import carBrand from "@/components/org/carBrand/carBrand";
+import mixTable from "@/components/basicComponent/mixTable";
+import mixForm from "@/components/basicComponent/mixForm";
+import { recallApi } from "@/api/graphQLApiList/se";
+//导入按钮组件
+import mixButton from "@/components/basicComponent/mixButton";
+// 车型组件的导入
+import CarTypeModal from "@/components/se/CarTypeModal/CarTypeModal";
+
+export default {
+  components: {
+    carBrand,
+    mixTable,
+    mixForm,
+    recallApi,
+    mixButton,
+    CarTypeModal
+  },
+  data() {
+    return {
+      recallQueryParams: {},
+      // 表头信息
+      recallCols: [
+        {
+          label: "操作",
+          labelName: "删除",
+          comps: {
+            type: "button",
+            event: this.deletePart()
+          }
+        },
+        { label: "品牌", codeField: "recallCaseCode" },
+        { label: "车系", codeField: "recallCaseTypeName" },
+        { label: "公告车型", codeField: "operDate" },
+        { label: "强保次数", codeField: "topic" },
+        { label: "启用日期", codeField: "pfpCode" },
+        { label: "创建人", codeField: "opratePlaceName" },
+        { label: "创建日期", codeField: "caseStatus" },
+        { label: "维护人", codeField: "caseStatus" },
+        { label: "维护日期", codeField: "caseStatus" },
+        { label: "启用状态", codeField: "caseStatus" }
+      ],
+
+      detailFieldsData: {
+        carBrandCode: "",
+        recallCaseType: "",
+        topic: "",
+        caseCode: "",
+        faultPartCode: "",
+        caseCode: "",
+        faultPartCode: "",
+        csCode: "",
+        ctCode: "",
+        productFactory: "",
+        dutyCompType: "",
+        dutyComp: "",
+        dutyCompName: "",
+        limitDays: "",
+        limitMile: "",
+        recallType: "",
+        estimateCompleteDate: "",
+        pfpCode: "",
+        isRemind: "",
+        isLinkRecallCase: ""
+      },
+      //按钮创建参数
+      btns: {
+        left: [
+          { name: "add", label: "新增", event: "newData" },
+          { name: "search", label: "查询", event: "fetchData" }
+        ],
+
+        right: [
+          { name: "batchAdd", label: "批量新增", event: "batchAdd" },
+          { name: "ExcellImport", label: "Excell导入", event: "import" },
+          {
+            name: "announcementModelView",
+            label: "公告车型查看",
+            event: "announcementModelView"
+          },
+          { name: "export", label: "导出", event: "export" },
+          { name: "reset", label: "重置", event: "resetData" }
+        ]
+      },
+      detailFieldsData: {
+        carBrandCode: "",
+        recallCaseType: "",
+        topic: "",
+        caseCode: "",
+        faultPartCode: "",
+        caseCode: "",
+        faultPartCode: "",
+        csCode: "",
+        ctCode: "",
+        productFactory: "",
+        dutyCompType: "",
+        dutyComp: "",
+        dutyCompName: "",
+        limitDays: "",
+        limitMile: "",
+        recallType: "",
+        estimateCompleteDate: "",
+        pfpCode: "",
+        isRemind: "",
+        isLinkRecallCase: ""
+      },
+      detailFields: [
+        {
+          label: "品牌:",
+          codeField: "carBrandCode",
+          sendCode: () => null,
+          focusCode: () => null,
+          changeCode: val => {
+            this.detailFieldsData.carBrandCode = val;
+          },
+          isComponent: true,
+          rules: { required: true, message: "请选择车辆品牌", trigger: "blur" },
+          component: () => import("@/components/org/carBrand/carBrand")
+        },
+        {
+          label: "车系:",
+          codeField: "demio",
+          type: "dropdownList",
+          options: [
+            { value: "", label: "全部" },
+            { value: "1", label: "东风风神A30" }
+          ]
+        },
+        {
+          label: "公告车型:",
+          codeField: "CarTypeModal",
+          type: "inputTxt",
+          suffixIcon: "el-icon-search",
+          sendCode: () => null,
+          focusCode: () => null,
+          event: this.openCarType
+        },
+
+        {
+          label: "创建人:",
+          codeField: "founder",
+          type: "inputTxt"
+        },
+        {
+          label: "维护人:",
+          codeField: "MaintenanceMan",
+          type: "inputTxt"
+        },
+        {
+          label: "启用日期:",
+          codeField: "usedate",
+          type: "inputDate"
+        },
+        {
+          label: "创建日期:",
+          codeField: "usedate",
+          type: "inputDate"
+        },
+        {
+          label: "维护日期:",
+          codeField: "usedate",
+          type: "inputDate"
+        },
+        {
+          label: "启用状态:",
+          codeField: "EnabledState",
+          type: "dropdownList",
+          options: [
+            { value: "", label: "全部" },
+            { value: "1", label: "启用" },
+            { value: "2", label: "停用" }
+          ]
+        }
+      ]
+    };
+  },
+  methods: {
+    openCarType() {
+      this.$refs.multiCarType.open();
+    },
+    togger() {
+      this.$refs.detailForm.changeToggleParam();
+    }
+  }
+};
+</script>
+
+<style>
+</style>

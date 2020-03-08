@@ -1,0 +1,165 @@
+  <template>
+  <div
+    class="navbar"
+    id="navbar"
+  >
+    <hamburger
+      :is-active="sidebar.opened"
+      class="hamburger-container"
+      @toggleClick="toggleSideBar"
+    />
+    <div class="right-menu">
+
+      <lang-select class="right-menu-item hover-effect lang" />
+      <el-dropdown
+        class="avatar-container"
+        style="float:left"
+        trigger="click"
+        placement="bottom-start"
+      >
+
+        <!-- <img
+          :src="avatar"
+          class="user-avatar"
+        > -->
+        <label>{{ orgInfo.empName }}<i class="el-icon-caret-bottom" /></label>
+        <!-- <i class="el-icon-caret-bottom" /> -->
+
+        <el-dropdown-menu
+          slot="dropdown"
+          class="user-dropdown"
+        >
+          <router-link to="/">
+            <el-dropdown-item>
+              {{$t('sys.navbar.home')}}
+            </el-dropdown-item>
+          </router-link>
+          <!--修改密码-->
+          <el-dropdown-item divided>
+            <span
+              style="display:block;"
+              @click="showEdit('edit')"
+            > {{$t('sys.navbar.changePassword')}}</span>
+          </el-dropdown-item>
+
+          <!--系统设置-->
+          <el-dropdown-item divided>
+            <span
+              style="display:block;"
+              @click="systemSet()"
+            > {{$t('sys.navbar.systemSet')}}</span>
+          </el-dropdown-item>
+
+          <!--退出登录-->
+          <el-dropdown-item divided>
+            <span
+              style="display:block;"
+              @click="logout"
+            > {{$t('sys.navbar.logOut')}}</span>
+          </el-dropdown-item>
+
+        </el-dropdown-menu>
+      </el-dropdown>
+    </div>
+    <!--我的待办提醒-->
+    <div class="my-upcoming">
+      <el-badge
+        :value="12"
+        :max="99"
+        class="item"
+      >
+        <i class="svg-icon iconfont icon-remind_fill" />
+      </el-badge>
+    </div>
+
+    <!--当前账号组织-->
+    <div class="organization">
+      <i class="iconfont iconicon-gps" />
+      <label>{{orgInfo.DLR_NAME}}</label>
+    </div>
+
+    <!--全局搜索-->
+    <div class="search-area">
+      <search
+        id="header-search"
+        class="right-menu-item"
+      />
+    </div>
+
+    <!--修改密码-->
+    <changePassword
+      :popupsVisible="editPopupsVisible"
+      :key="editPopupsKey"
+      :popupsState="editPopupsState"
+    ></changePassword>
+
+    <!--系统设置-->
+    <systemSet
+      :popupsVisible="systemSetPopupsVisible"
+      :key="systemSetPopupsKey"
+      :popupsState="systemSetPopupsState"
+      @close="systemSetclose"
+    ></systemSet>
+  </div>
+</template>
+<script>
+import { mapGetters } from "vuex";
+import Hamburger from "@/components/Hamburger";
+import Search from "@/components/HeaderSearch";
+import LangSelect from "@/components/LangSelect";
+import changePassword from "./changePassword";
+import systemSet from "./systemSet";
+import { oneTableWithViewTemplateMixins } from "@/components/mixins/oneTableWithViewTemplateMixins";
+import OneTableTemplate from "@/components/templates/oneTable";
+export default {
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    Hamburger,
+    Search,
+    LangSelect,
+    OneTableTemplate,
+    changePassword,
+    systemSet
+  },
+  data() {
+    return {
+      systemSetPopupsState: "",
+      systemSetPopupsKey: "systemSet",
+      systemSetPopupsVisible: false
+    };
+  },
+  computed: {
+    ...mapGetters(["sidebar", "avatar", "orgInfo"])
+  },
+  methods: {
+    toggleSideBar() {
+      this.$store.dispatch("app/toggleSideBar");
+    },
+    async logout() {
+      await this.$store.dispatch("user/logout");
+      //退出登录时 清除面包屑内容
+      this.$store.state.tagsView.visitedViews = [];
+      // this.$router.push(`/login?redirect=%2Fdashboard`); //${this.$route.fullPath}
+      //  当前页面刷新,解决切换登录侧边栏不更新问题
+      location.href = "/login?redirect=%2Fdashboard";
+      location.reload(true);
+    },
+    // 打开系统设置弹窗
+    systemSet(index) {
+      const that = this.$refs.multipleTable;
+      this.showsystemSetEdit("edit");
+    },
+    // 系统设置弹窗
+    showsystemSetEdit(type) {
+      this.systemSetPopupsState = type;
+      this.systemSetPopupsVisible = true;
+    },
+    // 关闭系统设置弹窗
+    systemSetclose(type) {
+      this.systemSetPopupsVisible = false;
+      this.systemSetPopupsKey = this.$utils.generateId();
+    }
+  }
+};
+</script>
+

@@ -1,0 +1,306 @@
+<!--
+* description: 模板-单网格
+* author: luojx
+* createdDate: 2019-07-31
+* logs:
+* 2019-08-01 加入模板混入对象 luojx
+*  2019-08-15  yinxy  增加输入框类型判断，默认text
+*  2019-08-17  liyanm  增加table通用计算组件数据传递
+-->
+<template>
+  <section class="filter-params-e3s">
+    <el-tabs v-model="activeName" type="card" class="container-app" @tab-click="tabClick">
+      <el-tab-pane :label="$t('ve.label.carSeriesId')" name="first">
+        <carseries></carseries>
+      </el-tab-pane>
+      <!-- 经销商授权查询 -->
+      <el-tab-pane :label="$t('ve.label.DistributorAuthorizationQuery')" name="second">
+        <el-row :gutter="26">
+          <el-col :span="24">
+            <one-table-template
+              ref="multipleTable"
+              :dynamicButtons="tableButtons"
+              :dynamicComponents="tableComponents"
+              :dynamicApiConfig="apiConfig"
+              :dynamicTableCols="tableCols"
+              :dynamicFormFields="formField"
+              :isShowMoreBtn="true"
+              :dynamicIsShowMoreBtn="false"
+              :dynamicIsShowSelect="true"
+              :dynamicIsColumnDrop="true"
+              :dynamicTableOtherHeight="35"
+            />
+          </el-col>
+        </el-row>
+      </el-tab-pane>
+    </el-tabs>
+  </section>
+</template>
+<script>
+import { veApis } from "@/api/graphQLApiList/ve";
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { valueObjectMixins } from '@/components/mixins/valueObjectMixins';
+import { contsMixins } from '@/components/mixins/contsMixins';
+import carSeries from "./carSeries";
+import OneTableTemplate from "./tableone";
+import { CacheConfig } from "@/cache/configCache/index";
+
+export default {
+  name: "carConfigWarrant",
+  components: {
+    OneTableTemplate,
+    carseries: carSeries
+  },
+  mixins: [oneTableWithViewTemplateMixins, valueObjectMixins, contsMixins],
+  // 阻塞路由预加载网格中组件的数据
+  beforeRouteEnter(to, from, next) {
+    CacheConfig.initData(to.path, function() {
+      next();
+    });
+  },
+  watch: {
+    formField(val) {
+      this.carSeriesKey1 = this.carSeriesKey1 + 1;
+      this.carBrandKey1 = this.carBrandKey1 + 1;
+      this.carConfigKey1 = this.carConfigKey1 + 1;
+      this.supplyStatusKey = this.supplyStatusKey + 1;
+    },
+    dlrId() {
+      this.dlrKey = this.dlrKey + 1;
+    }
+  },
+  data() {
+    return {
+      apiConfig: veApis.veDbVeOrgCarConfigQueryIsExist,
+      // 经销商授权查询
+      tableButtons: [
+        {
+          btnKey: "btnKey7",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: this.$t("sys.button.query")
+        }, //查询
+        {
+          btnKey: "btnKey8",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: this.$t("sys.button.reset")
+        }, //重置
+        {
+          btnKey: "btnKey9",
+          type: "",
+          size: "small",
+          clickEvent: () => this.exportExcel(),
+          text: this.$t("sys.button.export")
+        } // '导出'
+      ],
+      index: 0,
+      authList: [],
+      tableCols: this.tableColsSQCX(),
+      // 动态组件-查询条件
+      // 经销商授权查询
+      tableComponents:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              {
+                compKey: "compKey6",
+                labelName: this.$t("ve.label.carBrand"),
+                codeField: "carBrandCode",
+                component: () => import("@/components/org/carBrand/carBrand"),
+                isRequire: true,
+                type: "dropdownList",
+                isMust: true
+              }, //品牌
+              {
+                compKey: "compKey7",
+                span: 6,
+                parentFileds: "carBrandCode-carBrandCode",
+                labelName: this.$t("org.label.dlrName"), // "经销商",
+                codeField: "dlrId",
+                component: () => import("@/components/org/orgDlr"),
+                type: "propus",
+                isMust: true
+              },
+              {
+                compKey: "compKey8",
+                labelName: this.$t("ve.label.carSeriesId"),
+                codeField: "carSeriesId",
+                parentFileds: "carBrandCode-carBrandCode",
+                component: () => import("@/components/org/CarCode"),
+                type: "dropdownList",
+                isMust: true
+              }, //车系编码
+              {
+                compKey: "compKey9",
+                labelName: this.$t("org.label.carConfig"), // 车型配置
+                codeField: "carConfigId",
+                parentFileds: "carBrandCode-carBrandCode",
+                component: () => import("@/components/org/carTypeConfig"),
+                type: "propus",
+                isMust: true
+              }, // 车型配置
+              {
+                compKey: "compKey10",
+                labelName: this.$t("org.label.supplyStatus"), //"供应状态",
+                lookuptype: "VE0014",
+                codeField: "supplyStatus",
+                component: () => import("@/components/org/LookupValue"),
+                type: "dropdownList",
+                isMust: true
+              } // 是否供应
+            ],
+      // 经销商授权查询
+      dlrId: "",
+      formField: {
+        carBrandCode: "",
+        carConfigId: "",
+        carSeriesId:"",
+        supplyStatus: "",
+        dlrId: "",
+      },
+      listQuery: {
+        pageIndex: 1,
+        pageSize: 10
+      },
+      listQuery2: {
+        pageIndex: 1,
+        pageSize: 10
+      },
+      selRow: {},
+      dlrKey: "a",
+      carBrandKey1: "b",
+      carBrandKey2: "c",
+      authStatuKey: "d",
+      supplyStatusKey: "e",
+      carConfigKey1: "f",
+      carConfigKey2: "g",
+      carSeriesKey1: "j",
+      carSeriesKey2: "h",
+      activeName2: "a",
+      activeName: "first",
+      toggleParam: false,
+      tableHeight2: null,
+      tableHeight1: null,
+      tableMarginHeight: 15,
+      tableOtherHeight: 0,
+      changeAutDlrId: "",
+      changeUnAutDlrId: "",
+      tableHeight: 250,
+      tableHeaderRowClassName({ row, rowIndex }) {
+        if (rowIndex === 0) {
+          return "background-color:rgb(239, 239, 239);height:32px;";
+        }
+      }
+    };
+  },
+  methods: {
+    tabClick(tab) {
+      if (this.$refs.multipleTable) {
+        this.$refs.multipleTable.setTableHeight()
+      }
+    },
+    // 动态生成网格列
+    tableColsSQCX() {
+      var cols = [];
+      if (
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableCols.length > 0
+      ) {
+        cols = cols.concat(CacheConfig.cacheData[this.$route.path].tableCols);
+      } else {
+        cols = cols.concat([
+          {
+            prop: "carBrandCn",
+            label: this.$t("org.label.carBrandCn"),
+            width: null,
+            align: "center"
+          }, //品牌名称
+          {
+            prop: "carBrandCode",
+            label: this.$t("ve.label.carBrandId"),
+            width: null,
+            align: "center",
+            hidden: true
+          },
+          {
+            prop: "dlrShortName",
+            label: this.$t("org.label.dlrName"),
+            width: null,
+            align: "center"
+          }, //经销商
+          {
+            prop: "carSeriesCn",
+            label: this.$t("ve.label.carSeriesId"),
+            width: null,
+            align: "center"
+          }, //车系
+          {
+            prop: "smallCarTypeCode",
+            label: this.$t("ve.label.smallCarTypeCode"),
+            width: null,
+            align: "center"
+          }, //车型编码
+          {
+            prop: "smallCarTypeCn",
+            label: this.$t("ve.label.carType"),
+            width: null,
+            align: "center"
+          }, //车型名称
+          {
+            prop: "carConfigCn",
+            label: this.$t("ve.label.carConfig"),
+            width: null,
+            align: "center"
+          }, //车型配置
+          {
+            prop: "authStatsCode",
+            label: this.$t("ve.label.authStatuCode"),
+            width: null,
+            align: "center"
+          } //授权状态
+        ]);
+      }
+      return cols;
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+/deep/ .filter-title {
+  margin-top: 0;
+}
+/deep/.filter-params .el-col {
+  padding-left: 12px;
+  padding-right: 12px;
+  // padding: 0;
+  margin-bottom: 7px;
+}
+/deep/.mt-btn {
+  padding: 35px 19px 5px 0px !important;
+}
+/deep/.el-tabs__header {
+  margin: 0 !important;
+}
+/deep/.filter-params {
+  margin: 0 !important;
+}
+/deep/.container-app {
+  padding: 10px 0 0 0;
+  background: #fff;
+  margin: 0 10px;
+}
+/deep/.el-tabs__header {
+  margin: 0;
+}
+/deep/.el-tabs__nav-scroll {
+  padding: 0 0 0 10px;
+}
+
+/deep/.filter-params-e3s {
+  background: #fff;
+}
+</style>

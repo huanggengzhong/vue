@@ -1,0 +1,375 @@
+<!--
+* description: 到店确认
+* author: zouzx
+* createdDate: 2019-10-17
+-->
+<template>
+  <section>
+    <el-dialog
+      class="editsettingPrice"
+      :close-on-click-modal="false"
+      :title="textMap[popupsState]"
+      :append-to-body="true"
+      :visible.sync="curPopupsVisible"
+      @close="sendCode"
+      width="1000px"
+    >
+      <div class="filter-params-crm">
+        <el-form>
+            <el-row>
+            <el-col :span="10">
+                <clueInfoPop :clueInfoPop="clueInfoPop" ref="clueInfoPop" />
+            </el-col>
+            <el-col :span="4">
+                <el-button type="primary" size="small" @click="KHLD">保存</el-button>
+            </el-col>
+            </el-row>
+        </el-form>
+      </div>
+        
+    </el-dialog>
+  </section>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { crmApis } from "@/api/graphQLApiList/crm";
+import { requestGraphQL } from "@/api/commonRequest";
+import OneTableTemplate from "@/components/templates/popupsOneTable";
+import Table from "@/components/crm/table/Table";
+import txt_CustomerName from "@/components/crm/textbox/Public/customerInfos/txt_CustomerName";
+import PhoneNumber from "@/components/crm/textbox/Public/customerInfos/PhoneNumber";
+import clueInfoPop from "@/components/crm/EjectWindows/clueInfoPop";
+export default {
+  name: "toShopLDDiag",
+  // 组件混入对象
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+      Table,
+      clueInfoPop
+  },
+  props: {
+    historyPopupsVisible: { type: Boolean, default: false },
+    // 弹窗状态（add/edit/view）
+    // 新增、编辑弹窗Key
+    historyPopupsKey: "",
+    // 新增、编辑弹窗状态（add/edit/view）
+    historyPopupsState: "",
+    // 新增、编辑行对象
+    historyRowData: {},
+    // 弹窗状态（add/edit/view）
+    popupsState: ""
+  },
+  data() {
+    return {
+        radioMDQR:"看车",
+        radListLDMD:this.getDrpList(),
+        ddTimeQR:"",
+        ldTimeQR:"",
+        form: {
+            custName: {
+            input: ""
+            },
+            contactTel: {
+            input: ""
+            }
+        },
+        clueInfoPop:{
+            input:""
+        },
+        tabledatasXZ: {
+            // 操作列
+            ismuti: false,
+            isoperat: false,
+            havedistrbute: false,
+            haveEdit: false,
+            haveDel: false,
+            pagesize:10,
+            pageindex:1,
+            colnames: [
+                { label: "客户姓名", value: "applyPersonName" },
+                { label: "联系电话", value: "applyDate" },
+                { label: "销售顾问", value: "helpDes" },
+                { label: "意向级别", value: "helpPersonName" }
+            ],
+            queryObj: {
+                // .后面是服务编码，.前面固定写死
+                apiConfig: crmApis.csBuComplaintHelpQueryFindAll,
+                apiQueryRow: [
+                    "applyPersonName",
+                    "applyDate",
+                    "helpDes",
+                    "helpPersonName",
+                    "helpTime",
+                    "dealDes"
+                ],
+                params: {
+                    oemCode:"1",
+                    groupCode:"1",
+                    serverOrder:"",
+                }
+            }
+        },
+        // 保存API配置对象
+        apiConfig: null,
+
+        // 动态组件-按钮
+        tableButtons: [],
+        // 动态生成网格列
+        tableCols: [],
+        // 标题
+        textMap: {
+            edit: "客户留档"
+        },
+        //表单查询数据
+        formField: {
+        },
+        isUseRowData: true
+    };
+  },
+  created() {
+    // 赋值formField
+    if (this.popupsState === "edit") {
+        debugger
+      if (this.isUseRowData) {
+        for (var key in this.formField) {
+          if (this.$attrs.dynamicEditRowData[key]) {
+            this.formField[key] = this.$attrs.dynamicEditRowData[key];
+          } else {
+            this.formField[key] = "";
+          }
+        }
+      }
+    }
+  },
+  methods: {
+      enable(val) {
+          let that=this;
+          debugger
+      },
+      getDrpList: function() {
+      let that = this;
+      let queryObj = {
+        // api配置
+        apiConfig: crmApis.mdsLookupValueQueryByPage,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: ["lookupValueCode","lookupValueName"]
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: 10,
+          pageIndex: 1,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {lookupTypeCode:"DB0060"}//值列表编码
+        }
+      };
+      let paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result == "1" 
+          //&&response.data[queryObj.apiConfig.ServiceCode].rows != ""
+        ) {
+          that.radListLDMD=response.data[queryObj.apiConfig.ServiceCode].rows
+        }
+      });
+    },
+    handleLDMD(val) {
+      let that=this
+      that.BCldmd=val
+    },
+    //确认到店保存
+    saveToShop(){
+      let that = this
+      //校验
+      var html=""
+      if(that.ddTimeQR=="")
+      {
+        html = html + `<div>请选择到店时间</div>`
+      }
+      if(that.ldTimeQR=="")
+      {
+        html = html + `<div>请选择离店时间</div>`
+      }
+      if(that.ddTimeQR!=""&&that.ldTimeQR!="")
+      {
+        var timeStr = that.getDateStr()+" "+that.ddTimeQR;
+        var time1 = new Date(timeStr).getTime();
+        let dd = new Date();
+        var timeStr2 = that.getDateStr()+" "+that.ldTimeQR;
+        var time2 = new Date(timeStr2).getTime();
+        if (time1 > time2) {
+          html = html + `<div>离店时间不能小于到店时间</div>`
+        }
+      }
+      if (html != '') {
+        this.$notify.error({
+          title: "校验项",
+          dangerouslyUseHTMLString: true,
+          message: html
+        });
+        return
+      }
+      var strmd="";
+      for (var j = 0; j < that.radListLDMD.length; j++) {
+        if (that.radListLDMD[j].lookupValueName == that.BCldmd) {
+          strmd=that.radListLDMD[j].lookupValueCode
+        }
+      }
+      //赋值
+      var saveObj={}
+      that.$set(saveObj, "humanQty", parseInt(that.BCldrs));
+      that.$set(saveObj, "inteSeriesInfo", strcx.substr(0, strcx.length - 1));
+      that.$set(saveObj, "comePurposeId", strmd);
+      that.$set(saveObj, "comeTime", that.ldDate+" "+that.ddTime);
+      that.$set(saveObj, "leaveDate", that.ldDate+" "+that.ldTime);
+      that.$set(saveObj, "custSource", that.$refs.CustomerSourceMainRef.value);
+      that.$set(saveObj, "saleActionId", that.$refs.salesCampaignMainRef.value);
+      //that.$set(saveObj, "phone", "");
+      that.$set(saveObj, "remark", that.$refs.RemarksMainRef.input);
+
+      let queryObj = {
+        // api配置
+        type: "mutation",
+        apiConfig: crmApis.mdmBuComeOrderMutationNewRegister,
+        // 需要调用的API服务配置
+        apiServices: [{
+            //表格中台返回网格的字段
+            apiQueryRow:[]
+        }],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: saveObj
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response =>{
+        if(
+          response.data[queryObj.apiConfig.ServiceCode].result === "1"  
+          //&&response.data[queryObj.apiConfig.ServiceCode].rows!=""
+          ){
+          //this.dialogVisible = false
+          that.$crmcf.showMessages(that,'success','操作成功')
+          //that.$crmcf.crmcloseView(that,'crmMyToBe')
+          }else{
+            that.$crmcf.showMessages(that,'error',response.data[queryObj.apiConfig.ServiceCode].msg)
+          }
+      })
+    },
+    queryYX: function() {
+      let that = this;
+      debugger
+      //that.loadFlag = true;//加载动画
+      // 查询参数
+      that.tabledatasXZ.queryObj.params.serverOrder="1"
+      setTimeout(function() {
+        if (that.$refs.tableXZ != undefined) {
+          that.$refs.tableXZ.getData();
+        }
+      }, 100);
+    },
+    KHLD(){
+      let that = this
+      //校验
+      var html=""
+      if(that.ddTimeQR=="")
+      {
+        html = html + `<div>请选择到店时间</div>`
+      }
+      if(that.ldTimeQR=="")
+      {
+        html = html + `<div>请选择离店时间</div>`
+      }
+      if(that.ddTimeQR!=""&&that.ldTimeQR!="")
+      {
+        var timeStr = that.getDateStr()+" "+that.ddTimeQR;
+        var time1 = new Date(timeStr).getTime();
+        let dd = new Date();
+        var timeStr2 = that.getDateStr()+" "+that.ldTimeQR;
+        var time2 = new Date(timeStr2).getTime();
+        if (time1 > time2) {
+          html = html + `<div>离店时间不能小于到店时间</div>`
+        }
+      }
+      if (html != '') {
+        this.$notify.error({
+          title: "校验项",
+          dangerouslyUseHTMLString: true,
+          message: html
+        });
+        return
+      }
+      var strmd="";
+      for (var j = 0; j < that.radListLDMD.length; j++) {
+        if (that.radListLDMD[j].lookupValueName == that.BCldmd) {
+          strmd=that.radListLDMD[j].lookupValueCode
+        }
+      }
+      //赋值
+      var saveObj={}
+      that.$set(saveObj, "humanQty", parseInt(that.BCldrs));
+      that.$set(saveObj, "inteSeriesInfo", strcx.substr(0, strcx.length - 1));
+      that.$set(saveObj, "comePurposeId", strmd);
+      that.$set(saveObj, "comeTime", that.ldDate+" "+that.ddTime);
+      that.$set(saveObj, "leaveDate", that.ldDate+" "+that.ldTime);
+      that.$set(saveObj, "custSource", that.$refs.CustomerSourceMainRef.value);
+      that.$set(saveObj, "saleActionId", that.$refs.salesCampaignMainRef.value);
+      //that.$set(saveObj, "phone", "");
+      that.$set(saveObj, "remark", that.$refs.RemarksMainRef.input);
+
+      let queryObj = {
+        // api配置
+        type: "mutation",
+        apiConfig: crmApis.mdmBuComeOrderMutationNewRegister,
+        // 需要调用的API服务配置
+        apiServices: [{
+            //表格中台返回网格的字段
+            apiQueryRow:[]
+        }],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: saveObj
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response =>{
+        if(
+          response.data[queryObj.apiConfig.ServiceCode].result === "1"  
+          //&&response.data[queryObj.apiConfig.ServiceCode].rows!=""
+          ){
+          //this.dialogVisible = false
+          that.$crmcf.showMessages(that,'success','操作成功')
+          //that.$crmcf.crmcloseView(that,'crmMyToBe')
+          }else{
+            that.$crmcf.showMessages(that,'error',response.data[queryObj.apiConfig.ServiceCode].msg)
+          }
+      })
+      that.$crmcf.jumpDetailTag(that, "customerRemian", "/customerRemian");
+    },
+  }
+};
+</script>
+<style>
+.filter-params-crmtab .el-col label {
+  width: 12%;
+}
+.el-radio-button--medium .el-radio-button__inner{
+  width:100%;
+}
+.el-radio-button--small .el-radio-button__inner{
+  width:100%;
+}
+.el-checkbox-button--mini .el-checkbox-button__inner{
+  width:100%;
+}
+</style>
+

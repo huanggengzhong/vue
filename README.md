@@ -19,3 +19,13 @@
 #### react-pxq-master 
 
 bailicangdu的一个react学习项目,里面的md文件有详细介绍
+
+
+
+#### E3SPros
+
+朋友的项目
+
+#### vue-music-webapp-master
+
+参照慕课网官网项目,在线官网可以播放

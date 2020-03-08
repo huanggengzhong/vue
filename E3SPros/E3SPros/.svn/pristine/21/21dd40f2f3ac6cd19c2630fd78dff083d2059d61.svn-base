@@ -1,0 +1,379 @@
+<template>
+  <div class="app-container app-container-table">
+        <one-table-template
+      ref="multipleTable"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="true"
+      :dynamicIsShowMoreBtn="false"
+    />
+
+    <priceSet :initData="rowData" :key="priceSetKey" :carColorVisible="carColorVisible" @changeCode="getCarColorCode" :close="closePriceSet" :isMul="isMuls"></priceSet>
+    <stockSpecialCar
+    :initData="rowData"
+    :stockSpecialCarVisible="stockSpecialCarVisible"
+    :key="stockSpecialCarKey"
+    @close="closeStockSpecialCar"
+    />
+    <hanDle
+      @visible="handDialogVisibleFunc"
+      :key="dialogVisible"
+      :editData="gridData"
+      :handleVisible="dialogVisible"
+      :handleTitle="handleTitle"
+    />
+  </div>
+</template>
+<script>
+import { orgApis } from "@/api/graphQLApiList/org";
+import { veApis } from "@/api/graphQLApiList/ve";
+import priceSet from "./priceSet";
+import stockSpecialCar from "./stockSpecialCar";
+import hanDle from "./handle";
+import { CacheConfig } from '@/cache/configCache/index'
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import OneTableTemplate from "@/components/templates/oneTable";
+export default {
+  name: "carSellSet",
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    priceSet,
+    hanDle,
+    OneTableTemplate,
+    stockSpecialCar
+  },
+    // 阻塞路由预加载网格中组件的数据
+  beforeRouteEnter(to, from, next) {
+    CacheConfig.initData(to.path, function(){next()})
+  },
+  filters: {
+    statusFilter(status) {
+      const statusMap = {
+        published: "success",
+        draft: "gray",
+        deleted: "danger"
+      };
+      return statusMap[status];
+    }
+  },
+  data() {
+    return {
+      stockSpecialCarKey:'6232346',
+      stockSpecialCarVisible:false,
+      apiConfig: veApis.carSellSetMock1,
+       // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: this.$t('sys.button.query')},/*查询*/
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.carColorModal(),
+          text: this.$t('org.label.priceSetting')},/*价格设置*/
+
+        {
+          compKey: "btnKey5",
+          type: "",
+          size: "small",
+          clickEvent: () => this.openStockSpecialCar(),
+          text:this.$t('org.label.stockPpecialCar')},/*库存特价车*/
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.chickSele(),
+          text: this.$t('org.label.pinSetting')/*车系在销设置*/
+        },
+
+        {
+          compKey: "btnKey4",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text:this.$t('sys.button.reset')}/*重置*/,
+        {
+          compKey: "btnKey6",
+          type: "",
+          size: "small",
+          clickEvent: () => this.exportExcel(carSellSet,carSellSet,10),
+          text: this.$t('sys.button.export')}/*导出*/
+        ],
+      tableComponents: CacheConfig.cacheData[this.$route.path] && CacheConfig.cacheData[this.$route.path].tableComponents.length > 0 ? CacheConfig.cacheData[this.$route.path].tableComponents : [
+        // {
+        //   compKey: "compKey1",
+        //   labelName: this.$t('org.label.carBrand')/*品牌*/,
+        //   codeField: "carBrandCode",
+        //   component: () => import("@/components/org/carBrand/carBrand"),
+        //   type: "dropdownList",
+        //   isMust: true
+        // },
+        {
+          compKey: "compKey3",
+          labelName: this.$t('org.label.carType')/*车型*/,
+          codeField: "carConfigId",
+          component: () => import("@/components/org/carTypeConfig"),
+          type: "propus",
+          isMust: true
+        },
+        {
+          compKey: "compKey4",
+          labelName: this.$t('org.label.carColor')/*车身颜色*/,
+          codeField: "carColorId",
+          component: () => import("@/components/org/carColor"),
+          type: "propus",
+          isMust: true
+        },
+        {
+          compKey: "compKey5",
+          labelName: this.$t('org.label.carIncolor')/*内饰色*/,
+          codeField: "carIncolorId",
+          component: () => import("@/components/org/TrimPopupColor"),
+          type: "propus",
+          isMust: true
+        },
+        {compKey: 'compKey6', labelName: this.$t('org.label.isSetting')/*已设置*/, codeField: 'isEnable', component: () => import('@/components/org/isEnable/isEnable'), type: 'dropdownList', isMust: true}
+        ],
+      tableCols: CacheConfig.cacheData[this.$route.path]&& CacheConfig.cacheData[this.$route.path].tableCols.length > 0 ? CacheConfig.cacheData[this.$route.path].tableCols: [
+        { prop: 'carBrandCn', label: this.$t('org.label.carBrand')/*品牌*/, width: 80, align: 'center' },
+        { prop: 'carSeriesCn', label: this.$t('org.label.carSerise')/*车系*/, width: 90, align: 'center' },
+        { prop: 'carConfigCn', label: this.$t('org.label.carConfig')/*车型配置*/, width: 170, align: 'center' },
+        { prop: 'carColorCode', label: this.$t('org.label.carColor')/*车身颜色*/, width: null, align: 'center' },
+        { prop: 'carIncolorCode', label: this.$t('org.label.carIncolor')/*内饰色*/, width: null, align: 'center' },
+        { prop: "costPrice", label:this.$t('org.label.costPrice')/*成本价*/ , width: 90, align: "center" },
+        { prop: "marketGuidancePrice", label: this.$t('org.label.marketGuidancePrice')/*市场指导价*/, width: 90, align: "center" },
+        { prop: "discountAmount", label: this.$t('org.label.discountAmount1')/*折让金额*/, width: 90, align: "center" },
+        { prop: "currentPrice", label: this.$t('org.label.invoicingCurrentPrice')/*开票现价*/, width: 90, align: "center" },
+        { prop: "packageFare", label: this.$t('org.label.packagePrice')/*包牌价*/, width: 90, align: "center" },
+        { prop: "Inventory", label: this.$t('org.label.inventory')/*库存数*/, width: 90, align: "center" },
+        { prop: "send", label:this.$t('org.label.sendFine')/*送精品额*/ , width: 90, align: "center" },
+        { prop: "insurance", label: this.$t('org.label.insuranceAmount')/*送保险额*/, width: 90, align: "center" },
+        { prop: "doneDate", label:this.$t('org.label.executionDate')/*执行日期*/ , width: 100, align: "center" },
+        { prop: "estimatedCost", label: this.$t('org.label.estimatedCostPrice')/*估算成本价*/, width: 90, align: "center" },
+        { prop: "estimatedInvoicingSpread", label: this.$t('org.label.estimatedInvoicingSpread')/*估算进销差价*/, width: 110, align: "center" },
+        {
+          prop: "isEnable",
+          label: this.$t('org.label.isSelling')/*是否在销*/,
+          width: null,
+          align: "center"
+        },
+      ],
+			//   list:
+			//   [
+      // {brandName: '日产', carSeries: '奇骏', carConfigId: '1',statues: "qwe", isEnable: "1", editDate: "1995-08-09"},
+      // {brandName: '日产', carSeries: '奇骏', carConfigId: '1',statues: "qwe", isEnable: "1", editDate: "1995-08-09"},
+      // ],
+      formField: {
+        carBrandCode:'1',
+        carConfigId:"",
+        carColorId: "",
+        carIncolorId: "",
+        isEnable: ""
+      },
+
+      //表的值
+      list: null,
+      //表loading状态是否现实
+      listLoading: true,
+      //设置网格总共的条数，查询完更改
+      pageTotal: 0,
+      //价格弹窗框状态
+      carColorVisible: false,
+      //内饰弹窗框状态
+      // trimColorVisible: false,
+      //存储车型弹窗框的值
+      carColorCode: undefined,
+      carColorName: undefined,
+      handleTitle: 0,
+      isMuls: false,
+      //存储被点击得
+      seletRow: "",
+      //表单查询数据
+      gridData: {},
+      //显示隐藏弹出框
+      dialogVisible: false,
+      listQuery: {
+        pageIndex: 1,
+        pageSize: 10,
+        limit: 20
+      },
+      //设置key更改状态,key 唯一
+      instats: "a",
+      carBrandKey: "b",
+      isEnab: "c",
+      tableHeaderRowClassName({ row, rowIndex }) {
+        if (rowIndex === 0) {
+          return "background-color:rgb(239, 239, 239);height:32px;";
+        }
+      },
+      tableHeight: 310,
+      priceSetKey:'1634536',
+      rowData:{}
+
+    };
+  },
+  created() {
+    // this.textQuery();
+  },
+  mounted() {
+    // 调用AppMain中的方法设置网格高度（自适应）
+    var parent = this.$utils.getParentView(this.$route.path, this.$parent);
+    if (parent) {
+      parent.setTableHeight();
+    }
+  },
+  watch: {
+    formField(val) {
+      this.instats = this.instats + 1;
+      this.carBrandKey = this.carBrandKey + 1;
+      this.isEnab = this.isEnab + 1;
+    }
+  },
+  methods: {
+
+
+    //单击复选框事件
+    select(selection, row) {
+      //  console.log(selection);
+      //  console.log(row)
+    },
+
+
+    //动态添加样式
+    addTdClass({ row, column, rowIndex, columnIndex }) {
+      //判断行和列的位置并且动态添加className
+      if (
+        rowIndex % 2 != 0 &&
+        (columnIndex == 5 || columnIndex == 7 || columnIndex == 8)
+      ) {
+        return "inputBackground";
+      }
+    },
+    //添加
+    chickSele() {
+      const that = this;
+      that.gridData = {};
+      that.handleTitle = 0;
+      that.dialogVisible = true;
+    },
+    //编辑
+    editTable() {
+      const that = this;
+      let selectData = that.$refs.multipleTable.selection;
+      if (selectData.length != 1) {
+        this.$message({ message:this.$t('org.message.selOneData')/*选择一条数据*/ , type: "warning" });
+        return false;
+      }
+      var selectDataObj = {};
+      for (var key in selectData[0]) {
+        selectDataObj[key] = selectData[0][key];
+      }
+      that.gridData = selectDataObj;
+      that.dialogVisible = true;
+      that.handleTitle = 1;
+    },
+
+    //重置
+    reset() {
+      this.formField = {
+        brandCode: "",
+        carTypeCode: "",
+        status: "",
+        isEnable: ""
+      };
+    },
+    //判断是否选中一行
+    isGetOneData(){
+      let that = this.$refs.multipleTable
+      let select = that.$refs.multipleTable.selection
+      if(select.length === 0){
+        this.$message({ message: this.$t('org.message.selOneData')/*选择一条数据*/ , type: 'warning' });
+				return false;
+      }
+      else if(select.length > 1){
+        this.$message({ message:  this.$t('org.message.onlyOneData')/*只能选择一条数据*/  , type: 'warning' });
+				return false;
+      }else{
+        this.rowData = select[0]
+				return true;
+      }
+    },
+    //显示车身模块
+    carColorModal() {
+      if(this.isGetOneData()){
+        this.priceSetKey +=1
+        this.carColorVisible = true;
+      }
+    },
+    //显示内饰模块
+    trimColorModal() {
+      this.$refs.TrimPopupvale.trimColorVisible = true;
+      // this.trimColorVisible = true;
+    },
+    //将选择的值赋给单元格
+    getCarColorCode(val) {
+      this.carColorVisible = false;
+    },
+    closePriceSet(){
+      this.carColorVisible = false;
+    },
+    closeStockSpecialCar(){
+      this.stockSpecialCarVisible = false
+    },
+    openStockSpecialCar(){
+      if(this.isGetOneData()){
+        this.stockSpecialCarKey+=1
+        this.stockSpecialCarVisible = true
+      }
+    },
+    //获取显示
+    handDialogVisibleFunc(val) {
+      this.dialogVisible = val;
+    },
+  }
+};
+</script>
+<style lang="scss" scoped>
+.gridSelect .el-col {
+  margin-bottom: 0px;
+}
+.el-date-editor {
+  width: 100% !important;
+}
+.el-input__prefix {
+  left: 82%;
+}
+.selectBlock {
+  width: 100%;
+  display: block;
+}
+.position {
+  position: absolute;
+  right: 5px;
+  top: 30%;
+  color: #169bd5;
+}
+/deep/ .multipleTable .editInput {
+  padding: 0px 3px;
+}
+/deep/ .multipleTable .editInput .cell {
+  padding-left: 0;
+  padding-right: 0;
+}
+/deep/ .multipleTable .editInput .el-input__inner {
+  border: none;
+}
+/deep/ .inputBackground input {
+  background: #fafafa !important;
+}
+/deep/ .diaConpent .el-col-6 {
+  widh: 100%;
+}
+</style>

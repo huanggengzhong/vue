@@ -1,0 +1,395 @@
+<template>
+<div class="carMessage"> 
+  <h5>交车信息</h5>
+  <div class="filter-container filter-params">
+    <el-row :gutter="26">
+      <component
+        v-for="comp in tableComponentsone.filter(o => o.isMust === true)"
+        :ref="comp.isRequire ? comp.isRequire+ comp.compKey : comp.compKey"
+        :validrule="comp.validrule"
+        :key="comp.compKey"
+        :codeField="comp.codeField"
+        :textField="comp.textField"
+        :popupsKey="comp.compKey"
+        :is="comp.component"
+        :code="formField[comp.codeField]"
+        @changeCode="getComponentCode"
+        @focusCode="getFocusCode"
+        :disabled="comp.disabled"
+        :isRequire="comp.isRequire"
+        :isMul="comp.isMul"
+        :span="comp.span || 6"
+        :labelName="comp.labelName"
+        :lookuptype="comp.lookuptype"
+        :dateOptionsType="comp.dateOptionsType"
+      ></component>
+    </el-row>
+  </div>
+    <h5>客户信息</h5>
+  <div class="filter-container filter-params">
+    <el-row :gutter="26">
+      <component
+        v-for="comp in tableComponentstwo.filter(o => o.isMust === true)"
+        :ref="comp.isRequire ? comp.isRequire+ comp.compKey : comp.compKey"
+        :validrule="comp.validrule"
+        :key="comp.compKey"
+        :codeField="comp.codeField"
+        :textField="comp.textField"
+        :popupsKey="comp.compKey"
+        :is="comp.component"
+        :code="formField[comp.codeField]"
+        @changeCode="getComponentCode"
+        @focusCode="getFocusCode"
+        :disabled="comp.disabled"
+        :isRequire="comp.isRequire"
+        :isMul="comp.isMul"
+        :span="comp.span || 6"
+        :labelName="comp.labelName"
+        :lookuptype="comp.lookuptype"
+        :dateOptionsType="comp.dateOptionsType"
+      ></component>
+    </el-row>
+  </div>
+    <h5>车辆信息</h5>
+  <div class="filter-container filter-params">
+    <el-row :gutter="26">
+      <component
+        v-for="comp in tableComponentstree.filter(o => o.isMust === true)"
+        :ref="comp.isRequire ? comp.isRequire+ comp.compKey : comp.compKey"
+        :validrule="comp.validrule"
+        :key="comp.compKey"
+        :codeField="comp.codeField"
+        :textField="comp.textField"
+        :popupsKey="comp.compKey"
+        :is="comp.component"
+        :code="formField[comp.codeField]"
+        @changeCode="getComponentCode"
+        @focusCode="getFocusCode"
+        :disabled="comp.disabled"
+        :isRequire="comp.isRequire"
+        :isMul="comp.isMul"
+        :span="comp.span || 6"
+        :labelName="comp.labelName"
+        :lookuptype="comp.lookuptype"
+        :dateOptionsType="comp.dateOptionsType"
+      ></component>
+    </el-row>
+  </div>
+  <!-- 备注 -->
+   <div class="filter-container filter-params">
+    <el-row :gutter="26">
+      <component
+        v-for="comp in tableComponentsf.filter(o => o.isMust === true)"
+        :ref="comp.isRequire ? comp.isRequire+ comp.compKey : comp.compKey"
+        :validrule="comp.validrule"
+        :key="comp.compKey"
+        :codeField="comp.codeField"
+        :textField="comp.textField"
+        :popupsKey="comp.compKey"
+        :is="comp.component"
+        :code="formField[comp.codeField]"
+        @changeCode="getComponentCode"
+        @focusCode="getFocusCode"
+        :disabled="comp.disabled"
+        :isRequire="comp.isRequire"
+        :isMul="comp.isMul"
+        :span="comp.span || 6"
+        :labelName="comp.labelName"
+        :lookuptype="comp.lookuptype"
+        :dateOptionsType="comp.dateOptionsType"
+      ><span>备注:合格证损坏问题请咨询车业科</span></component>
+    </el-row>
+  </div>
+   </div>
+</template>
+
+<script>
+import { formMixins } from "@/components/mixins/formMixins";
+import { veApis } from "@/api/graphQLApiList/ve";
+import OneTableTemplate from "@/components/templates/popupsOneTable";
+import { CacheConfig } from "@/cache/configCache/index";
+export default {
+  name: "orgBrandManage",
+  // 组件混入对象
+  mixins: [formMixins],
+  // components: {
+  //   OneTableTemplate
+  // },
+  data() {
+    return {
+      tableComponentsone: [
+         {
+          compKey: "compKey7",
+          labelName: this.$t("ve.label.applyType"),//销售经理
+          codeField: "custName",
+          lookuptype: 'VE0305',
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMul:false,
+          isMust: false
+        },   
+          {
+          compKey: "compKey71",
+          labelName: this.$t("ve.label.applyType"),//服务经理
+          codeField: "custName",
+          lookuptype: 'VE0305',
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMul:false,
+          isMust: false
+        }, 
+             {
+          compKey: "compKey77",
+          labelName: this.$t("ve.label.applyType"),//服务顾问
+          codeField: "custName",
+          lookuptype: 'VE0305',
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMul:false,
+          isMust: false
+        }, 
+      
+        {
+          compKey: "compKey19",
+          labelName: this.$t("ve.label.applyType") /*发票号*/,
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+
+        {
+          compKey: "compKey941",
+          labelName: this.$t("ve.label.applyType") /*发票金额*/,
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+               {
+          compKey: "compKey30",
+          labelName: this.$t("ve.label.applyType"),//开票日期
+          codeField: "beginBusinessDate",
+          format: "yyyy/MM/dd HH:mm:ss",
+          component: () => import("@/components/org/datePicker/datePicker"),
+          type: "datePicker",
+          dateOptionsType: "0",
+          isMust: false,
+        },
+         {
+          compKey: "compKey921",
+           labelName: this.$t("ve.label.applyType"), /*保修手册*/
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+         {
+          compKey: "compKey951",
+         labelName: this.$t("ve.label.applyType"), /*上传附件*/
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+      ],
+       tableComponentstwo: [
+         {
+          compKey: "compKey70",
+          labelName: this.$t("ve.label.applyType"),//销售经理
+          codeField: "custName",
+          lookuptype: 'VE0305',
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMul:false,
+          isMust: false
+        },   
+          {
+          compKey: "compKey711",
+          labelName: this.$t("ve.label.applyType"),//服务经理
+          codeField: "custName",
+          lookuptype: 'VE0305',
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMul:false,
+          isMust: false
+        }, 
+             {
+          compKey: "compKey770",
+          labelName: this.$t("ve.label.applyType"),//服务顾问
+          codeField: "custName",
+          lookuptype: 'VE0305',
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMul:false,
+          isMust: false
+        }, 
+      
+        {
+          compKey: "compKey190",
+          labelName: this.$t("ve.label.applyType") /*发票号*/,
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+
+        {
+          compKey: "compKey911",
+          labelName: this.$t("ve.label.applyType") /*发票金额*/,
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+               {
+          compKey: "compKey33",
+          labelName: this.$t("ve.label.applyType"),//开票日期
+          codeField: "beginBusinessDate",
+          format: "yyyy/MM/dd HH:mm:ss",
+          component: () => import("@/components/org/datePicker/datePicker"),
+          type: "datePicker",
+          dateOptionsType: "0",
+          isMust: false,
+        },
+         {
+          compKey: "compKey901",
+           labelName: this.$t("ve.label.applyType"), /*保修手册*/
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+         {
+          compKey: "compKey81",
+         labelName: this.$t("ve.label.applyType"), /*上传附件*/
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+      ],
+       tableComponentstree: [
+         {
+          compKey: "compKey70",
+          labelName: this.$t("ve.label.applyType"),//销售经理
+          codeField: "custName",
+          lookuptype: 'VE0305',
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMul:false,
+          isMust: false
+        },   
+          {
+          compKey: "compKey711",
+          labelName: this.$t("ve.label.applyType"),//服务经理
+          codeField: "custName",
+          lookuptype: 'VE0305',
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMul:false,
+          isMust: false
+        }, 
+             {
+          compKey: "compKey770",
+          labelName: this.$t("ve.label.applyType"),//服务顾问
+          codeField: "custName",
+          lookuptype: 'VE0305',
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMul:false,
+          isMust: false
+        }, 
+      
+        {
+          compKey: "compKey190",
+          labelName: this.$t("ve.label.applyType") /*发票号*/,
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+
+        {
+          compKey: "compKey911",
+          labelName: this.$t("ve.label.applyType") /*发票金额*/,
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+               {
+          compKey: "compKey33",
+          labelName: this.$t("ve.label.applyType"),//开票日期
+          codeField: "beginBusinessDate",
+          format: "yyyy/MM/dd HH:mm:ss",
+          component: () => import("@/components/org/datePicker/datePicker"),
+          type: "datePicker",
+          dateOptionsType: "0",
+          isMust: false,
+        },
+         {
+          compKey: "compKey901",
+           labelName: this.$t("ve.label.applyType"), /*保修手册*/
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+         {
+          compKey: "compKey81",
+         labelName: this.$t("ve.label.applyType"), /*上传附件*/
+          codeField: "vin",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+      ],
+     tableComponentsf: [
+         {
+          compKey: "compKey61",
+          labelName: this.$t("ve.label.applyType"),//销售经理
+          codeField: "custName",
+          lookuptype: 'VE0305',
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMul:false,
+          isMust: false
+        },   
+          {
+          compKey: "compKey61",
+          labelName: this.$t("ve.label.applyType"),//服务经理
+          codeField: "custName",
+          lookuptype: 'VE0305',
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMul:false,
+          isMust: false
+        }, 
+             
+      ]
+    };
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+.tab-content div[data-v-db326a18] {
+    width: 132%;
+    line-height: 25px;
+     text-align: left; 
+}
+.filter-params{
+  border: 1px solid rgb(228, 222, 222);
+  height: 123px;
+}
+h5{
+ margin-top: 20px;
+}
+.carMessage{
+    height: 60px;
+    float: left;
+  
+}
+
+</style>

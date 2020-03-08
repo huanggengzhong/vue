@@ -1,0 +1,267 @@
+<!--
+* description: 城市管理-新增、修改弹窗
+* author: linzewen
+* createdDate: 2019-08-07
+-->
+<template>
+  <section class="editCarBrand">
+    <el-dialog
+      :close-on-click-modal="false"
+      :title="textMap[popupsState]"
+      :append-to-body="true"
+      :visible.sync="curPopupsVisible"
+      @close="sendCode"
+      width="1000px"
+    >
+      <div class="filter-container filter-params">
+        <el-row :gutter="26">
+          <component
+            v-for="comp in tableComponents.filter(o => o.isMust === true)"
+            :ref="comp.isRequire ? comp.isRequire+ comp.compKey : comp.compKey"
+            :validrule="comp.validrule"
+            :key="comp.compKey"
+            :codeField="comp.codeField"
+            :textField="comp.textField"
+            :popupsKey="comp.compKey"
+            :is="comp.component"
+            :code="formField[comp.codeField]"
+            @changeCode="getComponentCode"
+            @focusCode="getFocusCode"
+            :disabled="comp.disabled"
+            :isRequire="comp.isRequire"
+            :isMul="comp.isMul"
+            :span="comp.span || 8"
+            :labelName="comp.labelName"
+            :lookuptype="comp.lookuptype"
+            :dateOptionsType="comp.dateOptionsType"
+          ></component>
+        </el-row>
+      </div>
+
+      <component
+        v-for="comp in tableComponents.filter(o => o.type === 'popupsInput')"
+        :key="comp.popups.key"
+        :codeField="comp.codeField"
+        :popupsVisible="comp.popups.state"
+        :comType="comp.popups.type"
+        :is="comp.popups.component"
+        :popupsKey="comp.compKey"
+        :code="formField[comp.codeField]"
+        @changeCode="getComponentCode"
+      ></component>
+
+      <div
+        slot="footer"
+        class="dialog-footer"
+      >
+        <el-button
+          v-for="comp in tableButtons"
+          :key="comp.compKey"
+          :type="comp.type"
+          @click="comp.clickEvent"
+        >{{comp.text}}</el-button>
+      </div>
+    </el-dialog>
+  </section>
+</template>
+<script>
+import { formMixins } from "@/components/mixins/formMixins";
+import { orgApis } from "@/api/graphQLApiList/org";
+import OneTableTemplate from "@/components/templates/popupsOneTable";
+export default {
+  // 组件混入对象
+  mixins: [formMixins],
+  components: {
+    OneTableTemplate
+  },
+  props: {
+    showFlag: {
+      type: Boolean,
+      default: false
+    }
+  },
+  data() {
+    return {
+      // 保存API配置对象
+      apiConfig: orgApis.mdmOrgCityMutationSave,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.save(),
+          text: this.$t("sys.button.save") /*保存*/
+        },
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: this.$t("sys.button.reset") /*重置*/
+        },
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.sendCode(),
+          text: this.$t("sys.tagsView.close") /*关闭*/
+        }
+      ],
+      // 动态组件-查询条件
+      tableComponents: [
+        {
+          compKey: "compKey1",
+          labelName: this.$t("org.label.cityCode") /*城市编码*/,
+          codeField: "cityCode",
+          isRequire: true,
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true,
+          disabled: !this.isAdd()
+        },
+        {
+          compKey: "compKey2",
+          labelName: this.$t("org.label.cityName") /*城市名称*/,
+          codeField: "cityName",
+          isRequire: true,
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey3",
+          labelName: this.$t("org.label.provinceName") /*所属省份*/,
+          isMul: false,
+          codeField: "provinceId",
+          isRequire: false,
+          component: () => import("@/components/org/ProvinceQuery"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey4",
+          labelName: this.$t("org.label.isEnable") /*是否启用*/,
+          codeField: "isEnable",
+          isRequire: false,
+          component: () => import("@/components/org/isEnable/isEnable"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey5",
+          labelName: this.$t("org.label.orderNo") /*排序*/,
+          codeField: "orderNo",
+          isRequire: false,
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        }
+      ],
+      // 标题
+      textMap: {
+        edit: this.$t("org.label.editCityMsg") /*修改城市信息*/,
+        add: this.$t("org.label.addCityMsg") /*添加城市信息*/
+      },
+      // 表单数据（无需赋值，由混入对象赋值）
+      formField: {
+        cityCode: "",
+        cityName: "",
+        provinceId: "",
+        isEnable: "",
+        orderNo: "",
+        cityId:'',
+        updateControlId: ""
+      }
+    };
+  },
+  created() {
+    var that = this
+    if (that.tableComponents.length === 0) {
+      if (that.popupsPageCode && that.popupsPageCode.length > 0) {
+        // 读取弹窗配置信息
+        CacheConfig.initData(that.popupsPageCode, function() {
+          if (CacheConfig.cacheData[that.popupsPageCode] && CacheConfig.cacheData[that.popupsPageCode].formComponents.length > 0) {
+            that.tableComponents = CacheConfig.cacheData[that.popupsPageCode].formComponents
+          } else {
+            that.tableComponents = that.staticTableComponents
+          }
+          that.popupsTableKey = that.$utils.generateId()
+        })
+      } else {
+        that.tableComponents = that.staticTableComponents
+      }
+    }
+    // 赋值formField
+    if (this.popupsState === 'edit') {
+      let orderNo = this.dynamicEditRowData.orderNo.toString()
+      this.dynamicEditRowData.orderNo = orderNo
+      if (this.isUseRowData) {
+        for (var key in this.formField) {
+          if (this.dynamicEditRowData[key]) {
+            this.formField[key] = this.dynamicEditRowData[key]
+          } else {
+            if (typeof this.formField[key] === 'number') {
+              this.formField[key] = 0
+            } else if (typeof this.formField[key] === 'string') {
+              this.formField[key] = ''
+            }
+
+            // 两层处理
+            for (var rKey in this.dynamicEditRowData) {
+              if (rKey.indexOf('.') > -1) {
+                var tmpKey = rKey.split('.')[1]
+                if (tmpKey === key) {
+                  this.formField[tmpKey] = this.dynamicEditRowData[rKey]
+                  break
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    // 备份fromField（用于重置）
+    // 初始化品牌
+    if (this.formField.carBrandCode === '' && this.isSetDefaultBrand === true) {
+      this.formField.carBrandCode = this.$store.getters.orgInfo.BRAND_CODE
+    }
+    this.backFormField = JSON.parse(JSON.stringify(this.formField))
+
+    // 联动组件获取父组件传值
+    that.$nextTick(() => {
+      // 监听
+      that.watchComp(true)
+    })
+  },
+  methods: {
+    //保存
+    save() {
+      const that = this;
+
+      // if (that.$utils.isEmpty(that.formField.cityCode)) {
+      //   that.$message({
+      //     message: "请输入城市编码",
+      //     type: "warning",
+      //     duration: 2000
+      //   });
+      //   return;
+      // }
+      // if (that.$utils.isEmpty(that.formField.cityName)) {
+      //   that.$message({
+      //     message: "请输入城市名称",
+      //     type: "warning",
+      //     duration: 2000
+      //   });
+      // return;
+      // }
+
+      //保存表单
+      if(this.formField.orderNo === ''){
+        this.formField.orderNo = '255'
+      }
+      this.saveForm();
+    }
+  }
+};
+</script>

@@ -1,0 +1,840 @@
+<!--
+* description: 维修工时标准页面
+* author: pukuim
+* createdDate: 2019-07-22
+* logs：
+*  20190720 新增页面功能
+-->
+
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button" ref="searcheHeight">
+      <el-button type="primary" size="small" @click="queryFindOperateAll('1')">查询</el-button>
+      <el-button size="small" @click="addOrModifyBig('0')">新增维修大类</el-button>
+      <el-button size="small" @click="addOrModifySmall('0')">新增维修小类</el-button>
+      <el-button size="small" @click="modify()">修改</el-button>
+      <el-button size="small" @click="deleteData()">删除</el-button>
+      <el-button size="small" @click="resetControl()">重置</el-button>
+    </div>
+    <div class="filter-container filter-params" ref="conHeight">
+      <el-row :gutter="26">
+        <el-col :span="6">
+          <label>工时来源</label>
+          <el-select
+            collapse-tags
+            filterable
+            v-model="listQuery.isSystem"
+            placeholder="全部"
+            clearable
+            size="small">
+            <el-option
+              v-for="(item, i) in isSystemOptions"
+              :key="`isSystemOptions_${i}`"
+              :label="item.text"
+              :value="item.code"
+            >{{item.text}}</el-option>
+          </el-select>
+        </el-col>
+        <el-col :span="6">
+          <label>维修大类</label>
+          <el-select
+            collapse-tags
+            filterable
+            v-model="listQuery.operatePartId"
+            placeholder="全部"
+            clearable
+            @change="operatePartChange"
+            size="small">
+            <el-option
+              v-for="(item, i) in operatePartIdOptions"
+              :key="`operatePartIdOptions${i}`"
+              :label="item.text"
+              :value="item.code"
+            >{{item.text}}</el-option>
+          </el-select>
+        </el-col>
+        <el-col :span="6">
+          <label>大类编码</label>
+          <el-input v-model="listQuery.operatePartCode" placeholder size="small" />
+        </el-col>
+        <el-col :span="6">
+          <label>维修小类</label>
+          <el-select
+            collapse-tags
+            filterable
+            v-model="listQuery.wiSmallKindId"
+            placeholder="全部"
+            clearable
+            size="small"
+          >
+            <el-option
+              v-for="(item, i) in wiSmallKindIdOptions"
+              :key="`wiSmallKindIdOptions_${i}`"
+              :label="item.text"
+              :value="item.code"
+            >{{item.text}}</el-option>
+          </el-select>
+        </el-col>
+        <el-col :span="6">
+          <label>小类编码</label>
+          <el-input v-model="listQuery.repairSmallKindCode" placeholder size="small" />
+        </el-col>
+      </el-row>
+    </div>
+    <div class="filter-container filter-title" ref="resultTitleHeight">查询结果</div>
+    <el-container>
+      <el-aside width="25%" :style="treeStyle">
+        <el-scrollbar style="height: 800px" ref="contentDiv">
+          <el-tree
+            :data="treeData"
+            :props="defaultProps"
+            :default-expanded-keys="treeExpandKeys"
+            node-key="id"
+            @node-click="handleTreeNodeClick"
+            show-checkbox
+            default-expand-all
+          ></el-tree>
+        </el-scrollbar>
+      </el-aside>
+      <el-main>
+        <el-table
+          v-loading="listLoading"
+          ref="multipleTable"
+          :data="list"
+          element-loading-text="Loading"
+          border
+          fit
+          stripe
+          height="450px"
+          highlight-current-row
+          @row-click="rowClick">
+          <el-table-column label="序号" width="60" align="center">
+            <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+          </el-table-column>
+          <el-table-column label="大类编码" v-if="typeFlag === '0'" align="center">
+            <template slot-scope="scope">{{ scope.row.operatePartCode }}</template>
+          </el-table-column>
+          <el-table-column label="大类名称" align="center">
+            <template slot-scope="scope">{{ scope.row.opratePlaceName }}</template>
+          </el-table-column>
+          <el-table-column label="小类编码" v-if="typeFlag === '1'" align="center">
+            <template slot-scope="scope">{{ scope.row.repairSmallKindCode }}</template>
+          </el-table-column>
+          <el-table-column label="小类名称" v-if="typeFlag === '1'" align="center">
+            <template slot-scope="scope">{{ scope.row.repairSmallKindName }}</template>
+          </el-table-column>
+          <el-table-column label="来源" align="center">
+            <template slot-scope="scope">{{ scope.row.isSystemName }}</template>
+          </el-table-column>
+          <el-table-column label="故障部位" v-if="typeFlag === '1'" align="center">
+            <template slot-scope="scope">{{ scope.row.faultPartName }}</template>
+          </el-table-column>
+          <el-table-column label="故障部位编码" v-if="typeFlag === '1'" align="center">
+            <template slot-scope="scope">{{ scope.row.faultPartCode }}</template>
+          </el-table-column>
+        </el-table>
+        <el-pagination
+          background
+          layout="prev, pager, next, sizes, ->, total"
+          prev-text="上一页"
+          next-text="下一页"
+          :page-sizes="[10, 20, 30]"
+          :page-size="10"
+          :total="pageTotal"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          ref="paginationHeight"
+        />
+      </el-main>
+    </el-container>
+    <el-dialog
+      :title="oprNote"
+      :visible.sync="dialogBigVisible"
+      center
+      width="350px"
+      style="height:300px;"
+      :close-on-click-modal=false
+      :append-to-body="true" >
+      <div class="filter-container filter-params">
+        <el-row :gutter="26">
+          <!--<carBrand :span="6" :code="initCode" @changeCode="getBrandCode"></carBrand>-->
+
+          <el-col :span="20">
+            <label>大类编码</label>
+            <el-input v-model="modifyBigModel.operatePartCode" placeholder size="small" />
+          </el-col>
+        </el-row>
+        <el-row :gutter="26">
+          <el-col :span="20">
+            <label>大类名称</label>
+            <el-input v-model="modifyBigModel.opratePlaceName" placeholder size="small" />
+          </el-col>
+        </el-row>
+        <el-row :gutter="26">
+          <el-col :span="20">
+            <label>故障部位</label>
+            <el-select
+              collapse-tags
+              filterable
+              v-model="modifyBigModel.faultPartCode"
+              placeholder="请选择"
+              clearable
+              size="small"
+            >
+              <el-option
+                v-for="(item, i) in faultPartOptions"
+                :key="`faultPartOptions_${i}`"
+                :label="item.text"
+                :value="item.code"
+              >{{item.text}}</el-option>
+            </el-select>
+          </el-col>
+        </el-row>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="dialogBigVisible = false">取 消</el-button>
+        <el-button type="primary" @click="saveBig()">确 定</el-button>
+      </span>
+    </el-dialog>
+    <el-dialog 
+     :title="oprNote"
+     :visible.sync="dialogSmallVisible" 
+     center 
+     width="380px" 
+     :close-on-click-modal=false
+     :append-to-body="true" >
+        <div class="filter-container filter-params">
+          <el-row :gutter="24">
+            <el-col :span="20" class="">
+              <label>大类名称</label>
+
+                <el-input
+                  :disabled="smallDisable"
+                  v-model="modifySmallViewModel.opratePlaceName"
+                  auto-complete="off"
+                  size="small"
+                ></el-input>
+            </el-col>
+
+
+          </el-row>
+          <el-row :gutter="24">
+              <el-col :span="6" style="padding-right: 0px;">
+                <label style="width:100%;">小类编码</label>
+              </el-col>
+              <el-col :span="5" style="padding-left: 6px;">
+                <el-input
+                    :disabled="true"
+                    v-model="modifySmallViewModel.repairSmallKindCode1"
+                    auto-complete="off"
+                    size="small"
+                    class="minCode1"
+                  ></el-input>
+              </el-col>
+              <el-col :span="12" style="padding-left: 6px;">
+                <el-input
+                :disabled="false"
+                v-model="modifySmallViewModel.repairSmallKindCode2"
+                auto-complete="off"
+                size="small"
+                class="minCode2"
+              ></el-input>
+              </el-col>
+          </el-row>
+          <el-row :gutter="24">
+            <el-col :span="20" class="">
+              <label>小类名称</label>
+                <el-input
+                  :disabled="false"
+                  v-model="modifySmallModel.repairSmallKindName"
+                  auto-complete="off"
+                  size="small"
+                ></el-input>
+            </el-col>
+          </el-row>
+        </div>
+          <span slot="footer" class="dialog-footer">
+            <el-button @click="dialogSmallVisible = false">取 消</el-button>
+            <el-button type="primary" @click="saveSmall()">确 定</el-button>
+          </span>
+    </el-dialog>
+  </div>
+</template>
+<script>
+import {
+  doQueryFindAll, doSaveBig, doQueryFindSmall, doSaveSmall, doDeleteBig, doDeleteSmall
+} from "@/api/se/basedata/repair/repairWIType";
+import { requestGraphQL } from "@/api/commonRequest";
+import { seApis } from '@/api/graphQLApiList/se'
+import{seDbFaultPartQuery} from "@/api/se/basedata/repair/seDbFaultPartQuery"
+import { the_Height} from "@/components/se/seMixins/makeHeight"
+export default {
+  name: "testTbale",
+  mixins: [the_Height],
+  props: {
+    smallDisable: {
+      type: Boolean,
+      default: function() {
+        return true;//this.modifySmallModel.wiSmallKindId == "" ? false : true;
+      }
+    },
+    bigDisable: {
+      type: Boolean,
+      default: function() {
+        return false;//this.modifyBigModel.operatePartId == "" ? false : true;
+      }
+    }
+  },
+  data() {
+    return {
+      isMul: true,
+      code: "1",
+      typeFlag: "0", //查询类型，0-大类，1-小类
+      oprNote:"新增",
+      list: null,
+      pageTotal: 0,
+      dialogBigVisible: false,
+      dialogSmallVisible: false,
+      isSuccess:false,
+      bigNode:{},
+      curTableRow:{},
+      treeStyle: {
+        height: '100%'
+      },
+      //isValid:false,
+      listLoading: true,
+      pageSize: 10, 
+      pageIndex:1,
+      listQuery: {
+        oemCode: "",
+        groupCode: "",
+        operatePartId: "",
+        operatePartCode: "",
+        wiSmallKindId: "",
+        repairSmallKindCode: "",
+        isSystem: ""
+      },
+      modifyBigModel: {
+        operatePartId: "",
+        operatePartCode: "",
+        faultPartCode: "",
+        opratePlaceName: "",
+        isSystem: "",
+        dlrCode: this.$store.getters.orgInfo.DLR_CODE,
+        dlrId: this.$store.getters.orgInfo.DLR_ID,
+        remark: "",
+        oemId: "",
+        oemCode: "",
+        groupId: "",
+        groupCode: "",
+        updateControlId: ""
+      },
+      modifySmallModel: {
+        dlrCode: this.$store.getters.orgInfo.DLR_CODE,
+        dlrId: this.$store.getters.orgInfo.DLR_ID,
+        wiSmallKindId: "",
+        repairSmallKindCode:"",
+        operatePartCode: "",
+        repairSmallKindName: "",
+        operatePartId: ""
+      },
+      modifySmallViewModel: {
+        opratePlaceName: "",
+        repairSmallKindCode1: "",//前一段，大类编码
+        repairSmallKindCode2: "",//后一段
+      },
+      deleteModel:{
+        operatePartId: "",//大类id,删除大类时用
+        oemCode: "",
+        groupCode: "",
+        isEnable: "0",
+        updateControlId: "",
+        wiSmallKindId:"",//小类id,删除小类时用
+      },
+      faultPartQuery:
+      {
+        oemCode:'',
+        groupCode:'',
+        faultPartName:'',
+        faultPartCode:''
+      },
+
+      isSystemOptions: this.$suit.constData.IS_SYSTEM_OPTIONS,
+      operatePartIdOptions: [],
+      faultPartOptions: [],
+      wiSmallKindIdOptions: [],
+      treeData: [
+        {
+          id: "0",
+          label: "工时类别",
+          deep: 0,
+          children: []
+        }
+      ],
+      treeExpandKeys: ["0"],
+      defaultProps: {},
+    };
+  },
+  computed:{
+  },
+  watch:{
+  },
+  created() {
+    //查询大类
+    this.queryFindOperateAll("1", "1")
+    //查询故障部位
+    this.loadFaultPartOptions()
+  },
+  mounted() {
+  },
+  methods: {
+    rowClick(row, column, event){
+        this.curTableRow=row
+    },
+    handleSizeChange(val) {
+      this.pageSize = val
+      this.queryFindOperateAll()
+    },
+    handleCurrentChange(val) {
+      this.pageIndex = val
+      this.queryFindOperateAll()
+    },
+    //故障部位
+    loadFaultPartOptions(){
+      seDbFaultPartQuery(-1, 1, this.faultPartQuery)
+      .then(response => {
+        var resData = response.data[seApis.seDbFaultPartQueryFindAll.ServiceCode]
+        if (resData.result === "1" && resData.rows != null) {
+          var listTemp = resData.rows
+          listTemp.forEach(row=>{
+              this.faultPartOptions.push({code:row.faultPartCode,text:row.faultPartName});
+          })
+          // this.faultPartOptions.push({code:'test01',text:'test01'});// 测试数据
+        }
+      });
+    },
+    //查询大类
+    queryFindOperateAll(page, firstLoad = "0") {
+      const that = this;
+       if(this.listQuery.wiSmallKindId!==''||this.listQuery.repairSmallKindCode!==""){
+        this.typeFlag = "1";
+        }else{
+          this.typeFlag = "0";
+        }
+      this.listLoading = true;
+      that.curTableRow = {};
+      this.bigNode = {};
+      //转换了中台请求格式数据
+      doQueryFindAll(-1, page || that.pageIndex, that.listQuery)
+      .then(response => {
+        if (response.result !== '1') {
+          this.$message({
+            type: 'error',
+            message: response.msg
+          })
+          return
+        }
+        var resData = response.data[seApis.seDbOpratePlaceQueryFindAll.ServiceCode]
+        if ( resData.result === "1" && resData.rows != null) {
+          if (page) {
+            //查询完返回指定的page页数
+            that.pageIndex = page;
+          }
+          that.pageTotal = resData.records;
+          that.list = []// 返回数据，按大类ID去重后的数据
+          if (resData.rows != null) {
+            resData.rows.forEach(row => {
+              if (that.list.filter(o => o.operatePartId == row.operatePartId).length == 0) {
+                row.isSystemName = row.isBigSystemName
+                that.list.push(row)
+              }
+            })
+          }
+          if (firstLoad == "1") {
+            //第一次加载，大类下拉框
+            var temp_array = [];
+            resData.rows.forEach(row => {
+              if(temp_array.filter(o=>o.code == row.operatePartId).length === 0){
+                temp_array.push({
+                  code: row.operatePartId,
+                  text: row.opratePlaceName
+                });
+              }
+            });
+            this.operatePartIdOptions = temp_array;
+            //加载左边树形结构
+            var treeChilds = [];
+            resData.rows.forEach(row => {
+              var node = {}
+              var nodesExists = treeChilds.filter(o=>o.id == row.operatePartId)
+              if (nodesExists.length == 0) {
+                node = {
+                  id: row.operatePartId,
+                  code: row.operatePartCode,
+                  label: row.opratePlaceName,
+                  deep: 1,
+                  children: []
+                }
+              } else {
+                node = nodesExists[0]
+              }
+              if (row.seDbWiType) {
+                row.seDbWiType.forEach(subrow => {
+                  var childExists = node.children.filter(o=>o.id == subrow.wiSmallKindId)
+                  if (childExists.length  == 0) {
+                    node.children.push({
+                      id: subrow.wiSmallKindId,
+                      code: subrow.repairSmallKindCode,
+                      label: subrow.repairSmallKindName,
+                      deep: 2
+                    })
+                  }
+                })
+              }
+              if (nodesExists.length == 0) {
+                treeChilds.push(node)
+              }
+            })
+            this.treeData[0].children = treeChilds
+          }
+        }
+        this.listLoading = false
+      });
+    },
+    //treeNode节点点击事件
+    handleTreeNodeClick(data) {
+      const that = this
+      switch(data.deep) {
+        case 0:
+          this.queryFindOperateAll("1")
+          this.bigNode = {}
+          break;
+        case 1: 
+          this.queryFindSmall(data.id, "1", function(arr){
+            var tempArr = []
+            arr.forEach(row => {
+              tempArr.push({
+                id: row.wiSmallKindId,
+                code: row.repairSmallKindCode,
+                label: row.repairSmallKindName,
+                deep: 2
+              })
+            });
+            if (data.children) {
+              that.$set(data, 'children', tempArr);
+            }
+          });
+          this.bigNode = data
+          break
+        case 2:
+          this.queryFindSmall(data.id, "1")
+            break
+      }
+    },
+    operatePartChange() {
+      var bigId = this.listQuery.operatePartId;
+      this.queryFindSmall(this.listQuery.operatePartId, "0");
+    },
+    saveBig() {
+      if(this.modifyBigModel.operatePartCode=='' || this.modifyBigModel.opratePlaceName==''){
+        this.$message({
+          type: 'warning',
+          message: `请输入大类编码、大类名称`
+        });
+        return;
+      }
+      if(this.modifyBigModel.faultPartCode==null || this.modifyBigModel.faultPartCode == ''){
+        this.$message({
+          type: 'warning',
+          message: `请选择故障部位`
+        });
+        return;
+      }
+      this.listLoading = true
+      this.isSuccess=false
+      const that = this
+      doSaveBig(this.modifyBigModel).then(response => {
+        that.listLoading = false
+        var resData = response.data[seApis.seDbOpratePlaceMutationSaveBig.ServiceCode]
+        if (resData.result === "1") {
+          that.isSuccess = true
+        } else {
+          that.isSuccess = false
+          that.$alert(resData.msg, '提示', {
+            confirmButtonText: '确定',
+            type:'error',
+          });
+        }
+        that.dialogBigSaveAfter()
+      });
+    },
+    queryFindSmall(operatePartId, refreshGridOrSelect, callback) {//refreshGridOrSelect-1加载网格，0加载联动下拉框
+        //加载网格
+      if(Number(refreshGridOrSelect) === 1) {
+        this.typeFlag = "1"
+        this.listLoading = true
+      } 
+      const that = this
+      doQueryFindSmall(-1, 1, {
+            // oemcode: that.listQuery.oemcode,
+            // groupcode: that.listQuery.groupcode,
+            operatePartId: operatePartId || that.listQuery.operatePartId
+          }).then(response => {
+            var resData = response.data[seApis.seDbOpratePlaceQueryFindSmalll.ServiceCode]
+            if (resData.result === "1" && resData.rows != null) {
+              if (refreshGridOrSelect == "1") {
+                that.pageTotal = resData.records
+                that.list = resData.rows
+                that.list.forEach(row => {
+                  row.opratePlaceName = this.bigNode.label
+                  row.operatePartCode = this.bigNode.code
+                  this.isSystemOptions.forEach(op => {
+                    if(op.code == row.isSystem) {
+                      row.isSystemName = op.text
+                    }
+                  })
+                })
+                that.listLoading = false;
+              } else if (refreshGridOrSelect == "0") {
+                var temp_array = [];
+                resData.rows.forEach(row => {
+                  temp_array.push({
+                    code: row.wiSmallKindId,
+                    text: row.repairSmallKindName
+                  });
+                });
+                this.wiSmallKindIdOptions = temp_array;
+              }
+              if(typeof callback === 'function'){
+                callback(resData.rows)
+              }
+            }
+            if(refreshGridOrSelect == '1') {//加载网格
+              this.listLoading = false
+            } 
+        })
+    },
+    saveSmall() {
+      if(this.modifySmallViewModel.repairSmallKindCode1=='' || this.modifySmallViewModel.repairSmallKindCode2==''){
+        this.$message({
+          type: 'warning',
+          message: `请输入小类编码`
+        })
+        return
+      }
+      if(this.modifySmallModel.repairSmallKindName==''){
+        this.$message({
+          type: 'warning',
+          message: `请输入小类名称`
+        })
+        return
+      }
+      this.modifySmallModel.repairSmallKindCode=this.modifySmallViewModel.repairSmallKindCode1+this.modifySmallViewModel.repairSmallKindCode2
+      this.listLoading = true
+      this.isSuccess=false
+      const that = this
+      doSaveSmall(this.modifySmallModel).then(response => {
+        var resData = response.data[seApis.seDbOpratePlaceMutationSaveSmall.ServiceCode]
+        that.listLoading = false
+        if (resData.result === '1') {
+          that.isSuccess = true
+        } else {
+          that.isSuccess = false
+          that.$alert(resData.msg, '提示', {
+            confirmButtonText: '确定',
+            type:'error'
+          })
+        }
+        that.dialogSmallSaveAfter()
+      });
+    },
+    resetControl() {
+      this.listQuery.operatePartId = ""
+      this.listQuery.operatePartCode = ""
+      this.listQuery.wiSmallKindId = ""
+      this.listQuery.repairSmallKindCode = ""
+      this.listQuery.isSystem = ""
+    },
+    modify(){
+      if (this.curTableRow.operatePartCode == null) {
+        this.$message({
+          type: 'warning',
+          message: `请选择要修改的数据行`
+        })
+        return
+      }
+      if (this.typeFlag == '0'){//大类修改
+        this.addOrModifyBig('1')
+      }
+      else if (this.typeFlag == '1'){//小类修改
+        this.addOrModifySmall('1')
+      }
+    },
+    addOrModifyBig(oprFlag = "0") {
+      //oprFlag:0-新增，1-修改
+      if (oprFlag == "0" || oprFlag == "1") {
+        if (oprFlag == "0") {
+          this.modifyBigModel.operatePartId = ''
+          this.modifyBigModel.operatePartCode=''
+          this.modifyBigModel.opratePlaceName=''
+          this.modifyBigModel.faultPartCode = ''
+          this.oprNote="新增维修大类"
+        } else {
+          this.$message({
+            type: 'warning',
+            message: `维修大类不能修改`
+          })
+          return
+          this.modifyBigModel.operatePartId = this.curTableRow.operatePartId
+          this.modifyBigModel.operatePartCode=this.curTableRow.operatePartCode
+          this.modifyBigModel.opratePlaceName=this.curTableRow.opratePlaceName
+          this.modifyBigModel.faultPartCode = this.curTableRow.faultPartCode
+          this.oprNote="修改维修大类"
+        }
+        this.dialogBigVisible = true
+      }
+    },
+    addOrModifySmall(oprFlag = "0") {
+      //oprFlag:0-新增，1-修改
+      if (oprFlag == "0" || oprFlag == "1") {
+        if (oprFlag == "0") {
+          this.oprNote="新增维修小类";
+          if(this.bigNode.id == null){
+            this.$message({
+              type: 'warning',
+              message: `请在树形节点选择一个大类`
+            });
+            return
+          }
+          this.modifySmallModel.wiSmallKindId = ''
+          this.modifySmallViewModel.opratePlaceName=this.bigNode.label
+          this.modifySmallViewModel.repairSmallKindCode1=this.bigNode.code
+          this.modifySmallViewModel.repairSmallKindCode2=''
+          this.modifySmallModel.repairSmallKindName=''
+          this.modifySmallModel.operatePartId=this.bigNode.id
+          this.modifySmallModel.operatePartCode=this.bigNode.code
+        } else {
+          this.modifySmallModel.wiSmallKindId = this.curTableRow.wiSmallKindId
+          this.modifySmallViewModel.opratePlaceName=this.curTableRow.opratePlaceName
+          this.modifySmallViewModel.repairSmallKindCode1=this.curTableRow.operatePartCode
+          //this.modifySmallModel.repairSmallKindCode2=this.curTableRow.repairSmallKindCode
+          this.modifySmallViewModel.repairSmallKindCode2=this.curTableRow.repairSmallKindCode.substr(this.curTableRow.operatePartCode.length)
+          this.modifySmallModel.repairSmallKindName=this.curTableRow.repairSmallKindName
+          this.modifySmallModel.operatePartId=this.curTableRow.operatePartId
+          this.modifySmallModel.operatePartCode=this.curTableRow.operatePartCode
+          this.modifySmallModel.updateControlId = this.curTableRow.updateControlId
+          this.oprNote="修改维修小类"
+        }
+        this.dialogSmallVisible = true
+      }
+    },
+    dialogBigSaveAfter() {
+      if(this.isSuccess == true){//保存成功，弹窗消失
+          this.$alert('保存成功', '提示', {
+            confirmButtonText: '确定',
+            type: 'info'
+          });
+        this.dialogBigVisible = false
+        this.queryFindOperateAll('1','1')
+      }
+    },
+    dialogSmallSaveAfter() {
+      if(this.isSuccess == true){//保存成功，弹窗消失
+        this.$alert('保存成功', '提示', {
+          confirmButtonText: '确定',
+          type: 'info'
+        });
+        this.dialogSmallVisible = false;
+      }
+    },
+    deleteData(){
+      if(this.curTableRow.operatePartId == null){
+        this.$message({
+          type: 'warning',
+          message: `请选择要删除的数据行'`
+        });
+        return;
+      }
+      this.$confirm('此操作将删除所选数据, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'info'
+        }).then(() => {
+            if(this.typeFlag == '0'){//大类
+              this.deleteModel = {
+                operatePartId: this.curTableRow.operatePartId,//大类id,删除大类时用
+                isEnable: "0",
+                updateControlId: this.curTableRow.bigUpdateControlId
+              }
+              this.deleteBig();
+            }
+            else if(this.typeFlag == '1'){//小类
+              this.deleteModel = {
+                wiSmallKindId: this.curTableRow.wiSmallKindId,//小类id,删除小类时用
+                isEnable: "0",
+                updateControlId: this.curTableRow.updateControlId
+              }
+              this.deleteSmall();
+            }
+        }).catch(() => {        
+        });
+    },
+    deleteBig() {
+      if(this.deleteModel.operatePartId=='' || this.deleteModel.updateControlId==''){
+        this.$message({
+          type: 'warning',
+          message: `请选择要删除的数据行'`
+        });
+        return;
+      }
+      this.listLoading = true;
+      this.isSuccess=false;
+      const that = this;
+      doDeleteBig(this.deleteModel).then(response => {
+        that.listLoading = false;
+        var resData = response.data[seApis.seDbOpratePlaceMutationDeleteBig.ServiceCode]
+        if (resData.result === "1") {
+          that.isSuccess=true;
+          that.$alert('删除大类成功', '提示', {
+            confirmButtonText: '确定'
+          });
+          that.queryFindOperateAll('1', '1')
+        }
+        else{
+          this.$message({
+            type: 'error',
+            message: resData.msg||''
+          });
+          that.isSuccess=false;
+        }  
+      });
+    },
+    deleteSmall() {
+      if(this.deleteModel.wiSmallKindId=='' || this.deleteModel.updateControlId==''){
+        this.$message({
+          type: 'warning',
+          message: `请选择要删除的数据行'`
+        });
+        return;
+      }
+      this.listLoading = true;
+      this.isSuccess=false;
+      const that = this;
+      // 调用中台API方法（可复用）
+      doDeleteSmall(this.deleteModel).then(response => {
+        that.listLoading = false;
+        if (
+          response.data[seApis.seDbOpratePlaceMutationDeleteSmall.ServiceCode].result === "1" &&
+          response.data[seApis.seDbOpratePlaceMutationDeleteSmall.ServiceCode].rows != ""
+        ) {
+          that.isSuccess=true;
+          that.$alert('删除小类成功', '提示', {
+            confirmButtonText: '确定'
+          });
+        }
+        else  that.isSuccess=false;
+      });
+    }
+  }
+};
+</script>

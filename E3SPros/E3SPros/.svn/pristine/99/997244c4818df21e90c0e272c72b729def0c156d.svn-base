@@ -1,0 +1,488 @@
+// import request from '@/utils/request'
+// import config from '@/utils/config'
+import { requestGraphQL } from '@/api/commonRequest'
+import { apiRepairBalanceApply } from '@/api/graphQLApiList/se'
+import { getParams } from '@/utils/getParamter'
+
+export function doQueryAll(pageSize, pageIndex, dataInfo) {
+  const queryObj = {
+    // 请求类型&参数 保存mutation  查询query
+    type: 'query',
+    typeParam:
+      '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+      apiRepairBalanceApply.seBuRepairBalanceQueryFind.InputType +
+      ')',
+    // 请求API
+    apiUrl: apiRepairBalanceApply.seBuRepairBalanceQueryFind.APIUrl,
+    // 需要调用的API服务配置
+    apiServices: [
+      {
+        // API服务编码&参数
+        apiServiceCode:
+          apiRepairBalanceApply.seBuRepairBalanceQueryFind.ServiceCode,
+        apiServiceParam:
+          '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+        // 表格中台返回网格的字段
+        apiQueryRow: [
+          'repairOrderId',
+          'repairOrderCode',
+          'carLicense',
+          'vin',
+          'repairMan',
+          'repairTel',
+          'repairTime',
+          'preGetDate',
+          'isGather',
+          //'isGatherName',
+          'repairOrderStatus',
+          'repairStatusName',
+          'isAccident',
+          'saName',
+          'updateControlId',
+          'repairGatheringId',
+          'balanceOrderCode',
+          'wiAmount',
+          'partAmount',
+          'otherAmount',
+          'totalAmount',
+          'isCancel',
+          'dlrCustNo',
+          'gatheringEmpName',
+          'carBrandCode',
+          'policyCompanyId',
+          'custName',
+          'custTel',
+          'mileage',
+          'carId',
+          'maxBusinessType'
+        ]
+      }
+    ],
+    // 条件/实体参数（变量），根据typeParam中的定义配置
+    variables: {
+      pageSize: pageSize,
+      pageIndex: pageIndex,
+      // 当前中台使用的名称有dataInfo、info，具体查看API文档
+      dataInfo: dataInfo
+    }
+  }
+  var paramD = getParams(queryObj)
+  return requestGraphQL(paramD)
+}
+
+//取消结算申请
+export function cancelApply(dataInfo) {
+  const queryObj = {
+    // 请求类型&参数 保存mutation  查询query
+    type: 'mutation',
+    typeParam:
+      '($dataInfo: ' +
+      apiRepairBalanceApply.seBuRepairBalanceApplyCancel.InputType +
+      ')',
+    // 请求API
+    apiUrl: apiRepairBalanceApply.seBuRepairBalanceApplyCancel.APIUrl,
+    // 需要调用的API服务配置
+    apiServices: [
+      {
+        // API服务编码&参数
+        apiServiceCode:
+          apiRepairBalanceApply.seBuRepairBalanceApplyCancel.ServiceCode,
+        apiServiceParam: '(dataInfo: $dataInfo)',
+        // 表格中台返回网格的字段
+        apiQueryRow: []
+      }
+    ],
+    // 条件/实体参数（变量），根据typeParam中的定义配置
+    variables: {
+      // 当前中台使用的名称有dataInfo、info，具体查看API文档
+      dataInfo: dataInfo
+    }
+  }
+  var paramD = getParams(queryObj)
+  return requestGraphQL(paramD)
+}
+
+// 结算申请详细页面加载
+export function doQueryDetail(pageSize, pageIndex, dataInfo) {
+  const queryObj = {
+    // 请求类型&参数 保存mutation  查询query
+    type: 'query',
+    typeParam:
+      '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+      apiRepairBalanceApply.fiBuRepairGatheringQueryFindAllRD.InputType +
+      ')',
+    // 请求API
+    apiUrl: apiRepairBalanceApply.fiBuRepairGatheringQueryFindAllRD.APIUrl,
+    // 需要调用的API服务配置
+    apiServices: [
+      {
+        // API服务编码&参数
+        apiServiceCode:
+          apiRepairBalanceApply.fiBuRepairGatheringQueryFindAllRD.ServiceCode,
+        apiServiceParam:
+          '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+        // 表格中台返回网格的字段
+        apiQueryRow: [
+          'repairDueAmount',
+          'wiAmount',
+          'partAmount',
+          'otherAmount',
+          'repairOrderId',
+          'repairOrderCode',
+          'billType',
+          'guaranteeApplyCode',
+          'retRepairCode',
+          'dlrCode',
+          'carColorName',
+          'repairTel',
+          //'deliveryDate',
+          'isAccident',
+          'custTel',
+          'isCancelBalance',
+          'otherAmount',
+          'engineNo',
+          'factAmount',
+          'preGetDate',
+          //'useMan',
+          //'useManTel',
+          //'guaranteeType',
+          'carLicense',
+          'repairTime',
+          'isMessage',
+          'isFirst',
+          'repairDesc',
+          'dutyEmpId',
+          'discountAmount',
+          'disposeInfo',
+          //'repairOrderDesc',
+          'isCombo',
+          //'repairOrderAmount',
+          'carTypeCode',
+          'remark',
+          //'isUsedCar',
+          'dlrCustNo',
+          'saEmpId',
+          'saName',
+          'remindState',
+          'isRemaintain',
+          'fastRepairType',
+          'carBrandCode',
+          'carBrandCn',
+          'vin',
+          'sysInfoByCode{serviceSysParaName}',
+          //'custCarRelationCode',
+          'mileage',
+          'trunRepairDate',
+          'policyCompanyCode',
+          'oil',
+          'csDesc',
+          'custName',
+          //'partDueFee',
+          'recommendItem',
+          //'sumOtherDueAmount',
+          'partAmount',
+          'reserveOrderCode',
+          //'carKeyNo',
+          'carSeriesCn',
+          'wiDueAmount',
+          'isWait',
+          'balanceTimes',
+          'mainWorkitem',
+          'dealRelustDesc',
+          'carId',
+          'wiAmount',
+          'runupAmount',
+          'repairMan',
+          'carSaleOrder',
+          'isClean',
+          'isComeQty',
+          'repairOrderStatus',
+          'isEnable',
+          'updateControlId',
+          'dlrId',
+          'isGather',
+          //'isGatherName',
+          'policyCompanyId',
+          'maxBusinessType',
+          'mainPartitem',
+          'maxRepairTypeCode',
+          'buyDate',
+          //'repairFinishDate',
+          //'qualityFinishDate',
+          'cardNo',
+          'carCustInfo{carBrandCn,carBrandCode,carColorName,carId,carLicenseNo,carOwnerId,carSeriesCode,carSeriesName,carTypeCode,carTypeName,createdDate,custName,dlrCustNo,engineNo,phone,vin}',
+          //'cardDegreeName',
+          // 估价单工时集合
+          'seBuRepairWi{wiCode,wiName,payKindName,saleWorkQty,wiPrice,wiAmount,businessTypeName,wiDiscountRate,wiDueAmount,dutyMan,note}',
+          // 估价单备件集合
+          'seBuRepairPart{partNo,partName,partQty,partPrice,priceAmount,partDiscount,partDueAmount,note}',
+          // 估价单其他费用集合
+          'seBuRepairOther{otherAmountType,payKindName,businessTypeName,otherAmount,remark}',
+          // //应收费用集合
+          // 'dueAmountByPayKind',
+          // // 备件分摊费用
+          // 'shareAmountByPayKind',
+          // // 结算单主表集合
+          // 'repairBalanceOrder',
+          // // 结算单明细集合
+          // 'balanceOrderDetail',
+          // // 应收费用合计
+          'repairBlaceApplySum{payMode,payType,modifier,lastUpdatedDate,creator,createdDate,dueAmount,payMode,repairBalanceCode,repairOrderCode,repairSummaryId}',
+          // //查询索赔单信息
+          // 'claimInfo',
+          // // 查询协议单位信息
+          // 'policyCompany',
+          // // 会员积分消费明细
+          // 'pointDetaile',
+          // // 折让项目集合
+          'balanceDiscountItems{repairDiscountId,repairGatheringId,balanceOrderCode,discountItemCode,discountItemName,discountAmount,wiDiscount,partDiscount,remark,isEnable,updateControlId}'
+          // // 默认付款单位集合
+          // 'sysInfo',
+          // // 加载界面顶端主要信息
+          // 'loadingthemaininformation',
+          // // 查询定保提醒时间
+          // 'remindDate'
+        ]
+      }
+    ],
+    // 条件/实体参数（变量），根据typeParam中的定义配置
+    variables: {
+      pageSize: pageSize,
+      pageIndex: pageIndex,
+      // 当前中台使用的名称有dataInfo、info，具体查看API文档
+      dataInfo: dataInfo
+    }
+  }
+  var paramD = getParams(queryObj)
+  return requestGraphQL(paramD)
+}
+
+//提交结算申请
+export function saveApply(dataInfo) {
+  const queryObj = {
+    // 请求类型&参数 保存mutation  查询query
+    type: 'mutation',
+    typeParam:
+      '($dataInfo: ' +
+      apiRepairBalanceApply.fiBuRepairGatheringMutationApplySave.InputType +
+      ',$info:[InputSeBuRepairSummary],$infos:[InputFiBuRepairGatheringD],$dataInfos:[InputFiBuRepairDiscountExt])',
+    // 请求API
+    apiUrl: apiRepairBalanceApply.fiBuRepairGatheringMutationApplySave.APIUrl,
+    // 需要调用的API服务配置
+    apiServices: [
+      {
+        // API服务编码&参数
+        apiServiceCode:
+          apiRepairBalanceApply.fiBuRepairGatheringMutationApplySave
+            .ServiceCode,
+        apiServiceParam: '(dataInfo: $dataInfo)',
+        // 表格中台返回网格的字段
+        apiQueryRow: []
+      }
+    ],
+    // 条件/实体参数（变量），根据typeParam中的定义配置
+    variables: {
+      // 当前中台使用的名称有dataInfo、info，具体查看API文档
+      dataInfo: dataInfo
+    }
+  }
+  var paramD = getParams(queryObj)
+  return requestGraphQL(paramD)
+}
+
+//状态校验查询
+export function doStatusQuery(pageSize, pageIndex, dataInfo) {
+  const queryObj = {
+    // 请求类型&参数 保存mutation  查询query
+    type: 'query',
+    typeParam:
+      '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+      apiRepairBalanceApply.seBuRepairOrderQueryStatus.InputType +
+      ')',
+    // 请求API
+    apiUrl: apiRepairBalanceApply.seBuRepairOrderQueryStatus.APIUrl,
+    // 需要调用的API服务配置
+    apiServices: [
+      {
+        // API服务编码&参数
+        apiServiceCode:
+          apiRepairBalanceApply.seBuRepairOrderQueryStatus.ServiceCode,
+        apiServiceParam:
+          '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+        // 表格中台返回网格的字段
+        apiQueryRow: [
+          'isGather',
+          'isGatherName',
+          'repairOrderCode',
+          'repairOrderId',
+          'repairOrderStatus',
+          'repairOrderStatusName',
+          'saName',
+          'updateControlId'
+        ]
+      }
+    ],
+    // 条件/实体参数（变量），根据typeParam中的定义配置
+    variables: {
+      pageSize: pageSize,
+      pageIndex: pageIndex,
+      // 当前中台使用的名称有dataInfo、info，具体查看API文档
+      dataInfo: dataInfo
+    }
+  }
+  var paramD = getParams(queryObj)
+  return requestGraphQL(paramD)
+}
+
+//制作申请结算单校验查询
+export function doMainRepairQuery(pageSize, pageIndex, dataInfo) {
+  const queryObj = {
+    // 请求类型&参数 保存mutation  查询query
+    type: 'query',
+    typeParam:
+      '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+      apiRepairBalanceApply.fiBuRepairGatheringQueryApplyRepairFin.InputType +
+      ')',
+    // 请求API
+    apiUrl: apiRepairBalanceApply.fiBuRepairGatheringQueryApplyRepairFin.APIUrl,
+    // 需要调用的API服务配置
+    apiServices: [
+      {
+        // API服务编码&参数
+        apiServiceCode:
+          apiRepairBalanceApply.fiBuRepairGatheringQueryApplyRepairFin
+            .ServiceCode,
+        apiServiceParam:
+          '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+        // 表格中台返回网格的字段
+        apiQueryRow: [
+          'orderclaim{compensateStatue}',
+          'partapplynotout{repairOrderId,partName,partNo,partQty,outQty,notoutpart,recallCaseCode,payKind}',
+          'partreturninfo{repairOrderCode,repairOrderId,partName,partNo,applyReturnQty,returnQty}',
+          'workitemfinsh{wiName,repairOrderId,wiCode,repairStatus}'
+        ]
+      }
+    ],
+    // 条件/实体参数（变量），根据typeParam中的定义配置
+    variables: {
+      pageSize: pageSize,
+      pageIndex: pageIndex,
+      // 当前中台使用的名称有dataInfo、info，具体查看API文档
+      dataInfo: dataInfo
+    }
+  }
+  var paramD = getParams(queryObj)
+  return requestGraphQL(paramD)
+}
+
+//维修结算申请制作校验-更新
+export function doUpdateQuery(dataInfo) {
+  const queryObj = {
+    // 请求类型&参数 保存mutation  查询query
+    type: 'mutation',
+    typeParam:
+      '($dataInfo: ' +
+      apiRepairBalanceApply.fiBuRepairGatheringMutationApplyBeforPartQty
+        .InputType +
+      ')',
+    // 请求API
+    apiUrl:
+      apiRepairBalanceApply.fiBuRepairGatheringMutationApplyBeforPartQty.APIUrl,
+    // 需要调用的API服务配置
+    apiServices: [
+      {
+        // API服务编码&参数
+        apiServiceCode:
+          apiRepairBalanceApply.fiBuRepairGatheringMutationApplyBeforPartQty
+            .ServiceCode,
+        apiServiceParam: '(dataInfo: $dataInfo)',
+        // 表格中台返回网格的字段
+        apiQueryRow: []
+      }
+    ],
+    // 条件/实体参数（变量），根据typeParam中的定义配置
+    variables: {
+      // 当前中台使用的名称有dataInfo、info，具体查看API文档
+      dataInfo: dataInfo
+    }
+  }
+  var paramD = getParams(queryObj)
+  return requestGraphQL(paramD)
+}
+
+//查询打印信息
+export function queryPrint(pageSize, pageIndex, dataInfo) {
+  const queryObj = {
+    // 请求类型&参数 保存mutation  查询query
+    type: 'query',
+    typeParam:
+      '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+      apiRepairBalanceApply.seBuRepairBalanceApplyPrint.InputType +
+      ')',
+    // 请求API
+    apiUrl: apiRepairBalanceApply.seBuRepairBalanceApplyPrint.APIUrl,
+    // 需要调用的API服务配置
+    apiServices: [
+      {
+        // API服务编码&参数
+        apiServiceCode:
+          apiRepairBalanceApply.seBuRepairBalanceApplyPrint.ServiceCode,
+        apiServiceParam:
+          '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+        // 表格中台返回网格的字段
+        apiQueryRow: [
+          'repairOrderCode',
+          'isFirst',
+          'saName',
+          'custName',
+          'addr',
+          'custTelphone',
+          'carSeriesCode',
+          'carTypeCode',
+          'vin',
+          'carLicense',
+          'engineNo',
+          //'deliveryDate',
+          'carColorName',
+          'submitBalanceDate',
+          'mileage',
+          'invoiceDate',
+          'repairTime',
+          'preGetDate',
+          'trunRepairDate',
+          //'repairFinishDate',
+          'csDesc',
+          'disposeInfo',
+          'recommendItem',
+          'wiAmount',
+          'partAmount',
+          'otherAmount',
+          'amountTotal',
+          'wiDueAmount',
+          //'partDueFee',
+          'sumOtherDueAmount',
+          'dueAmountTotal',
+          'receiptsAmount',
+          'pactRunupAmount',
+          'discountAmount',
+          'amountTotal',
+          'repairMan',
+          'repairTel',
+          'storesinformation',
+          'otherexpenses',
+          'maintenancerepairparts',
+          'maintenancework'
+        ]
+      }
+    ],
+    // 条件/实体参数（变量），根据typeParam中的定义配置
+    variables: {
+      pageSize: pageSize,
+      pageIndex: pageIndex,
+      // 当前中台使用的名称有dataInfo、info，具体查看API文档
+      dataInfo: dataInfo
+    }
+  }
+  var paramD = getParams(queryObj)
+  return requestGraphQL(paramD)
+}

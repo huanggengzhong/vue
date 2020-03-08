@@ -1,0 +1,1601 @@
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button" ref="searcheHeight">
+      <el-button type="text" size="small" @click="downloadModel">下载导入模板</el-button>
+      <!--<el-button type="text" size="small" @click="downloadWiRelation">下载连带工时模板</el-button>-->
+      <el-upload 
+       class="upload-demo" 
+       ref="upload"
+       style="margin-left: 10px;margin-right: 10px;"
+       :file-list="fileList"
+       name="excelFile"
+       :action="uploadUrl()"
+       :on-preview="handlePreview"
+       :on-remove="handleRemove"
+       :on-error="uploadFalse"
+       :on-success="uploadSuccess"
+       :auto-upload="true"
+       :before-upload="beforeAvatarUpload"
+       :before-remove="beforeRemove"
+       :on-exceed="handleExceed"
+       :on-change="handFileListChange"
+       :limit="1"
+       :show-file-list="false"
+       list-type="text"
+      >
+        <el-button size="small">导入</el-button>
+      </el-upload>
+      <!--<el-button  size="small">导入连带工时</el-button>-->
+      <el-button  type="primary" size="small" @click="textQuery(1)">查询</el-button>
+      <el-button  size="small" @click="addData">新增</el-button>
+      <el-button  size="small" @click="modifyData">修改</el-button>
+      <!--把删除改成了停用-->
+      <el-button  size="small" @click="deleteData">停用</el-button>
+    </div>
+    <!--<div class="filter-container filter-title" ref="conTitleHeight">查询条件</div> -->
+    <div class="filter-container filter-params" ref="conHeight">
+      <el-row :gutter="26">
+        <el-col :span="22">
+          <el-row>
+            <el-col :span="6">
+              <label>工时来源</label>
+              <el-select v-model="formField.isSystem" placeholder="请选择" @change="getIsSystem" clearable>
+                <el-option label="全部" value=""></el-option>
+                <el-option label="主机厂" value="1"></el-option>
+                <el-option label="经销商" value="0"></el-option>
+              </el-select>
+            </el-col>
+            <el-col :span="6">
+              <label>维修大类</label>
+              <el-select
+               collapse-tags
+               filterable
+               v-model="formField.operatePartId"
+               placeholder="全部"
+               clearable
+               @change="operatePartChange"
+               size="small"
+              >
+                <el-option
+                v-for="(item, i) in operatePartIdOptions"
+                :key="`operatePartIdOptions_${i}`"
+                :label="item.text"
+                :value="item.code"
+                >{{item.text}}</el-option>
+              </el-select>
+             </el-col>
+             <el-col :span="6">
+                <label>维修小类</label>
+                <el-select
+                  collapse-tags
+                  filterable
+                  v-model="formField.repairSmallKindId"
+                  placeholder="全部"
+                  clearable
+                  size="small"
+                >
+                  <el-option
+                    v-for="(item, i) in wiSmallKindIdOptions"
+                    :key="`wiSmallKindIdOptions_${i}`"
+                    :label="item.text"
+                    :value="item.code"
+                  >{{item.text}}</el-option>
+                </el-select>
+              </el-col>
+             <!--<chooseSmallKind ref="chooseSmallKind" :span="6" :isMul="false" :code="formField.repairSmallKindCode" @changeCode="getSmallKind"></chooseSmallKind>-->
+             <el-col :span="6">
+                <label>工时编码</label>
+                <el-input v-model="formField.wiCode" size="small">
+                </el-input>
+             </el-col>
+          </el-row>
+        </el-col>
+        <el-col :span="2">
+          <el-button icon="el-icon-plus" @click="changeToggleParam" class="moreParam">更多</el-button>
+        </el-col>
+
+        <el-col :span="22" v-show="toggleParam">
+          <el-row>
+            <el-col :span="6">
+              <label>维修内容</label>
+              <el-input v-model="formField.wiName" size="small">
+              </el-input>
+            </el-col>
+            <el-col :span="6">
+              <label>车型</label>
+              <el-input
+                v-model="formField.carTypeCode"
+                suffix-icon="el-icon-search"
+                placeholder="请选择"
+                size="small"
+                clearable
+                @focus="openCarTypeModal"
+              />
+            </el-col>
+            <CarTypeModal :isMul="false" ref="singleCarType" @changeCode="getCarTypeCode" />
+            <!--<isEnable :span="6" :key="isEnableKey" :code="formField.isEnable"  @changeCode="getIsEnableCode"></isEnable>-->
+            <el-col :span="6">
+              <label>状态</label>
+              <el-select size="small" placeholder="请选择" v-model="formField.isEnable" @change="getIsEnableCode" clearable>
+                <el-option
+                v-for="(item, i) in isEnableOptions"
+                :key="`isEnableOptions_${i}`"
+                :label="item.label"
+                :value="item.value">
+                </el-option>
+              </el-select>
+            </el-col>
+            <el-col :span="6">
+              <label>备注</label>
+              <el-input v-model="formField.remark" size="small">
+              </el-input>
+            </el-col>
+          </el-row>
+          
+        </el-col>
+      </el-row>
+    </div>
+
+    <!--<div class="filter-container filter-title" ref="resultTitleHeight">查询结果</div>-->
+    <el-table height="160px"
+      v-loading="listLoading1"
+      class="multipleTable"
+      :data="queryList1"
+      element-loading-text="Loading"
+      border
+      fit
+      stripe
+      ref="multipleTable"
+      @row-click="rowClick1"
+    >
+      <!--<el-table-column type="selection" width="55" label="选择+" filed="chose" current-row-key="choose" />-->
+      <!--<el-table-column align="center" label="序号"  width="60" type='index'  prop="id">
+        {{ scope.$index + 1 }}
+      </el-table-column>-->
+      <el-table-column align="center" label="序号" width="60">
+        <template slot-scope="scope">
+          {{ scope.$index + 1 }}
+        </template>
+      </el-table-column>
+      <el-table-column label="工时ID" prop="wiId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.wiId }}</template>
+      </el-table-column>
+      <el-table-column label="工时编码" prop="wiCode" align="center">
+        <template slot-scope="scope">
+           {{ scope.row.wiCode }}
+        </template>
+      </el-table-column>
+      <el-table-column label="维修内容" prop="wiName" align="center" width="300">
+        <template slot-scope="scope">
+          {{ scope.row.wiName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="工时来源" prop="isSystem" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.isSystem == 1 ? '主机厂':'经销商' }}
+        </template>
+      </el-table-column>
+      <el-table-column label="经销商ID" prop="dlrId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.dlrId }}</template>
+      </el-table-column>
+      <el-table-column label="经销商编码" prop="dlrCode" align="center" width="100">
+        <template slot-scope="scope">
+           {{ scope.row.dlrCode }}
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" prop="isEnable" align="center">
+        <template slot-scope="scope">
+           {{ scope.row.isEnable == 1 ? '启用':'停用' }}
+        </template>
+      </el-table-column>
+      <el-table-column label="维修大类编码" prop="operatePartCode" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.operatePartCode }}</template>
+      </el-table-column>
+      <el-table-column label="维修大类" prop="opratePlaceName" align="center" width="300">
+        <template slot-scope="scope">
+          {{ scope.row.opratePlaceName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="维修小类编码" prop="repairSmallKindCode" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.repairSmallKindCode }}</template>
+      </el-table-column>
+      <el-table-column label="维修小类" prop="repairSmallKindName" align="center" width="300">
+        <template slot-scope="scope">
+          {{ scope.row.repairSmallKindName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="维修类别" prop="repairType" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.repairType }}</template>
+      </el-table-column>
+      <el-table-column label="维修类别" prop="repairName" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.repairName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="关键字" prop="wiKey" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.wiKey }}
+        </template>
+      </el-table-column>
+      <el-table-column label="备注" prop="remark" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.remark }}
+        </template>
+      </el-table-column>
+      <el-table-column label="厂商标识ID" prop="oemId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.oemId }}</template>
+      </el-table-column>
+      <el-table-column label="集团标识ID" prop="groupId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.groupId }}</template>
+      </el-table-column>
+      <el-table-column label="厂商标识" prop="oemCode" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.oemCode }}</template>
+      </el-table-column>
+      <el-table-column label="集团标识" prop="groupCode" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.groupCode }}</template>
+      </el-table-column>
+      <el-table-column label="创建人" prop="creator" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.creator }}</template>
+      </el-table-column>
+      <el-table-column label="创建日期" prop="createdDate" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.createdDate }}</template>
+      </el-table-column>
+      <el-table-column label="修改人" prop="modifier" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.modifier }}</template>
+      </el-table-column>
+      <el-table-column label="最后更新日期" prop="lastUpdatedDate" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.lastUpdatedDate }}</template>
+      </el-table-column>
+      <el-table-column label="并发控制ID" prop="updateControlId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.updateControlId }}</template>
+      </el-table-column>
+      <el-table-column label="最大工时数" prop="maxSaleWiQty" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.maxSaleWiQty }}</template>
+      </el-table-column>
+    </el-table>
+    <el-pagination
+      ref="paginationHeight"
+      background
+      layout="prev, pager, next, sizes, ->, total"
+      prev-text="上一页"
+      next-text="下一页"
+      :page-sizes="[10, 20, 30]"
+      :page-size="10"
+      :total="pageTotal"
+      :current-page.sync="listQuery.pageIndex"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+    />
+
+    <!--  选项卡 -->
+    <el-tabs v-model="activeName">
+        <el-tab-pane label="车型工时对应关系" name="first">
+            <div class="filter-container filter-button" style="background-color:#fff;margin-top:0px" ref="searcheHeight">
+                <el-button  size="small" @click="selectWiCarType">选择车型</el-button>
+                <el-button  size="small" @click="deleteWiCarType">删除</el-button>
+                <el-button  size="small" type="primary" @click="saveWiCarType">保存</el-button>
+            </div>
+      <el-table height="160px"
+      v-loading="listLoading2"
+      :data="queryList2"
+      element-loading-text="Loading"
+      border
+      fit
+      stripe
+      @row-click="rowClick2"
+    >
+      <el-table-column align="center" label="序号"  width="60" type='index'  prop="id">
+
+      </el-table-column>
+      <!--<el-table-column label="操作" width="100">
+            <span class="operate">选择车型</span>
+      </el-table-column>-->
+      <el-table-column label="工时车型ID" prop="wiCartypeId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.wiCartypeId }}</template>
+      </el-table-column>
+      <el-table-column label="工时ID" prop="wiId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.wiId }}</template>
+      </el-table-column>
+      <el-table-column label="工时编码" prop="wiCode" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.wiCode }}</template>
+      </el-table-column>
+      <el-table-column label="车辆品牌" prop="carBrandCode" hidden="hidden" v-if="false">
+        <template slot-scope="scope">
+           {{ scope.row.carBrandCode }}
+        </template>
+      </el-table-column>
+      <el-table-column label="车辆品牌" prop="carBrandCn" align="center" width="200">
+        <template slot-scope="scope">
+           {{ scope.row.carBrandCn }}
+        </template>
+      </el-table-column>
+      <el-table-column label="车型" prop="carTypeCode" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.carTypeCode }}</template>
+      </el-table-column>
+      <el-table-column label="车型中文名" prop="carTypeCn" align="center" width="180">
+        <template slot-scope="scope">
+          {{ scope.row.carTypeCn }}
+        </template>
+      </el-table-column>
+      <el-table-column label="销量工时数量+" prop="saleWiQty" align="center" >
+        <template slot-scope="scope">
+          <el-input-number 
+          size="mini"
+          controls-position="right"
+          :min="0"
+          :max="100"
+          :step="0.01"
+          v-model="scope.row.saleWiQty"
+          placeholder="请输入"
+          ></el-input-number>
+        </template>
+      </el-table-column>
+      <el-table-column label="派工工时数量+" prop="workWiQty" align="center">
+        <template slot-scope="scope">
+          <el-input-number 
+          size="mini"
+          controls-position="right"
+          :min="0"
+          :max="100"
+          :step="0.01"
+          v-model="scope.row.workWiQty"
+          placeholder="请输入"
+          ></el-input-number>
+        </template>
+      </el-table-column>
+      <el-table-column label="绩效工时数量+" prop="repairWiQty" align="center">
+        <template slot-scope="scope">
+          <el-input-number 
+          size="mini"
+          controls-position="right"
+          :min="0"
+          :max="100"
+          :step="0.01"
+          v-model="scope.row.repairWiQty"
+          placeholder="请输入"
+          ></el-input-number>
+        </template>
+       </el-table-column>
+       <el-table-column label="来源" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.isSystem }}</template>
+      </el-table-column>
+      <el-table-column label="经销商编码" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.dlrCode }}</template>
+      </el-table-column>
+      <el-table-column label="经销商Id" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.dlrId }}</template>
+      </el-table-column>
+      <el-table-column label="厂商标识ID" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.oemId }}</template>
+      </el-table-column>
+      <el-table-column label="集团标识ID" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.groupId }}</template>
+      </el-table-column>
+      <el-table-column label="厂商标识" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.oemCode }}</template>
+      </el-table-column>
+      <el-table-column label="集团标识" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.groupCode }}</template>
+      </el-table-column>
+      <el-table-column label="创建人" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.creator }}</template>
+      </el-table-column>
+      <el-table-column label="创建日期" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.createdDate }}</template>
+      </el-table-column>
+      <el-table-column label="修改人" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.modifier }}</template>
+      </el-table-column>
+      <el-table-column label="最后更新日期" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.lastUpdatedDate }}</template>
+      </el-table-column>
+      <el-table-column label="是否可用" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.isEnable }}</template>
+      </el-table-column>
+      <el-table-column label="并发控制ID" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.updateControlId }}</template>
+      </el-table-column>
+    </el-table>
+    </el-tab-pane>
+    
+    <el-tab-pane label="连带工时设置" name="second">
+        <div class="filter-container filter-button" style="background-color:#fff;margin-top:0px;" ref="searcheHeight">
+            <el-button  size="small" @click="selectWiRelation">选择工时</el-button>
+            <el-button  size="small" @click="deleteWiRelation">删除</el-button>
+            <el-button  size="small" type="primary" @click="saveWiRelation">保存</el-button>
+        </div>
+    <el-table height="160px"
+      v-loading="listLoading3"
+      :data="queryList3"
+      element-loading-text="Loading"
+      border
+      fit
+      stripe
+      @row-click="rowClick3"
+      ref="multipleTable1"
+    >
+      <el-table-column align="center" label="序号"  width="60" type='index' prop="id">
+
+      </el-table-column>
+      <el-table-column label="连带工时主键ID" prop="wiRelationId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.wiRelationId }}</template>
+      </el-table-column>
+      <el-table-column label="父工时ID" prop="parentWiId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.parentWiId }}</template>
+      </el-table-column>
+      <el-table-column label="父工时编码" prop="parentWiCode" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.parentWiCode }}</template>
+      </el-table-column>
+      <el-table-column label="工时来源" prop="isSystem" align="center" width="100">
+        <template slot-scope="scope">
+           {{ scope.row.isSystem == 1 ? '主机厂' : '经销商' }}
+        </template>
+      </el-table-column>
+      <el-table-column label="维修大类编码" prop="operatePartCode" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.operatePartCode }}</template>
+      </el-table-column>
+      <el-table-column label="维修大类" prop="opratePlaceName" align="center">
+        <template slot-scope="scope">
+          {{ scope.row.opratePlaceName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="维修小类编码" prop="repairSmallKindCode" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.repairSmallKindCode }}</template>
+      </el-table-column>
+      <el-table-column label="维修小类" prop="repairSmallKindName" align="center" >
+        <template slot-scope="scope" >
+           {{ scope.row.repairSmallKindName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="连带工时ID" prop="wiId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.wiId }}</template>
+      </el-table-column>
+      <el-table-column label="工时编码" prop="wiCode" align="center">
+        <template slot-scope="scope">
+           {{ scope.row.wiCode }}
+        </template>
+      </el-table-column>
+      <el-table-column label="维修内容" prop="wiName" align="center">
+        <template slot-scope="scope">
+           {{ scope.row.wiName }}
+        </template>
+      </el-table-column>
+      <el-table-column label="经销商编码" prop="dlrCode" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.dlrCode }}</template>
+      </el-table-column>
+      <el-table-column label="经销商ID" prop="dlrId" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.dlrId }}</template>
+      </el-table-column>
+      <el-table-column label="厂商标识ID" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.oemId }}</template>
+      </el-table-column>
+      <el-table-column label="集团标识ID" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.groupId }}</template>
+      </el-table-column>
+      <el-table-column label="厂商标识" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.oemCode }}</template>
+      </el-table-column>
+      <el-table-column label="集团标识" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.groupCode }}</template>
+      </el-table-column>
+      <el-table-column label="创建人" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.creator }}</template>
+      </el-table-column>
+      <el-table-column label="创建日期" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.createdDate }}</template>
+      </el-table-column>
+      <el-table-column label="修改人" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.modifier }}</template>
+      </el-table-column>
+      <el-table-column label="最后更新日期" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.lastUpdatedDate }}</template>
+      </el-table-column>
+      <el-table-column label="是否可用" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.isEnable }}</template>
+      </el-table-column>
+      <el-table-column label="并发控制ID" hidden="hidden" v-if="false">
+        <template slot-scope="scope">{{ scope.row.updateControlId }}</template>
+      </el-table-column>
+    </el-table>
+    </el-tab-pane>
+    </el-tabs>
+<!--维修工时标准-新增/修改弹窗-->
+<seDbWiMutationSave 
+@visible="handDialogVisibleFunc" 
+ref="seDbWiMutationSave"
+:key="dialogVisible"  
+:editData="gridData" 
+:handleVisible="dialogVisible" 
+:handleTitle="handleTitle" 
+:isEdit="isEdit"
+:doQuery="textQuery" />
+<!--选择车型弹窗(多选)-->
+<CarTypeModal :isMul="true" ref="multiCarType" @changeCode="getMulCarType" />
+<!--选择工时弹窗-->
+<seChooseWiSelect ref="seChooseWiSelect" :title="1" :seChooseWiSelectVisibles="seChooseWiSelectVisibles" @seChooseWiData="getSeChooseWi" @close="closeSeChooseWi"></seChooseWiSelect>
+</div>
+</template>
+<script>
+import { getListQuery } from '@/api/table'
+import { apiSeDbWiQuery,seApis } from '@/api/graphQLApiList/se'
+import { doQueryFindAll,doQueryFindSmall } from "@/api/se/basedata/repair/repairWIType"
+import { requestGraphQL } from '@/api/commonRequest'
+import carBrand from '@/components/org/carBrand/carBrand'
+import isEnable from '@/components/org/isEnable/isEnable'
+import setStatus from '@/components/org/setStatus/setStatus'
+import { constants } from 'crypto'
+import seDbWiMutationSave from './seDbWiMutationSave'
+import seChooseWiSelect from '@/components/se/seChooseWiSelect'
+import chooseSmallKind from '@/components/se/chooseSmallKind'
+import CarTypeModal from '@/components/se/CarTypeModal/CarTypeModal'
+//import { the_Height} from "@/components/se/seMixins/makeHeight"
+import config from '@/utils/config'
+
+export default {
+  //mixins: [the_Height],
+  components: {
+    carBrand,
+    isEnable,
+    setStatus,
+    seDbWiMutationSave,
+    seChooseWiSelect,
+    chooseSmallKind,
+    CarTypeModal,
+    config
+  },
+  data() {
+    return {
+      isEnableOptions: [
+        {value: '',label: '全部'}, 
+        {value: '1',label: '启用'},
+        {value: '0',label: '停用'},
+        {value: '2',label: '锁定'}
+      ],
+      //维修工时标准表的查询结果集
+      queryList1: [],
+      //车型工时对应关系表的查询结果集
+      queryList2: [],
+      //连带工时表的查询结果集
+      queryList3: [],
+      listLoading1: true,
+      listLoading2: false,
+      listLoading3: false,
+      //选项卡默认显示第一个
+      activeName: 'first',
+      handleTitle: 0,
+      //弹框部分内容是否可编辑(0:可编辑  1:不可编辑)
+      isEdit: 0,
+      //车型单选
+      isSingle: false,
+      //车型多选
+      isMul: true,
+      toggleParam: false,
+      isEnableKey: 'c',
+      //点击行(维修工时标准)的数据
+      rowClickData1: {},
+      //点击行(车型工时对应关系)的数据
+      rowClickData2: {},
+      //点击行(连带工时设置)的数据
+      rowClickData3: {},
+      wiCarTypeTarget: {},
+      wiRelationTarget: {},
+      //表单查询区
+      formField:{
+          isSystem: '',
+          operatePartId: '',
+          repairSmallKindId: '',
+          wiCode: '',
+          wiName: '',
+          carTypeCode: '',
+          isEnable: '',
+          remark: '',
+          oemCode: '',
+          groupCode: '',
+          dlrId: '',
+          dlrCode: '',
+          //scene: '0',
+          //payKind: '1'
+      },
+      gridData:{},
+      //显示隐藏弹出框
+      dialogVisible: false,
+      //显示隐藏车型弹出框
+      carTypeVisible: false,
+      //显示选择工时弹窗
+      seChooseWiSelectVisibles: false,
+      //显示选择车型弹窗
+      paChoosePartVisible: false,
+      //选择工时弹窗名称(1:工时多选  0:工时单选)
+      title: 1,
+      listQuery: {
+        pageIndex: 1,
+        pageSize: 10,
+        limit: 20,
+      },
+      pageTotal: 0,
+      //存储从选择车型弹框中选中的行数据(多选)
+      selectPartsCarTypeRow: {
+        wiCartypeId: "",
+        wiCode: "",
+        wiId: "",
+        carBrandCode: "",
+        carBrandCn: "",
+        carTypeCn: "",
+        carTypeCode: "",
+        isSystem: "1",//保存时默认值是？
+        dlrCode: "",
+        dlrId: "",
+        isEnable: "1",
+        saleWiQty: "",
+        workWiQty: "",
+        repairWiQty: "",
+        oemId: "",
+        groupId: "",
+        oemCode: "",
+        groupCode: "",
+        updateControlId: ""
+      },
+      //存储从选择工时弹框中选中的行数据(多选)
+      selectSeChooseWiRow: {
+        wiRelationId: "",
+        parentWiId: "",
+        parentWiCode: "",
+        wiCode: "",
+        wiId: "",
+        wiName: "",
+        isSystem: "",
+        operatePartCode: "",
+        opratePlaceName: "",
+        repairSmallKindCode: "",
+        repairSmallKindName: "",
+        dlrCode: "",
+        dlrId: "",
+        isEnable: "1",
+        oemId: "",
+        groupId: "",
+        oemCode: "",
+        groupCode: "",
+        updateControlId: ""
+      },
+      //大类下拉框数据
+      operatePartIdOptions: [],
+      //维修小类下拉框
+      wiSmallKindIdOptions: [],
+      //导入文件
+      fileList: [],
+      //传到工时多选弹框的查询条件
+      str: {
+        wiCode: '',
+        wiName: '',
+        opratePlaceName: '',
+        repairSmallKindName: '',
+        isSystemDisabled: true
+      },
+      //删除工时标准的数据集
+      deleteSeDbWiMutationObject: {
+        oemCode: '',	
+        groupCode: '',	
+        wiId: '',	
+        updateControlId: ''	
+      },
+      //保存车型工时对应关系的数据集(去掉carTypeCn)
+      saveCarTypeObject: {
+        wiCartypeId: "",
+        wiId: "",
+        wiCode: "",
+        carTypeCode: "",
+        saleWiQty: "",
+        workWiQty: "",
+        repairWiQty: "",
+        isSystem: "",
+        dlrCode: "",
+        dlrId: "",
+        carBrandCode: "",
+        oemId: "",
+        groupId: "",
+        oemCode: "",
+        groupCode: "",
+        isEnable: "1",
+        updateControlId: ""
+      },
+      saveCarTypeArray: [],
+      //保存连带工时的数据集
+      saveRelationObject: {
+        wiRelationId: "",
+        parentWiId: "",
+        parentWiCode: "",
+        wiId: "",
+        wiCode: "",
+        isSystem: "",
+        dlrCode: "",
+        dlrId: "",
+        oemId: "",
+        groupId: "",
+        oemCode: "",
+        groupCode: "",
+        isEnable: "1",
+        updateControlId: ""
+      },
+      saveRelationArray: [],
+      //查询车型与工时关系的参数集
+      queryCarTypeObject: {
+        oemCode: '',	
+        groupCode: '',
+        wiId: ''
+      },
+      //查询连带工时的参数集
+      queryRelationObject: {
+        oemCode: '',
+        groupCode: '',
+        parentWiId: ''
+      },
+      //删除车型工时对应关系的数据集
+      deleteCarTypeObject: {
+        oemCode: "",
+        groupCode: "",
+        wiCartypeId: "",	
+        updateControlId: ""
+      },
+      //删除连带工时的数据集
+      deleteRelationObject: {
+        wiRelationId: "",
+        updateControlId: ""
+      }
+    }
+  },
+  created() {
+    this.textQuery()
+    this.queryOperatePart()
+  },
+  mounted() {
+    // 调用AppMain中的方法设置网格高度（自适应）
+    var parent = this.$utils.getParentView(this.$route.path, this.$parent);
+    if (parent) {
+      parent.setTableHeight()
+    }
+  },
+  watch:{
+    formField(val){
+      this.isEnableKey = this.isEnableKey + 1;
+    }
+  },
+  methods: {
+    //点击弹出车型弹框
+    openCarTypeModal() {
+      this.$refs.singleCarType.open()
+      //this.carTypeVisible = true
+    },
+    //获取车型
+    getCarTypeCode(val, carTypeCn, carTypeCode) {//val = carSeriesCode
+      this.formField.carTypeCode = carTypeCode
+    },
+    //把每一行的索引放进row
+    tableRowClassName ({row, rowIndex}) {
+      row.index = rowIndex;
+    },
+    //查询维修大类
+    queryOperatePart() {
+      const that = this;
+      var pageSize = -1;
+      var pageIndex = -1;
+      doQueryFindAll(pageSize, pageIndex).then(response => {
+        if (response.data.seDbOpratePlaceQueryFindAll.result === "1") {
+            let list = response.data[seApis.seDbOpratePlaceQueryFindAll.ServiceCode].rows;
+            //第一次加载，大类下拉框
+            var temp_array = [];
+            list.forEach(row => {
+              //返回数据，按大类ID去重后的数据
+              if(temp_array.filter(o=>o.code == row.operatePartId).length === 0) {
+                temp_array.push({
+                  code: row.operatePartId,
+                  text: row.opratePlaceName
+                });
+              }
+            });
+            this.operatePartIdOptions = temp_array;
+        }
+      });
+    },
+    //查询维修小类
+    queryFindSmall(operatePartId) {//refreshGridOrSelect-1加载网格，0加载联动下拉框
+      const that = this
+      doQueryFindSmall(1000, 1, {
+            oemcode: that.formField.oemcode,
+            groupcode: that.formField.groupcode,
+            operatePartId: operatePartId || that.formField.operatePartId
+          }).then(response => {
+            var resData = response.data[seApis.seDbOpratePlaceQueryFindSmalll.ServiceCode]
+            if (resData.result === "1") {
+              var temp_array = [];
+              resData.rows.forEach(row => {
+              temp_array.push({
+                 code: row.repairSmallKindId,
+                 text: row.repairSmallKindName
+                  });
+                });
+                this.wiSmallKindIdOptions = temp_array;
+            }
+        })
+    },
+    //查询
+    textQuery(page, dataType) {
+        const that = this
+        that.listLoading1 = true
+        var tableColumns = this.$refs.multipleTable == null ? null: this.$refs.multipleTable.columns;
+        let queryObj = {
+          type:'query',
+          // api配置
+          apiConfig: apiSeDbWiQuery.seDbWiQueryFindAll,
+          // 需要调用的API服务配置
+          apiServices: [{
+              //表格中台返回网格的字段
+              apiQueryRow:['wiId','wiCode','wiName','isSystem','dlrId','dlrCode','isEnable','operatePartCode','opratePlaceName','repairSmallKindCode',
+              'repairSmallKindName','repairType','repairName','wiKey','remark','oemId','groupId','oemCode','groupCode','creator','createdDate','modifier',
+              'lastUpdatedDate','updateControlId','maxSaleWiQty']
+          }],
+          //条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            pageSize: dataType == 'excel' ? 99999: that.listQuery.pageSize,
+            pageIndex: page || that.listQuery.pageIndex,
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: that.formField
+          }
+        }
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        if (dataType === 'excel') {
+          if (tableColumns == null) tableColumns = [];
+          var tmpCols = tableColumns;
+          //网格对象转成excel列对象
+          var excelCols = {};
+          for (var i = 0; i < tmpCols.length; i++) {
+            if (tmpCols[i].property != null) excelCols[tmpCols[i].property] = tmpCols[i].label
+          }
+          //数据类型
+          paramD.dataType = 'excel';
+          //excel文件名称
+          paramD.excelName = '维修工时标准导入模板导出';
+          // 根据请求API描述excel数据对象
+          paramD.excels = [{
+            //excel sheet名称
+            title: '维修工时标准导入模板模板列表',
+           //对应API服务编码
+           actionName: queryObj.apiServices.apiConfig,
+           //excel列
+           columns: excelCols
+          }]
+        }
+        // 调用中台API方法（可复用）
+        requestGraphQL(paramD).then(response => {
+          if (dataType === 'excel') {
+            that.$utils.downloadFile(response, '维修工时标准导入模板.xlsx')
+            that.listLoading1 = false
+          } else {
+            var resData = response.data[apiSeDbWiQuery.seDbWiQueryFindAll.ServiceCode];
+            if (resData.result === '1') {
+              that.queryList1 = resData.rows;
+              that.pageTotal = resData.records;
+            } else {
+              this.$message({
+                type: 'error',
+                message: resData.msg
+              });
+            } 
+            that.listLoading1 = false;  
+          }
+        })
+    },
+    //添加
+    addData(){
+      const that = this;
+      that.gridData = {
+        wiId: '',
+        dlrCode: '',
+        dlrId: '',
+        operatePartCode: '',
+        opratePlaceName: '',
+        repairSmallKindCode: '',
+        repairSmallKindName: '',
+        wiCode: '',
+        wiName: '',
+        wiKey: '',
+        maxSaleWiQty: '',
+        isEnable: '1',
+        repairType: '',
+        repairName: '',
+        remark: '',
+        oemId: '',
+        groupId: '',
+        oemCode: '',
+        groupCode: '',
+        updateControlId: ''
+      };
+      that.handleTitle = 0;
+      that.isEdit = 0;
+      that.dialogVisible=true;
+    },
+    //修改
+    modifyData() {
+      const that = this;
+      if(JSON.stringify(that.rowClickData1)=='{}') {
+            this.$alert('请选择一行进行修改！', '信息提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                callback: action => {
+                }
+            });
+        } else {
+          that.gridData = that.rowClickData1;
+          that.dialogVisible = true;
+          that.handleTitle = 1;
+          this.isEdit = 1;
+        }
+    },
+    //删除
+    deleteData() {
+      const that = this;
+      if(JSON.stringify(that.rowClickData1)=='{}') {
+            this.$alert('请选择一行进行停用！', '信息提示', {
+                confirmButtonText: '确定',
+                type: 'warning',
+                callback: action => {
+                }
+            });
+        } else {
+        that.deleteSeDbWiMutationObject.oemCode = that.rowClickData1.oemCode;
+        that.deleteSeDbWiMutationObject.groupCode = that.rowClickData1.groupCode;
+        that.deleteSeDbWiMutationObject.wiId = that.rowClickData1.wiId;
+        that.deleteSeDbWiMutationObject.updateControlId = that.rowClickData1.updateControlId;
+        let queryObj = {
+          type:'mutation',
+          // api配置
+          apiConfig: apiSeDbWiQuery.seDbWiMutationRemoveWi,
+          // 需要调用的API服务配置
+          apiServices: [{
+              //表格中台返回网格的字段
+              apiQueryRow:[]
+          }],
+          //条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: that.deleteSeDbWiMutationObject
+          }
+        }
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        // 调用中台API方法（可复用）
+         requestGraphQL(paramD).then(response => { 
+               that.listLoading1 = false;
+               if(response.data[apiSeDbWiQuery.seDbWiMutationRemoveWi.ServiceCode].result === '1'){
+                  this.$message({
+                    type: "success", 
+                    message: "停用成功！"
+                  });
+                  that.rowClickData1 = {};
+                  that.textQuery();
+               } else {
+                 this.$alert(response.data.seDbWiMutationRemoveWi.msg, '提示', {
+                    confirmButtonText: '确定'
+                 });      
+               }
+          });
+        }
+    },
+    //保存车型工时对应关系
+    saveWiCarType() {
+        const that = this;
+        if (that.queryList2 == []) {
+          this.$message({
+            type: "warning", 
+            message: "请新增数据后再做保存！"
+          });
+          return;
+        }
+        for (var i = 0; i < that.queryList2.length; i++) {
+          that.saveCarTypeObject.wiCartypeId = that.queryList2[i].wiCartypeId;
+          that.saveCarTypeObject.wiId = that.queryList2[i].wiId;
+          that.saveCarTypeObject.wiCode = that.queryList2[i].wiCode;
+          that.saveCarTypeObject.carTypeCode = that.queryList2[i].carTypeCode;
+          that.saveCarTypeObject.saleWiQty = that.queryList2[i].saleWiQty;
+          that.saveCarTypeObject.workWiQty = that.queryList2[i].workWiQty;
+          that.saveCarTypeObject.repairWiQty = that.queryList2[i].repairWiQty;
+          that.saveCarTypeObject.isSystem = that.queryList2[i].isSystem;
+          that.saveCarTypeObject.dlrCode = that.queryList2[i].dlrCode;
+          that.saveCarTypeObject.dlrId = that.queryList2[i].dlrId;
+          that.saveCarTypeObject.carBrandCode = that.queryList2[i].carBrandCode;
+          that.saveCarTypeObject.oemId = that.queryList2[i].oemId;
+          that.saveCarTypeObject.groupId = that.queryList2[i].groupId;
+          that.saveCarTypeObject.oemCode = that.queryList2[i].oemCode;
+          that.saveCarTypeObject.groupCode = that.queryList2[i].groupCode;
+          that.saveCarTypeObject.isEnable = that.queryList2[i].isEnable;
+          that.saveCarTypeObject.updateControlId = that.queryList2[i].updateControlId;
+
+          that.saveCarTypeArray.push(JSON.parse(JSON.stringify(that.saveCarTypeObject)))
+        }
+        let queryObj = {
+          type:'mutation',
+          // api配置
+          apiConfig: apiSeDbWiQuery.seDbWiCarTypeMutationSave,
+          // 需要调用的API服务配置
+          apiServices: [{
+              //表格中台返回网格的字段
+              apiQueryRow:[]
+          }],
+          //条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: that.saveCarTypeArray
+          }
+        }
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        // 调用中台API方法（可复用）
+        requestGraphQL(paramD).then(response => { 
+               that.listLoading2 = false;
+               if(response.data[apiSeDbWiQuery.seDbWiCarTypeMutationSave.ServiceCode].result === '1'){
+                  this.$message({
+                    type: "success", 
+                    message: "保存成功！"
+                  });
+               } else {
+                  this.$message({
+                    type: "error", 
+                    message: response.data[apiSeDbWiQuery.seDbWiCarTypeMutationSave.ServiceCode].msg
+                  });
+                  return;
+               }
+               this.saveCarTypeArray = [];
+               this.doSeDbWiCarTypeQuery(this.queryCarTypeObject);
+             });
+    },
+    //保存连带工时设置
+    saveWiRelation() {
+        const that = this;
+        if (that.queryList3 == []) {
+          this.$message({
+            type: "warning", 
+            message: "请新增数据后再做保存！"
+          });
+          return;
+        }
+        for (var i = 0; i < that.queryList3.length; i++) {
+          that.saveRelationObject.wiRelationId = that.queryList3[i].wiRelationId;
+          that.saveRelationObject.parentWiId = that.queryList3[i].parentWiId;
+          that.saveRelationObject.parentWiCode = that.queryList3[i].parentWiCode;
+          that.saveRelationObject.wiId = that.queryList3[i].wiId;
+          that.saveRelationObject.wiCode = that.queryList3[i].wiCode;
+          that.saveRelationObject.isSystem = that.queryList3[i].isSystem;
+          that.saveRelationObject.dlrCode = that.queryList3[i].dlrCode;
+          that.saveRelationObject.dlrId = that.queryList3[i].dlrId;
+          that.saveRelationObject.oemId = that.queryList3[i].oemId;
+          that.saveRelationObject.groupId = that.queryList3[i].groupId;
+          that.saveRelationObject.oemCode = that.queryList3[i].oemCode;
+          that.saveRelationObject.groupCode = that.queryList3[i].groupCode;
+          that.saveRelationObject.isEnable = that.queryList3[i].isEnable;
+          that.saveRelationObject.updateControlId = that.queryList3[i].updateControlId;
+          that.saveRelationArray.push(JSON.parse(JSON.stringify(that.saveRelationObject)))
+        }
+        let queryObj = {
+          type:'mutation',
+          // api配置
+          apiConfig: apiSeDbWiQuery.seDbWiRelationMutationSave,
+          // 需要调用的API服务配置
+          apiServices: [{
+              //表格中台返回网格的字段
+              apiQueryRow:[]
+          }],
+          //条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: that.saveRelationArray
+          }
+        }
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        // 调用中台API方法（可复用）
+         requestGraphQL(paramD).then(response => { 
+               if(response.data.seDbWiRelationMutationSave.result === '1') {
+                  this.$message({
+                    type: "success", 
+                    message: "保存成功！"
+                  });
+               } else {
+                  this.$message({
+                    type: "error", 
+                    message: response.data[apiSeDbWiQuery.seDbWiRelationMutationSave.ServiceCode].msg
+                  });
+               }
+               this.saveRelationArray = [];
+               this.doSeDbWiRelationQuery(this.queryRelationObject);
+             });
+    },
+     //车型工时对应关系表--选择车型(多选)
+    getMulCarType(code, text, codeField, carBrandCn, carTypeCode, comType, popupsKey, rows) {
+      for (var n = 0; n < rows.length; n++) {
+        let flag = true;
+        if (this.queryList2.length != null) {
+          for (var m = 0; m < this.queryList2.length; m++) {
+            if (this.queryList2.carBrandCode == rows[n].carBrandCode && 
+            this.queryList2.carTypeCode == rows[n].carTypeCode) {
+              this.$message({
+                type: "warning", 
+                message: "该车型对应车辆品牌已存在！"  
+              });
+              flag = false;
+            }
+          }
+        }
+        if (flag) {
+          this.selectPartsCarTypeRow.carBrandCode = rows[n].carBrandCode;
+          this.selectPartsCarTypeRow.carBrandCn = rows[n].carBrandCn;
+          this.selectPartsCarTypeRow.carTypeCn = rows[n].carTypeCn;
+          this.selectPartsCarTypeRow.carTypeCode = rows[n].carTypeCode;
+          this.queryList2.push(JSON.parse(JSON.stringify(this.selectPartsCarTypeRow)));
+        }
+      }
+      
+      // let carBrandArray = carBrandCn.split(",");
+      // let carTypeCnArray = carTypeCn.split(",");
+      // let carTypeCodeArray = carTypeCode.split(",");
+      // for (var n = 0; n < carBrandArray.length; n++) {
+      //   this.selectPartsCarTypeRow.carBrandCode = carBrandArray[n];
+      //   this.selectPartsCarTypeRow.carTypeCn = carTypeCnArray[n];
+      //   this.selectPartsCarTypeRow.carTypeCode = carTypeCodeArray[n];
+      //   let flag = true;
+      //   if (this.queryList2.length != null) {
+      //     for (var m = 0; m < this.queryList2.length; m++) {
+      //       if ((this.queryList2[m].carBrandCode == carBrandArray[n]) && (this.queryList2[m].carTypeCode == carTypeCodeArray[n])) {
+      //         this.$message({
+      //           type: "warning", 
+      //           message: "该车型对应车辆品牌已存在！"  
+      //         });
+      //         flag = false;
+      //       }
+      //     } 
+      //     if (flag) {
+      //       this.queryList2.push(JSON.parse(JSON.stringify(this.selectPartsCarTypeRow)));
+      //     }
+      //   } else {
+      //     this.queryList2.push(JSON.parse(JSON.stringify(this.selectPartsCarTypeRow)));
+      //   }
+      // } 
+    },
+    //连带工时设置表--选择工时(多选)
+    getSeChooseWi(val) {
+      console.log("选择工时的数据");
+      console.log(val);
+      for (var n = 0; n < val.length; n++) {
+        let flag = true;
+        if (this.queryList3.length != null) {
+          for (var m = 0; m < this.queryList3.length; m++) {
+            if (this.queryList3[m].wiCode == val[n].wiCode) flag = false;
+          }
+        }
+        if (flag) {
+          this.selectSeChooseWiRow.operatePartCode = val[n].operatePartCode;
+          this.selectSeChooseWiRow.opratePlaceName = val[n].opratePlaceName;
+          this.selectSeChooseWiRow.repairSmallKindCode = val[n].repairSmallKindCode;
+          this.selectSeChooseWiRow.repairSmallKindName = val[n].repairSmallKindName;
+          this.selectSeChooseWiRow.wiId = val[n].wiId;
+          this.selectSeChooseWiRow.wiCode = val[n].wiCode;
+          this.selectSeChooseWiRow.wiName = val[n].wiName;
+          this.selectSeChooseWiRow.isSystem = val[n].isSystem;
+          this.queryList3.push(JSON.parse(JSON.stringify(this.selectSeChooseWiRow)));
+        }
+      }
+      console.log("this.selectSeChooseWiRow");
+      console.log(this.selectSeChooseWiRow);
+      this.seChooseWiSelectVisibles = false;
+    },
+    //删除车型工时对应关系
+    deleteWiCarType() {
+      const that = this;
+      if (JSON.stringify(that.rowClickData1) == '{}') {
+        this.$message({
+          type: "warning", 
+          message: "请先选择主表数据！"
+        });
+        return;
+      }
+      if(JSON.stringify(that.rowClickData2)=='{}') {
+            this.$message({
+              type: "warning", 
+              message: "请选择一条数据进行删除！"
+            });
+            return;
+        } else {
+          //此时删除操作只是在前端进行删除，没有传给后台
+          //if (that.rowClickData2.wiCartypeId === '' || that.rowClickData2.updateControlId === '') {
+          if (that.rowClickData2.wiCartypeId === '') {
+            // for (let j = 0;  j < that.queryList2.length; j++) {
+            //   if (that.rowClickData2.carBrandCode === that.queryList2[j].carBrandCode) {
+            //     that.queryList2.splice(j,1)
+            //   }
+            // }  
+            that.queryList2.splice(that.rowClickData2.index, 1);
+          } else {
+            that.deleteCarTypeObject.oemCode = that.rowClickData2.oemCode;
+            that.deleteCarTypeObject.groupCode = that.rowClickData2.groupCode;
+            that.deleteCarTypeObject.wiCartypeId = that.rowClickData2.wiCartypeId;
+            that.deleteCarTypeObject.updateControlId = that.rowClickData2.updateControlId;
+            let queryObj = {
+            type:'mutation',
+            // api配置
+            apiConfig: apiSeDbWiQuery.seDbwiCarTypeMutationDelete,
+            // 需要调用的API服务配置
+            apiServices: [{
+                //表格中台返回网格的字段
+                apiQueryRow:[]
+            }],
+            //条件/实体参数（变量），根据typeParam中的定义配置
+            variables: {
+              //当前中台使用的名称有dataInfo、info，具体查看API文档
+              dataInfo: that.deleteCarTypeObject
+            }
+          }
+          //转换了中台请求格式数据
+          var paramD = that.$getParams(queryObj);
+          // 调用中台API方法（可复用）
+          requestGraphQL(paramD).then(response =>{ 
+                if(response.data[apiSeDbWiQuery.seDbwiCarTypeMutationDelete.ServiceCode].result === '1') {
+                    this.$message({
+                      type: "success", 
+                      message: "删除成功！"
+                    });
+                } else {
+                  this.$message({
+                      type: "error", 
+                      message: response.data[apiSeDbWiQuery.seDbwiCarTypeMutationDelete.ServiceCode].msg
+                  });  
+                }
+                that.rowClickData2 = {};
+                //that.doSeDbWiCarTypeQuery(this.queryCarTypeObject);
+            });  
+          }
+        }
+    },
+    //删除连带工时设置
+    deleteWiRelation() {
+      const that = this;
+      if (JSON.stringify(that.rowClickData1) == '{}') {
+        this.$message({
+          type: "warning", 
+          message: "请先选择主表数据！"
+        });
+        return;
+      }
+      if(JSON.stringify(that.rowClickData3) =='{}') {
+        this.$message({
+          type: "warning", 
+          message: "请先选择一条数据进行删除！"
+        });
+        return;
+      } else {
+        if (that.rowClickData3.wiRelationId === '' || that.rowClickData3.updateControlId === '') {
+          // for (let j = 0;  j < that.queryList3.length; j++) {
+          //   if (that.rowClickData3.carBrandCode === that.queryList3[j].carBrandCode) {
+          //     that.queryList3.splice(j,1)
+          //   }
+          // } 
+          //that.queryList3.splice(that.rowClickData3.index, 1);
+          that.queryList3.splice(that.rowClickData3.index, 1);
+        } else {
+          that.deleteRelationObject.wiRelationId = that.rowClickData3.wiRelationId;
+          that.deleteRelationObject.updateControlId = that.rowClickData3.updateControlId;
+          let queryObj = {
+            type:'mutation',
+            // api配置
+            apiConfig: apiSeDbWiQuery.seDbWiRelationMutationDelete,
+            // 需要调用的API服务配置
+            apiServices: [{
+                //表格中台返回网格的字段
+                apiQueryRow:[]
+            }],
+            //条件/实体参数（变量），根据typeParam中的定义配置
+            variables: {
+              //当前中台使用的名称有dataInfo、info，具体查看API文档
+              dataInfo: that.deleteRelationObject
+            }
+          }
+          //转换了中台请求格式数据
+          var paramD = that.$getParams(queryObj);
+          // 调用中台API方法（可复用）
+          requestGraphQL(paramD).then(response => { 
+                if(response.data[apiSeDbWiQuery.seDbWiRelationMutationDelete.ServiceCode].result === '1'){
+                    //that.queryList3.splice(that.rowClickData3.index, 1);
+                    this.$message({
+                      type: "success", 
+                      message: "删除成功！"
+                    });
+                    //return;
+                    that.rowClickData3 = {};
+                    that.doSeDbWiRelationQuery(this.queryRelationObject);
+                } else {
+                  this.$message({
+                      type: "error", 
+                      message: response.data[apiSeDbWiQuery.seDbWiRelationMutationDelete.ServiceCode].msg
+                  });  
+                }
+          });
+        } 
+      }
+    },
+    //车型工时对应关系表-双击事件
+    // dbClickWiCarType() {
+    //   this.$refs.CarTypeModal.open()
+    // },
+    selectWiCarType() {
+      if (JSON.stringify(this.rowClickData1) == '{}') {
+        this.$message({
+          type: "warning", 
+          message: "请先选择主表数据！"
+        });
+        return;
+      }
+      this.$refs.multiCarType.open();
+    },
+    //连带工时设置表-双击事件
+    selectWiRelation() {
+      if (JSON.stringify(this.rowClickData1) == '{}') {
+        this.$message({
+          type: "warning", 
+          message: "请先选择主表数据！"
+        });
+        return;
+      }
+      //this.$refs.seChooseWiSelect.open();
+      this.seChooseWiSelectVisibles = true;
+    },
+    //维修工时标准表-行点击事件
+    rowClick1(row, event) {
+      this.rowClickData1 = row;
+        //位于第一个选项卡
+        if (this.activeName == "first") {
+            //点击维修工时表某行查询车型工时对应关系
+            this.queryCarTypeObject.oemCode = this.rowClickData1.oemCode;
+            this.queryCarTypeObject.groupCode = this.rowClickData1.groupCode;
+            this.queryCarTypeObject.wiId = this.rowClickData1.wiId;
+            this.doSeDbWiCarTypeQuery(this.queryCarTypeObject);
+            this.selectPartsCarTypeRow.wiId = row.wiId;
+            this.selectPartsCarTypeRow.wiCode = row.wiCode;
+            this.selectPartsCarTypeRow.isSystem = row.isSystem;
+            this.selectPartsCarTypeRow.dlrId = row.dlrId;
+            this.selectPartsCarTypeRow.dlrCode = row.dlrCode;
+        } else {
+            this.queryRelationObject.oemCode = this.rowClickData1.oemCode;
+            this.queryRelationObject.groupCode = this.rowClickData1.groupCode;
+            this.queryRelationObject.parentWiId = this.rowClickData1.wiId;
+            this.queryRelationObject.dlrId = this.rowClickData1.dlrId;
+            this.doSeDbWiRelationQuery(this.queryRelationObject);
+            this.selectSeChooseWiRow.parentWiId = row.wiId;
+            this.selectSeChooseWiRow.parentWiCode = row.wiCode;
+            //this.selectSeChooseWiRow.isSystem = row.isSystem;
+            this.selectSeChooseWiRow.dlrId = row.dlrId;
+            this.selectSeChooseWiRow.dlrCode = row.dlrCode;
+            console.log("this.selectSeChooseWiRow")
+            console.log(this.selectSeChooseWiRow)
+        }   
+    },
+    //连带工时设置表-行点击事件
+    rowClick2(row, event) {
+      this.rowClickData2 = row;
+    },
+    //车型工时对应关系表-行点击事件
+    rowClick3(row, event) {
+      this.rowClickData3 = row;
+    },
+    //车型工时对应关系查询
+    doSeDbWiCarTypeQuery(queryCarTypeObject) {
+        const that = this;
+        that.listLoading2 = true;
+        let queryObj = {
+          type: 'query',
+          // api配置
+          apiConfig: apiSeDbWiQuery.seDbWiCartypeQueryFind,
+          // 需要调用的API服务配置
+          apiServices: [{
+              //表格中台返回网格的字段
+              apiQueryRow:['wiCartypeId','wiId','wiCode','carBrandCode','carBrandCn','carTypeCode','carTypeCn','saleWiQty','workWiQty','repairWiQty','isSystem','dlrCode','dlrId',
+              'oemId','groupId','oemCode','groupCode','creator','createdDate','modifier','lastUpdatedDate','isEnable','updateControlId']
+          }],
+          //条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: queryCarTypeObject
+          }
+        }
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        // 调用中台API方法（可复用）
+        requestGraphQL(paramD).then(response => {
+          if(response.data[apiSeDbWiQuery.seDbWiCartypeQueryFind.ServiceCode].result === '1'){
+              that.queryList2 = response.data[apiSeDbWiQuery.seDbWiCartypeQueryFind.ServiceCode].rows;
+              that.listLoading2 = false;
+            }
+        })
+    },
+    //查询连带工时
+    doSeDbWiRelationQuery(queryRelationObject) {
+        const that = this
+        that.listLoading3 = true
+        let queryObj = {
+          type: 'query',
+          // api配置
+          apiConfig: apiSeDbWiQuery.seDbWiRelationQueryFind,
+          // 需要调用的API服务配置
+          apiServices: [{
+              //表格中台返回网格的字段
+              apiQueryRow:['wiRelationId','parentWiId','parentWiCode','isSystem','operatePartCode','opratePlaceName','repairSmallKindCode','repairSmallKindName',
+              'wiId','wiCode','wiName','dlrCode','dlrId','oemId','groupId','oemCode','groupCode','creator','createdDate','modifier','lastUpdatedDate','isEnable',
+              'updateControlId']
+          }],
+          //条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: queryRelationObject
+          }
+        }
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        // 调用中台API方法（可复用）
+        requestGraphQL(paramD).then(response => {
+          var resData = response.data[apiSeDbWiQuery.seDbWiRelationQueryFind.ServiceCode];
+          if (resData.result === '1') {
+            that.queryList3 = response.data[apiSeDbWiQuery.seDbWiRelationQueryFind.ServiceCode].rows;
+          } else {
+            this.$message({
+              type: 'error',
+              message: resData.msg
+            });
+          }
+          that.listLoading3 = false;
+        })
+    },
+    //上传路径至后台
+    uploadUrl: function() {
+      return ('mock' + apiSeDbWiQuery.seDbWiMutationImportWi.APIUrl + '/' + 'v=' + apiSeDbWiQuery.seDbWiMutationImportWi.ServiceCode);
+    }, 
+    handlePreview(file) {
+     if(file.response.status) {
+       this.$alert('此文件导入成功', '提示', {
+          confirmButtonText: '确定',
+          type:'success',
+        });
+      } else {
+        this.$alert('此文件导入失败', '提示', {
+         confirmButtonText: '确定',
+        type:'warning',
+        });
+      }   
+    },
+    handleRemove(file, fileList) {},
+    uploadFalse(response, file, fileList) {
+        this.$alert('文件上传失败', '提示', {
+          confirmButtonText: '确定',
+          type:'warning',
+        });
+    },
+    //上传成功
+    uploadSuccess(response, file, fileList) {
+        if(response.data[apiSeDbWiQuery.seDbWiMutationImportWi.ServiceCode].rows) {
+          var tempList = response.data[apiSeDbWiQuery.seDbWiMutationImportWi.ServiceCode].rows;
+          var implistTemp = []
+          if(tempList != null && tempList.length > 0) {
+            tempList.forEach(row => {
+                var newRow = {
+                  wiCode: row.wiCode,
+                  wiName: row.wiName,
+                  isSystem: row.isSystem,
+                  dlrCode: row.dlrCode,
+                  isEnable: row.isEnable,
+                  opratePlaceName: row.opratePlaceName,
+                  repairSmallKindName: row.repairSmallKindName,
+                  repairName: row.repairName,
+                  wiKey: row.wiKey,
+                  remark: row.remark
+                }
+                implistTemp.push(newRow)
+            })
+          }
+           this.queryList1 = implistTemp;
+           this.$alert('文件导入成功', '提示', {
+             confirmButtonText: '确定',
+             type:'success',
+           });
+        } else {
+           this.$alert('文件导入失败', '提示', {
+             confirmButtonText: '确定',
+             type:'warning',
+            });
+        }
+      },
+      //上传前对文件进行判断
+      beforeAvatarUpload(file) {
+        const extension = file.name.split(".")[1] === "xls";
+        const extension2 = file.name.split(".")[1] === "xlsx";
+        if(!extension && !extension2){
+            this.$alert('上传文件只能为Excel文件', '提示', {
+              confirmButtonText: '确定',
+              type:'warning',
+            });
+        }
+        return extension || extension2;
+      },
+      beforeRemove(file, fileList) {
+        this.$alert(`选择文件类型或大小不符，已移除 ${ file.name }，请重新选择`,'提示',{
+          confirmButtonText:'确定',
+          type:'warning'
+        });
+      },
+      handleExceed(files, fileList) {
+        this.$message.warning(`当前限制选择 1 个文件，本次选择了 ${files.length} 个文件，共选择了 ${files.length + fileList.length} 个文件`);
+      },
+      handFileListChange(file, fileList) {},
+      //下载导入模板
+      downloadModel() {
+        this.textQuery(1, 'excel');
+        var excelCols = [
+          {name: "工时编码", required:true},
+          {name: "维修内容", required:true},
+          {name: "车辆品牌", required:true},
+          {name: "车型编码", required:true},
+          {name: "销售工时", required:true},
+          {name: "派工工时", required:true}
+        ]
+      },
+    //获取显示
+    handDialogVisibleFunc(val) {
+        this.dialogVisible = val
+    },
+    //点击更多
+    changeToggleParam() {
+      this.toggleParam = !this.toggleParam
+    },
+    closeCarType(val) {
+      this.carTypeVisible = val
+    },
+    closePartsCarType(val) {
+      this.paChoosePartVisible = val
+    },
+    closeSeChooseWi(val) {
+      console.log(val);
+      val === '!**!' ? this.seChooseWiSelectVisibles = false : ''
+    },
+    //查询区获取选中的车型
+    getSingleCarType(val) {
+      this.carTypeVisible = false;
+      this.formField.carTypeCode = val.CAR_TYPE_CODE;
+    },
+    //获取是否可用组件的值
+    getIsEnableCode(val) {
+      this.formField.isEnable = val;
+    },
+    getIsSystem(val) {
+      this.formField.isSystem = val;
+    },
+    operatePartChange(val) {
+      this.formField.operatePartId = val;
+      this.formField.repairSmallKindId = "";
+      this.queryFindSmall(this.formField.operatePartId);
+      //this.$refs.chooseSmallKind.reset();
+      //this.$refs.chooseSmallKind.initData(val);
+    },
+    getSmallKind(val) {
+      this.formField.repairSmallKindId = val;
+      //this.formField.repairSmallKindCode = val;
+      //this.$refs.chooseSmallKind.reset();
+      //this.$refs.chooseSmallKind.initData(val);
+    },
+    handleSizeChange(val) {
+      this.listQuery.pageSize = val;
+      this.textQuery();
+    },
+    handleCurrentChange(val) {
+      this.listQuery.pageIndex = val;
+      this.textQuery();
+    }
+  }
+}
+</script>
+
+

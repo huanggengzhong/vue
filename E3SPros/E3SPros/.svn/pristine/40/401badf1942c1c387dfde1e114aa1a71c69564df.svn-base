@@ -1,0 +1,414 @@
+<!--
+* description: 经销商备件出库退库
+* author: chchhui
+* createdDate: 2019-10-17
+* logs：
+*  20191017 新增页面功能
+-->
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button">
+      <el-button type="primary" size="small" @click="fetchData" >查询</el-button>
+      <el-button size="small" >打印</el-button>
+      <el-button size="small" @click="reset" >重置</el-button>
+    </div>
+    
+    <div class="filter-container filter-params">
+     <el-row :gutter="26">
+        <el-col :span="22">
+          <el-row>
+            <el-col :span="6">
+              <label>退货单号</label>
+              <el-input
+                v-model="queryParams.dataInfo.outStoreCode"
+                suffix-icon="el-icon-search"
+                placeholder="请输入"
+                size="small"
+              />
+            </el-col>
+            <LookupValue
+              :span="6"
+              :isMul="isMul"
+              :isShowLabel="isShowLabel"
+              :code="queryParams.dataInfo.billType"
+              lookuptype="PA10010"
+              labelName="出库类型"
+              @changeCode="getBillType"
+            />
+            <el-col :span="6">
+               <label>退货日期</label>
+              <el-date-picker
+                v-model="outStoreDate"
+                type="daterange"
+                range-separator="至"
+                start-placeholder="开始日期"
+                end-placeholder="结束日期"
+                @change="changeDate">
+              </el-date-picker>
+            </el-col>
+            <el-col :span="6">
+              <label>单据编号</label>
+              <el-input
+                v-model="queryParams.dataInfo.billNo"
+                suffix-icon="el-icon-search"
+                placeholder="请输入"
+                size="small"
+              />
+            </el-col>
+          </el-row>
+        </el-col>
+        <el-col :span="2">
+          <el-button icon="el-icon-plus" @click="changeToggleParam" class="moreParam">更多</el-button>
+        </el-col>
+        <el-col :span="22" v-show="toggleParam"  >
+          <el-row>
+            <el-col :span="6">
+              <label>出库单号</label>
+              <el-input
+                v-model="queryParams.dataInfo.a3"
+                suffix-icon="el-icon-search"
+                placeholder="请输入"
+                size="small"
+              />
+            </el-col>
+            <el-col :span="6">
+              <label>客户名称</label>
+              <el-input
+                v-model="queryParams.dataInfo.custName"
+                suffix-icon="el-icon-search"
+                placeholder="请输入"
+                size="small"
+              />
+            </el-col>
+            <el-col :span="6">
+              <label>车牌号</label>
+              <el-input
+                v-model="queryParams.dataInfo.a8"
+                suffix-icon="el-icon-search"
+                placeholder="请输入"
+                size="small"
+              />
+            </el-col>
+            <el-col :span="6">
+              <label>VIN</label>
+              <el-input
+                v-model="queryParams.dataInfo.a9"
+                suffix-icon="el-icon-search"
+                placeholder="请输入"
+                size="small"
+              />
+            </el-col>
+          </el-row>
+        </el-col>
+      </el-row>
+    </div>
+    
+    <mix-table
+        ref="tableList"
+        :queryParams="queryParams"
+        :dynamicTableCols="cols"
+        :isShowSelect=false
+        :isPaging=true
+        :isDialog=false /> 
+    
+    <el-dialog
+      title="明细查询"
+      :visible.sync="dialogFormVisible"
+      width="80%"
+      @closed="closeDialog"
+      @opened="openDialog"
+      :append-to-body="true"
+      :close-on-click-modal="false"
+    >
+     <div class="filter-container filter-button">
+      <el-button type="primary" size="small" @click="save" >退货</el-button>
+     </div>
+      <div class="filter-container filter-params">
+      <el-row :gutter="24">
+        <el-col :span="8">
+            <label>退货单号</label>
+          <el-input
+                v-model="row.outStoreCode"
+                suffix-icon="el-icon-search"
+                placeholder="请输入"
+                size="small"
+                disabled="false"
+              />
+        </el-col>
+        <el-col :span="8">
+            <label>出库类型</label>
+          <el-input
+                v-model="row.billType"
+                suffix-icon="el-icon-search"
+                placeholder="请输入"
+                size="small"
+                disabled="false"
+              />
+        </el-col>
+        <el-col :span="8">
+            <label>出库单号</label>
+          <el-input
+                v-model="row.a3"
+                suffix-icon="el-icon-search"
+                placeholder="请输入"
+                size="small"
+                disabled="false"
+              />
+        </el-col>
+        <el-col :span="8">
+          <label>退库单号</label>
+          <el-input
+                v-model="row.c1"
+                suffix-icon="el-icon-search"
+                placeholder="请输入"
+                size="small"
+                disabled="false"
+              />
+        </el-col>
+        <el-col :span="8">
+            <label>客户名称</label>
+          <el-input
+                v-model="row.custName"
+                suffix-icon="el-icon-search"
+                placeholder="请输入"
+                size="small"
+                disabled="false"
+              />
+        </el-col>
+        <el-col :span="8">
+            <label>单据编号</label>
+          <el-input
+                v-model="row.billNo"
+                suffix-icon="el-icon-search"
+                placeholder="请输入"
+                size="small"
+                disabled="false"
+              />
+        </el-col>
+        
+        <LookupValue
+              :span="8"
+              :isMul="isMul"
+              :isShowLabel="isShowLabel"
+              :code="row.c2"
+              lookuptype="PA10010"
+              labelName="退货类别"
+              @changeCode="getCode"
+            />
+
+      </el-row>
+     </div>
+      <mix-table 
+        ref="detailList"
+        :queryParams="queryParams1"
+        :dynamicTableCols="detailCols"
+        :isShowSelect=false
+        :isPaging=false
+        :isDialog=true
+        :onetableHeight=200 />
+    </el-dialog>
+  </div>
+</template>
+
+
+<script>
+import { paBuDlrInStoreMutationSave } from "@/api/pa/dealerStorage/paBuDlrlnStonage"
+import { paApis } from "@/api/graphQLApiList/pa";
+import { requestGraphQL } from "@/api/commonRequest";
+import LookupValue from '@/components/org/LookupValue'
+import mixTable from "@/components/basicComponent/mixTable"
+import mixDetail from "@/components/basicComponent/mixDetail"
+import { type } from 'os';
+import { format } from 'path';
+
+export default {
+  components: {
+    mixTable,
+    LookupValue
+  },
+
+  data() {
+    return {
+        toggleParam:false,
+        dialogFormVisible:false,
+        outStoreDate:[],
+        row:{
+          billNo:'',
+          billType:'',
+          billDate:'',
+          deliveryNo:'',
+          state:'',
+          total:'',
+          amount:'',
+          receiptDate:'',
+          remarks:''
+        },
+        cols:[
+            { label: '退货单号',codeField:"outStoreCode",comps:{
+              type:"link",
+              event:this.linkDialog
+            }
+            },
+            { label: '出库类型', codeField: "billType"},
+            { label: '退货日期', codeField: "outStoreDate"},
+            { label: '客户名称', codeField: "custName"},
+            { label: '领料部门', codeField: "a1"},
+            { label: '领料人', codeField: "a2"},
+            { label: '出库单号', codeField: "a3"},
+            { label: '合计品种', codeField: "a4"},
+            { label: '合计数量', codeField: "a5"},
+            { label: '合计金额', codeField: "a6"},
+            { label: '派工单号', codeField: "a7"},
+            { label: '车牌号', codeField: "a8"},
+            { label: 'VIN', codeField: "a9"},
+            { label: '制单人', codeField: "a10"},
+            { label: '制单日期', codeField: "a11"},
+            { label: '备注', codeField: "remarks"}
+      ],
+       queryParams: {
+        APIUrl: paApis.paBuDlrOutStoreReturnQueryFindAll.APIUrl,
+        InputType: paApis.paBuDlrOutStoreReturnQueryFindAll.InputType,
+        ServiceCode: paApis.paBuDlrOutStoreReturnQueryFindAll.ServiceCode,
+        dataInfo: {
+          outStoreCode: '',
+          billType: '',
+          beginOutStoreDate: '',
+          endOutStoreDate: '',
+          billNo:'',
+          custName:'',
+          a3:'',
+          a8:'',
+          a9:''
+          
+        },
+        apiQueryRow: [
+          'carBrandCn',
+          'carBrandCode',
+          'carSeriesCn',
+          'carSeriesCode',
+          'carTypeCn',
+          'carTypeCode'
+        ]
+      },
+      detailCols:[
+        {label:"备件品牌",codeField:"partBrandCode"},
+        {label:"备件号",width:150,codeField:"partNo",comps:{
+            type:"link"
+        }},
+        
+        {label:"备件名称",codeField:"partName"},
+        {label:"应退数量",codeField:"outStoreQty"},
+        {label:"已退数量",codeField:"hasReturnQty"},
+        {label:"最小出库量",codeField:"minstoreQty"},
+        {label:"退货数量",codeField:"returnQty",width:120,isEdit:"true",comps:{
+            type:"inputTxt",
+            change:this.changeReturnQty
+        }},
+        {label:"单位",codeField:"unit"},
+        {label:"单价",codeField:"b1"},
+        {label:"税额",codeField:"b2"},
+        {label:"税率",codeField:"b3"},
+        {label:"含税金额",codeField:"b4"},
+        {label:"追溯件号",codeField:"b5",width:120,isEdit:true,comps:{
+            type:"inputTxt"
+        }},
+        {label:"原追溯件号",codeField:"b6",width:120,isEdit:true,comps:{
+            type:"inputTxt"
+        }},
+        {label:"备注",codeField:"remaks",width:150,isEdit:true,comps:{
+            type:"inputTxt"
+        }},
+        
+      ],
+      queryParams1: {
+        APIUrl: paApis.paBuDlrOutStoreReturnDQueryFindAll.APIUrl,
+        InputType: paApis.paBuDlrOutStoreReturnDQueryFindAll.InputType,
+        ServiceCode: paApis.paBuDlrOutStoreReturnDQueryFindAll.ServiceCode,
+        dataInfo: {
+          documentNumber: '',
+          outboundType: '',
+          carTypeCode: ''
+        },
+        apiQueryRow: [
+          'carBrandCn',
+          'carBrandCode',
+          'carSeriesCn',
+          'carSeriesCode',
+          'carTypeCn',
+          'carTypeCode'
+        ]
+      },
+    }
+  },
+  created() {
+    //this.textQurey();
+  },
+  methods:{
+    fetchData(){
+      this.$refs.tableList.queryList()
+     
+    },
+    changeToggleParam() {
+      this.toggleParam = !this.toggleParam;
+      console.log(this.toggleParam);
+      if (this.toggleParam) {
+        this.moreBtnIcon = "el-icon-minus";
+      } else {
+        this.moreBtnIcon = "el-icon-plus";
+      }
+    },
+    linkDialog(row){
+      
+      this.dialogFormVisible = true
+      this.row = {
+
+      }
+      this.row = row
+      this.$refs.detailList.tableData = []
+    },
+    openDialog(){
+      this.$refs.detailList.queryList()
+     
+    },
+    closeDialog(){
+      this.dialogFormVisible = false
+
+    },
+    save(){
+      // paBuDlrInStoreMutationSave(this.pa)
+    },
+    changeDate(){
+      queryParams.dataInfo.beginOutStoreDate = this.outStoreDate[0]
+      queryParams.dataInfo.endOutStoreDate = this.outStoreDate[1]
+    },
+    getBillType(val){
+      this.queryParams.dataInfo.billType = val
+
+    },
+    getCode(val){
+
+    },
+    reset(){
+      this.outStoreDate= []
+      this.queryParams.dataInfo.beginOutStoreDate=''
+      this.queryParams.dataInfo.endOutStoreDate = ''
+      this.queryParams.dataInfo.outStoreCode = ''
+      this.queryParams.dataInfo.billType = ''
+      this.queryParams.dataInfo.billNo = ''
+      this.queryParams.dataInfo.custName = ''
+      this.queryParams.dataInfo.a3 = ''
+      this.queryParams.dataInfo.a8 = ''
+      this.queryParams.dataInfo.a9 = ''
+    },
+    changeReturnQty(row){
+         if(parseInt(row.returnQty)  > parseInt(row.outStoreQty)){
+            
+             this.$message.warning("出库数量不能大于应出数量！")
+        }
+        
+    }
+  
+  }
+  
+};
+</script>

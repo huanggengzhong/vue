@@ -1,0 +1,1030 @@
+/**
+* description: 班组
+* author: ydche
+* createdDate: 2019-07-20
+* logs：
+*  20190720 修改xxx方法 ydche
+*/
+<template>
+  <div class="app-container app-container-table" style="margin-top: 0px;">
+    <el-col :span="12" class="border-right-2">
+      <div
+        class="filter-container filter-button"
+        style="background-color: #fff"
+        ref="searcheHeight"
+      >
+        <el-button type="primary" size="small" @click="queryRepairGroup()">查询</el-button>
+        <el-button size="small" @click="insertWorkGroupTypeModal">新增</el-button>
+        <el-button size="small" @click="updateWorkGroupTypeModal">修改</el-button>
+        <el-button size="small" @click="seDbRepairGroupEnable">启/停</el-button>
+      </div>
+      <div class="filter-container filter-params">
+        <div ref="conHeight">
+          <el-row :gutter="26">
+            <el-col :span="12">
+              <label>班组名称</label>
+              <el-input
+                clearable
+                v-model="listQuery.dataInfo.groupName"
+                placeholder="请选择"
+                size="small"
+              />
+            </el-col>
+            <el-col :span="12">
+              <label>班组类别</label>
+              <el-select
+                v-model="listQuery.dataInfo.workGroupType"
+                placeholder="请选择"
+                clearable
+                size="small"
+              >
+                <el-option
+                  v-for="item in workGroupTypeData"
+                  :key="item.lookupValueCode"
+                  :label="item.lookupValueName"
+                  :value="item.lookupValueCode"
+                ></el-option>
+              </el-select>
+            </el-col>
+          </el-row>
+        </div>
+        <el-table
+          ref="multipleTable"
+          :height="tableHeight9"
+          v-loading="workGroupTypeLoading"
+          :data="repairGrouplist"
+          element-loading-text="Loading"
+          border
+          fit
+          stripe
+          highlight-current-row
+          @row-click="rowClick"
+        >
+          <el-table-column align="center" label="序号" width="60">
+            <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+          </el-table-column>
+          <el-table-column label="班组编号">
+            <template slot-scope="scope">{{ scope.row.workGroupCode }}</template>
+          </el-table-column>
+          <el-table-column label="班组名称">
+            <template slot-scope="scope">{{ scope.row.groupName }}</template>
+          </el-table-column>
+          <el-table-column label="班组类别" align="center">
+            <template slot-scope="scope">{{ scope.row.workGroupTypeName}}</template>
+          </el-table-column>
+          <el-table-column label="状态" align="center">
+            <template slot-scope="scope">
+              <span v-if="scope.row.isEnable == '1'">启用</span>
+              <span v-else-if="scope.row.isEnable == '0'">停用</span>
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-pagination
+          ref="paginationHeight"
+          background
+          layout="prev, pager, next, sizes, ->, total"
+          prev-text="上一页"
+          next-text="下一页"
+          :page-sizes="[10, 20, 30]"
+          :page-size="10"
+          :total="repairGroupRecords"
+          @size-change="handleRepairGroupSizeChange"
+          @current-change="handleRepairGroupCurrentChange"
+        />
+      </div>
+    </el-col>
+    <el-col :span="12">
+      <div class="filter-container filter-button" style="background-color: #fff">
+        <el-button type="primary" size="small" @click="seDbRepairGroupTechInsert">添加技师</el-button>
+        <el-button size="small" @click="genBarCode">生成条形码</el-button>
+        <el-button size="small" @click="techDelete">删除技师</el-button>
+      </div>
+      <div class="filter-container filter-params">
+        <el-row :gutter="26">
+          <el-col :span="8" class="form-items">
+            <label>班组编号</label>
+            <el-input v-model="selectTechData.workGroupCode" :disabled="true" size="small" />
+          </el-col>
+          <el-col :span="8" class="form-items">
+            <label>班组名称</label>
+            <el-input v-model="selectTechData.groupName" :disabled="true" size="small" />
+          </el-col>
+          <el-col :span="8" class="form-items">
+            <label>班组类别</label>
+            <el-input v-model="selectTechData.workGroupType" :disabled="true" size="small" />
+          </el-col>
+          <SeDbRepairGroupTechInsert
+            ref="SeDbRepairGroupTechInsert"
+            :seDbRepairGroupTechInsertVisible="seDbRepairGroupTechInsertVisible"
+            :repairGroupId="this.selectTechData.repairGroupId"
+            @changeCode="getTechInsert"
+            @close="closeTechInsert"
+          />
+        </el-row>
+        <el-table
+          v-loading="listLoading"
+          :data="repairGroupTechData"
+          element-loading-text="Loading"
+          border
+          fit
+          stripe
+          :height="tableHeight9"
+          highlight-current-row
+          @row-click="rowClickTech"
+        >
+          <el-table-column align="center" label="序号" width="60">
+            <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+          </el-table-column>
+          <el-table-column label="员工编号">
+            <template slot-scope="scope">{{ scope.row.empId }}</template>
+          </el-table-column>
+          <el-table-column label="员工名称">
+            <template slot-scope="scope">{{ scope.row.empName }}</template>
+          </el-table-column>
+          <el-table-column label="部门名称" align="center">售后服务部</el-table-column>
+          <el-table-column label="岗位" align="center">
+            <template slot-scope="scope">{{ scope.row.stationName }}</template>
+          </el-table-column>
+          <el-table-column label="性别" align="center">
+            <template slot-scope="scope">
+              <span v-if="scope.row.genderCode == 1">男</span>
+              <span v-else-if="scope.row.genderCode == 0">女</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" align="center">
+            <template slot-scope="scope">
+              <span v-if="scope.row.isEnable == 1">在职</span>
+              <span v-else-if="scope.row.isEnable == 0">离职</span>
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-pagination
+          background
+          layout="prev, pager, next, sizes, ->, total"
+          prev-text="上一页"
+          next-text="下一页"
+          :page-sizes="[10, 20, 30]"
+          :page-size="10"
+          :total="repairGroupTechRecord"
+          @size-change="handleSizeChanges"
+          @current-change="handleCurrentChanges"
+        />
+      </div>
+    </el-col>
+    <el-dialog
+      :title="WorkGroupTypeModalTitle"
+      :visible.sync="workGroupTypeVisible"
+      width="900px"
+      :append-to-body="true"
+      :close-on-click-modal="false"
+    >
+      <div class="filter-container filter-params">
+        <el-row >
+          <el-form :model="updataRepairGroupData">
+            <el-col :span="8">
+              <el-form-item
+                label="班组编号"
+                prop="workGroupCode"
+                required="required"
+                :show-message="false"
+              >
+                <el-input
+                  clearable
+                  v-model="updataRepairGroupData.workGroupCode"
+                  placeholder="班组编号"
+                  size="small"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="班组名称" prop="groupName" required="required" :show-message="false">
+                <el-input
+                  v-model="updataRepairGroupData.groupName"
+                  placeholder="班组名称"
+                  size="small"
+                  clearable
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item
+                label="班组类别"
+                prop="workGroupType"
+                required="required"
+                :show-message="false"
+              >
+                <el-select
+                  v-model="updataRepairGroupData.workGroupType"
+                  placeholder="请选择"
+                  clearable
+                  size="small"
+                >
+                  <el-option
+                    v-for="item in workGroupTypeData"
+                    :key="item.lookupValueCode"
+                    :label="item.lookupValueName"
+                    :value="item.lookupValueCode"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="状态" prop="isEnable" required="required" :show-message="false">
+                <el-select
+                  v-model="updataRepairGroupData.isEnable"
+                  placeholder="请选择"
+                  clearable
+                  size="small"
+                >
+                  <el-option
+                    v-for="item in workGroupStateData"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-form>
+        </el-row>
+        <div class="filter-container margin-top-10">
+          <el-button size="small" @click="saveRepairGroup">保存</el-button>
+          <el-button size="small" @click="resetRepairGroup">重置</el-button>
+        </div>
+      </div>
+    </el-dialog>
+    <el-dialog
+      title="员工条码"
+      :visible.sync="barCodeVisibles"
+      width="70%"
+      @close="closeBarCodeModal"
+      :append-to-body="true"
+      :close-on-click-modal="false"
+    >
+      <div class="filter-container filter-params">
+        <el-row :gutter="26">
+          <el-col class="margin-10">
+            <VueBarcode :text="barCodeData.workGroupType+'-'+barCodeData.empName"></VueBarcode>
+          </el-col>
+          <el-col class="margin-10">
+            <span>{{barCodeData.workGroupType}}+{{barCodeData.empName}}</span>
+          </el-col>
+        </el-row>
+        <div class="filter-container">
+          <el-button size="small" @click="closeBarCodeModal">确定</el-button>
+        </div>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+<script>
+import {
+  doSeDbRepairGroupQuery,
+  doSeDbRepairGroupTechDelete,
+  doSeDbRepairGroupTechQuery,
+  doSeDbRepairGroupInsert,
+  doSeDbRepairGroupUpdate,
+  doSeDbRepairGroupDelete,
+  doseDbRepairGroupEnable
+} from "@/api/se/basedata/seDbRepairGroup";
+import { seApis, lookupValueQuery } from "@/api/graphQLApiList/se";
+import SeDbRepairGroupType from "@/components/se/SeDbRepairGroupType";
+import SeDbRepairGroupStatus from "@/components/se/SeDbRepairGroupStatus";
+import SeDbRepairGroupTechInsert from "@/components/se/SeDbRepairGroupTechInsert";
+import VueBarcode from "vue-barcode";
+import { dolookupValueQueryApi } from "@/api/se/lookupValueQueryApi";
+import { the_Height } from "@/components/se/seMixins/makeHeight";
+
+export default {
+  mixins: [the_Height],
+  components: {
+    SeDbRepairGroupType,
+    SeDbRepairGroupStatus,
+    SeDbRepairGroupTechInsert,
+    VueBarcode
+  },
+  filters: {
+    statusFilter(status) {
+      const statusMap = {
+        published: "success",
+        draft: "gray",
+        deleted: "danger"
+      };
+      return statusMap[status];
+    }
+  },
+  data() {
+    return {
+      dlrId: this.$store.getters.orgInfo.DLR_ID,
+      dlrCode: this.$store.getters.orgInfo.DLR_CODE,
+      dlrName: this.$store.getters.orgInfo.DLR_NAME,
+      workGroupTypeCode: "",
+      workGroupStatusCode: "",
+      type: "班组类别",
+      status: "状态",
+      PopUpWinData: {
+        name: ""
+      },
+      selectRepairGroupData: {
+        pageIndex: 1,
+        pageSize: 10,
+        dataInfo: {}
+      },
+      updataRepairGroupData: {
+        workGroupType: "",
+        workGroupCode: "",
+        groupName: "",
+        isEnable: ""
+      },
+      repairGroupInsertData: {
+        dataInfo: {}
+      },
+      selectTechData: {},
+      rowClickTechData: {},
+      repairGroupTechDeleteData: {
+        dataInfo: {
+          oemCode: null,
+          groupCode: null,
+          workshopEmpId: null,
+          updateControlId: null
+        }
+      },
+      barCodeData: {
+        workGroupType: "",
+        empName: ""
+      },
+      repairGroupTechData: [],
+      repairGroupTechRecord: 0,
+      repairGroupUpdateData: {
+        dataInfo: {
+          oemCode: "",
+          groupCode: "",
+          repairGroupId: "",
+          workGroupCode: "",
+          groupName: "",
+          workGroupType: "",
+          modifier: "",
+          lastUpdatedDate: "",
+          updateControlId: "",
+          isEnable: ""
+        }
+      },
+      repairGroupDeleteData: {
+        dataInfo: {
+          oemCode: "",
+          groupCode: "",
+          repairGroupId: "",
+          updateControlId: ""
+        }
+      },
+      list: null,
+      repairGrouplist: [],
+      repairGroupRecords: 0,
+      workGroupTypeVisible: false,
+      barCodeVisibles: false,
+      seDbRepairGroupTechInsertVisible: false,
+      WorkGroupTypeModalTitle: "班组维护-新增",
+      workGroupTypeLoading: false,
+      listLoading: false,
+      listQuery: {
+        pageIndex: 1,
+        pageSize: 10,
+        dataInfo: {
+          oemCode: "",
+          groupCode: "",
+          groupName: "",
+          workGroupType: "",
+          dlrId: ""
+        }
+      },
+      workGroupTypeData: [],
+      queryWorkGroupType: {
+        pageIndex: 1,
+        pageSize: 1000,
+        dataInfo: {
+          lookupTypeCode: "SE0184"
+        }
+      },
+      workGroupStateData: [
+        {
+          value: "1",
+          label: "启动"
+        },
+        {
+          value: "0",
+          label: "停用"
+        }
+      ]
+    };
+  },
+
+  created() {
+    this.doQueryWorkGroupType();
+  },
+  methods: {
+    getBrandCode(val) {
+      this.listQuery.CAR_BRAND_CODE = val;
+    },
+    getIS_PERFECT(val) {
+      this.listQuery.IS_PERFECT = val;
+    },
+    doQueryWorkGroupType(page) {
+      //获取班组类别
+      let that = this;
+      dolookupValueQueryApi(
+        that.queryWorkGroupType.pageSize,
+        page || that.queryWorkGroupType.pageIndex,
+        that.queryWorkGroupType.dataInfo
+      ).then(response => {
+        //调用
+        if (
+          response.data[lookupValueQuery.lookupValueQueryApi.ServiceCode]
+            .result === "1"
+        ) {
+          this.workGroupTypeData =
+            response.data[
+              lookupValueQuery.lookupValueQueryApi.ServiceCode
+            ].rows;
+        } else {
+          this.$message({
+            message:
+              "查询失败：" +
+              response.data[lookupValueQuery.lookupValueQueryApi.ServiceCode]
+                .msg,
+            type: "warn",
+            uration: 2000
+          });
+        }
+      });
+    },
+    //查询班组
+    queryRepairGroup(page) {
+      let that = this;
+      this.selectTechData = {};
+      this.repairGroupTechData = [];
+      that.listQuery.dataInfo.dlrId = this.dlrId;
+      if (this.dlrName == null) {
+        this.$message({
+          type: "error",
+          message: "此功能只对专营店开放！"
+        });
+      } else {
+        this.workGroupTypeLoading = true;
+        doSeDbRepairGroupQuery(
+          that.listQuery.pageSize,
+          page || that.listQuery.pageIndex,
+          that.listQuery.dataInfo
+        ).then(response => {
+          //调用
+          if (
+            response.data[seApis.SeDbRepairGroupQuery.ServiceCode].result ===
+            "1"
+          ) {
+            this.repairGrouplist =
+              response.data[seApis.SeDbRepairGroupQuery.ServiceCode].rows;
+            this.repairGroupRecords =
+              response.data[seApis.SeDbRepairGroupQuery.ServiceCode].records;
+            this.workGroupTypeLoading = false;
+          } else {
+            this.$message({
+              message:
+                "查询失败：" +
+                response.data[seApis.SeDbRepairGroupQuery.ServiceCode].msg,
+              type: "warn",
+              uration: 2000
+            });
+          }
+        });
+      }
+    },
+    //查询技师
+    queryRepairGroupTech(page) {
+      let that = this;
+      this.repairGroupTechData = [];
+      this.listLoading = true;
+      let repairGId = this.selectTechData.repairGroupId;
+      let isEnable = "1"; //只查询状态为在职的技师
+      that.selectRepairGroupData.dataInfo.repairGroupId = repairGId;
+      that.selectRepairGroupData.dataInfo.isEnable = isEnable;
+      that.selectRepairGroupData.dataInfo.dlrId = this.dlrId;
+
+      doSeDbRepairGroupTechQuery(
+        that.selectRepairGroupData.pageSize,
+        page || that.selectRepairGroupData.pageIndex,
+        that.selectRepairGroupData.dataInfo
+      ).then(response => {
+        //调用
+        if (
+          response.data[seApis.SeDbRepairGroupTechQuery.ServiceCode].result ===
+          "1"
+        ) {
+          this.repairGroupTechData =
+            response.data[seApis.SeDbRepairGroupTechQuery.ServiceCode].rows;
+          this.repairGroupTechRecord =
+            response.data[seApis.SeDbRepairGroupTechQuery.ServiceCode].records;
+          this.listLoading = false;
+        } else {
+          this.$message({
+            message:
+              "查询失败：" +
+              response.data[seApis.SeDbRepairGroupTechQuery.ServiceCode].msg,
+            type: "warn",
+            uration: 2000
+          });
+        }
+      });
+    },
+    handleRepairGroupSizeChange(val) {
+      this.listQuery.pageSize = val;
+      this.queryRepairGroup();
+    },
+    handleRepairGroupCurrentChange(val) {
+      this.listQuery.pageIndex = val;
+      this.queryRepairGroup();
+    },
+    handleSizeChanges(val) {
+      this.selectRepairGroupData.pageSize = val;
+      this.queryRepairGroupTech();
+    },
+    handleCurrentChanges(val) {
+      this.selectRepairGroupData.pageIndex = val;
+      this.queryRepairGroupTech();
+    },
+    insertWorkGroupTypeModal() {
+      this.workGroupTypeVisible = true;
+      this.WorkGroupTypeModalTitle = "班组维护-新增";
+      this.updataRepairGroupData = {};
+    },
+    updateWorkGroupTypeModal() {
+      var _this = this;
+      let arr = {};
+      arr = this.selectTechData;
+      this.updataRepairGroupData = arr;
+      if (Object.keys(this.updataRepairGroupData).length === 0) {
+        this.$alert("请选择一行进行修改", "信息提示", {
+          confirmButtonText: "确定",
+          type: "warning",
+          callback: action => {}
+        });
+      } else {
+        this.workGroupTypeVisible = true;
+        this.WorkGroupTypeModalTitle = "班组维护-修改";
+        this.workGroupTypeCode = this.updataRepairGroupData.workGroupType;
+        this.workGroupStatusCode = this.updataRepairGroupData.isEnable;
+      }
+    },
+    getRGT(val) {
+      this.updataRepairGroupData.workGroupType = val;
+    },
+    getRGS(val) {
+      this.updataRepairGroupData.isEnable = val;
+    },
+    getSeDbRepairGroupType(val) {
+      listQuery.dataInfo.workGroupType;
+    },
+    seDbRepairGroupInsert() {
+      //新增班组
+      if (
+        this.$utils.isEmpty(this.updataRepairGroupData.workGroupCode) ||
+        this.updataRepairGroupData.workGroupCode === ""
+      ) {
+        this.$message({
+          message: "请输入班组编码",
+          type: "warning",
+          duration: 2000
+        });
+        return;
+      }
+      if (
+        this.$utils.isEmpty(this.updataRepairGroupData.groupName) ||
+        this.updataRepairGroupData.groupName === ""
+      ) {
+        this.$message({
+          message: "请输入班组名称",
+          type: "warning",
+          duration: 2000
+        });
+        return;
+      }
+      if (
+        this.$utils.isEmpty(this.updataRepairGroupData.workGroupType) ||
+        this.updataRepairGroupData.workGroupType === ""
+      ) {
+        this.$message({
+          message: "请输入班组类别",
+          type: "warning",
+          duration: 2000
+        });
+        return;
+      }
+      if (
+        this.$utils.isEmpty(this.updataRepairGroupData.isEnable) ||
+        this.updataRepairGroupData.isEnable === ""
+      ) {
+        this.$message({
+          message: "请输入状态",
+          type: "warning",
+          duration: 2000
+        });
+        return;
+      }
+      this.repairGroupInsertData.dataInfo = {};
+      this.repairGroupInsertData.dataInfo.workGroupCode = this.updataRepairGroupData.workGroupCode;
+      this.repairGroupInsertData.dataInfo.groupName = this.updataRepairGroupData.groupName;
+      this.repairGroupInsertData.dataInfo.workGroupType = this.updataRepairGroupData.workGroupType;
+      this.repairGroupInsertData.dataInfo.isEnable = this.updataRepairGroupData.isEnable;
+      this.repairGroupInsertData.dataInfo.dlrId = this.dlrId;
+      this.repairGroupInsertData.dataInfo.dlrCode = this.dlrCode;
+
+      doSeDbRepairGroupInsert(this.repairGroupInsertData.dataInfo).then(
+        response => {
+          //调用
+          if (
+            response.data[seApis.SeDbRepairGroupInsert.ServiceCode].result ===
+            "1"
+          ) {
+            this.$message({
+              message: "新增成功",
+              type: "success"
+            });
+            this.queryRepairGroup();
+            this.workGroupTypeVisible = false;
+          } else {
+            this.$message({
+              message:
+                "新增失败：" +
+                response.data[seApis.SeDbRepairGroupInsert.ServiceCode].msg,
+              type: "warn",
+              uration: 2000
+            });
+            this.workGroupTypeVisible = false;
+          }
+        }
+      );
+    },
+    seDbRepairGroupUpdate() {
+      //修改班组
+      if (
+        this.$utils.isEmpty(this.updataRepairGroupData.workGroupCode) ||
+        this.updataRepairGroupData.workGroupCode === ""
+      ) {
+        this.$message({
+          message: "请输入班组编码",
+          type: "warning",
+          duration: 2000
+        });
+        return;
+      }
+      if (
+        this.$utils.isEmpty(this.updataRepairGroupData.groupName) ||
+        this.updataRepairGroupData.groupName === ""
+      ) {
+        this.$message({
+          message: "请输入班组名称",
+          type: "warning",
+          duration: 2000
+        });
+        return;
+      }
+      if (
+        this.$utils.isEmpty(this.updataRepairGroupData.workGroupType) ||
+        this.updataRepairGroupData.workGroupType === ""
+      ) {
+        this.$message({
+          message: "请输入班组类别",
+          type: "warning",
+          duration: 2000
+        });
+        return;
+      }
+      if (
+        this.$utils.isEmpty(this.updataRepairGroupData.isEnable) ||
+        this.updataRepairGroupData.isEnable === ""
+      ) {
+        this.$message({
+          message: "请输入状态",
+          type: "warning",
+          duration: 2000
+        });
+        return;
+      }
+      let obj = {};
+      obj.oemCode = this.updataRepairGroupData.oemCode;
+      obj.groupCode = this.updataRepairGroupData.groupCode;
+      obj.workGroupCode = this.updataRepairGroupData.workGroupCode;
+      obj.groupName = this.updataRepairGroupData.groupName;
+      obj.workGroupType = this.updataRepairGroupData.workGroupType;
+      //此处进行dlrId跟updateControlId的补充
+      obj.dlrId = this.dlrId;
+      obj.dlrCode = this.dlrCode;
+      obj.updateControlId = this.updataRepairGroupData.updateControlId;
+
+      doSeDbRepairGroupInsert(obj).then(response => {
+        //调用
+        if (
+          response.data[seApis.SeDbRepairGroupInsert.ServiceCode].result === "1"
+        ) {
+          this.$message({
+            message: "修改成功",
+            type: "success"
+          });
+          this.queryRepairGroup();
+          this.workGroupTypeVisible = false;
+        } else {
+          this.$message({
+            message:
+              "修改失败：" +
+              response.data[seApis.SeDbRepairGroupInsert.ServiceCode].msg,
+            type: "warn",
+            uration: 2000
+          });
+          this.workGroupTypeVisible = false;
+          this.queryRepairGroup();
+        }
+      });
+    },
+    seDbRepairGroupDelete() {
+      //删除班组
+      let arr = {};
+      arr = this.selectTechData;
+      if (Object.keys(arr).length === 0) {
+        this.$alert("请选择一行进行删除", "信息提示", {
+          confirmButtonText: "确定",
+          type: "warning",
+          callback: action => {}
+        });
+      } else {
+        this.repairGroupDeleteData.dataInfo.repairGroupId = arr.repairGroupId;
+        this.repairGroupDeleteData.dataInfo.updateControlId =
+          arr.updateControlId;
+
+        doSeDbRepairGroupDelete(this.repairGroupDeleteData.dataInfo).then(
+          response => {
+            //调用
+            if (
+              response.data[seApis.SeDbRepairGroupDelete.ServiceCode].result ===
+              "1"
+            ) {
+              this.queryRepairGroup();
+              this.$message({
+                message: "删除成功",
+                type: "success"
+              });
+            } else {
+              this.$message({
+                message:
+                  "删除失败：" +
+                  response.data[seApis.SeDbRepairGroupDelete.ServiceCode].msg,
+                type: "warn",
+                uration: 2000
+              });
+            }
+          }
+        );
+      }
+    },
+
+    seDbRepairGroupEnable() {
+      //启停班组
+      let arr = {};
+      arr = this.selectTechData;
+      if (Object.keys(arr).length === 0) {
+        this.$alert("请选择一行进行操作", "信息提示", {
+          confirmButtonText: "确定",
+          type: "warning",
+          callback: action => {}
+        });
+      } else {
+        let enable = arr.isEnable;
+        let enableName = enable === "1" ? "停用" : "启动";
+        this.$confirm("是否" + enableName + "该班组？", "提示", {
+          confirmButtonText: "确定",
+          cancelButtonText: "取消",
+          type: "warning"
+        })
+          .then(() => {
+            this.repairGroupDeleteData.dataInfo.repairGroupId =
+              arr.repairGroupId;
+            this.repairGroupDeleteData.dataInfo.updateControlId =
+              arr.updateControlId;
+            this.repairGroupDeleteData.dataInfo.oemCode = arr.oemCode;
+            this.repairGroupDeleteData.dataInfo.groupCode = arr.groupCode;
+            doseDbRepairGroupEnable(this.repairGroupDeleteData.dataInfo).then(
+              response => {
+                //调用
+                if (
+                  response.data[seApis.seDbRepairGroupEnable.ServiceCode]
+                    .result === "1"
+                ) {
+                  this.queryRepairGroup();
+                  this.$message({
+                    message: enableName + "成功",
+                    type: "success"
+                  });
+                } else {
+                  this.$message({
+                    message:
+                      "启停失败：" +
+                      response.data[seApis.seDbRepairGroupEnable.ServiceCode]
+                        .msg,
+                    type: "warn",
+                    uration: 2000
+                  });
+                  this.workGroupTypeVisible = false;
+                }
+              }
+            );
+          })
+          .catch(() => {
+            this.$message({
+              message: "已取消" + enableName,
+              type: "warning",
+              duration: 2000
+            });
+          });
+      }
+    },
+
+    saveRepairGroup() {
+      //保存事件
+      if (
+        this.updataRepairGroupData.isEnable != "" &&
+        this.updataRepairGroupData.groupName != "" &&
+        this.updataRepairGroupData.workGroupType != "" &&
+        this.updataRepairGroupData.workGroupCode != ""
+      ) {
+        if (this.WorkGroupTypeModalTitle === "班组维护-新增") {
+          this.seDbRepairGroupInsert();
+        } else {
+          this.seDbRepairGroupUpdate();
+        }
+      } else {
+        if (this.updataRepairGroupData.workGroupCode === "") {
+          this.$message({
+            message: "请输入班组编码",
+            type: "warning",
+            duration: 2000
+          });
+          return;
+        } else if (this.updataRepairGroupData.groupName === "") {
+          this.$message({
+            message: "请输入班组名称",
+            type: "warning",
+            duration: 2000
+          });
+          return;
+        } else if (this.updataRepairGroupData.workGroupType === "") {
+          this.$alert("请填写班组类别！", "信息提示", {
+            confirmButtonText: "确定",
+            type: "warning",
+            callback: action => {}
+          });
+        } else if (this.updataRepairGroupData.isEnable === "") {
+          this.$alert("请填写状态！", "信息提示", {
+            confirmButtonText: "确定",
+            type: "warning",
+            callback: action => {}
+          });
+        }
+      }
+    },
+    resetRepairGroup() {
+      //c重置事件
+      this.updataRepairGroupData.workGroupCode = "";
+      this.updataRepairGroupData.groupName = "";
+      this.updataRepairGroupData.workGroupType = "";
+      this.updataRepairGroupData.groupName = "";
+    },
+    rowClick(row, event) {
+      this.selectRepairGroupData.dataInfo.repairGroupId = row.repairGroupId;
+      this.selectTechData = row;
+      this.queryRepairGroupTech(1);
+    },
+    getSetStatusCode(val) {
+      this.listQuery.status = val;
+    },
+    seDbRepairGroupTechInsert() {
+      if (Object.keys(this.selectTechData).length === 0) {
+        this.$alert("请选择班组！", "信息提示", {
+          confirmButtonText: "确定",
+          type: "warning",
+          callback: action => {}
+        });
+      } else {
+        this.seDbRepairGroupTechInsertVisible = true;
+        this.$refs.SeDbRepairGroupTechInsert.resetList();
+      }
+    },
+    getTechInsert(val) {
+      this.seDbRepairGroupTechInsertVisible = false;
+      this.queryRepairGroupTech();
+    },
+    closeTechInsert() {
+      this.seDbRepairGroupTechInsertVisible = false;
+    },
+    rowClickTech(row, event) {
+      this.rowClickTechData = row;
+    },
+    techDelete() {
+      //删除技师
+      if (Object.keys(this.rowClickTechData).length === 0) {
+        this.$alert("请选择需要删除的技师！", "信息提示", {
+          confirmButtonText: "确定",
+          type: "warning",
+          callback: action => {}
+        });
+      } else {
+        this.repairGroupTechDeleteData.dataInfo.workshopEmpId = this.rowClickTechData.workshopEmpId;
+        this.repairGroupTechDeleteData.dataInfo.updateControlId = this.rowClickTechData.updateControlId;
+        this.repairGroupTechDeleteData.dataInfo.empId = this.rowClickTechData.empId;
+        console.log(this.rowClickTechData);
+        doSeDbRepairGroupTechDelete(
+          this.repairGroupTechDeleteData.dataInfo
+        ).then(response => {
+          // debugger
+          //调用
+          if (
+            response.data[seApis.SeDbRepairGroupTechDelete.ServiceCode]
+              .result === "1"
+          ) {
+            // debugger
+            this.queryRepairGroupTech();
+            this.$message({
+              message: "删除成功",
+              type: "success"
+            });
+            this.rowClickTechData = {};
+          } else {
+            this.$message({
+              message:
+                "删除失败：" +
+                response.data[seApis.SeDbRepairGroupTechDelete.ServiceCode].msg,
+              type: "warn",
+              uration: 2000
+            });
+          }
+        });
+      }
+    },
+    genBarCode() {
+      if (this.rowClickTechData.empName != undefined) {
+        if (this.selectTechData.workGroupType != undefined) {
+          this.barCodeVisibles = true;
+          this.barCodeData.workGroupType = this.selectTechData.workGroupType;
+          this.barCodeData.empName = this.rowClickTechData.empName;
+        } else {
+          this.$alert("请选择员工！", "信息提示", {
+            confirmButtonText: "确定",
+            type: "warning",
+            callback: action => {}
+          });
+        }
+      } else {
+        this.$alert("请选择员工！", "信息提示", {
+          confirmButtonText: "确定",
+          type: "warning",
+          callback: action => {}
+        });
+      }
+    },
+    closeBarCodeModal() {
+      this.barCodeVisibles = false;
+    }
+  }
+};
+</script>
+<style scoped>
+.service-from-item .el-form-item__label {
+  margin-right: 0px;
+}
+a {
+  color: #0077ff;
+}
+.margin-top-10 {
+  margin-top: 10px;
+}
+.border-right-2 {
+  border-right: 2px solid #eeeeee;
+}
+.margin-top-86 {
+  margin-top: 86px;
+}
+.margin-top-124 {
+  margin-top: 124px;
+}
+.alignCenter {
+  text-align: center;
+}
+.margin-10 {
+  margin: 10px;
+}
+.form-items label {
+  margin-right: 0;
+}
+.form-items input {
+  width: 90%;
+}
+.el-button + .el-button {
+  margin-left: 0;
+}
+</style>

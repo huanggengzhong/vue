@@ -1,0 +1,358 @@
+<!--/**
+* description: 整车 > 主机厂基础数据 > 框架规则 > 经销商账户品牌扣款设置
+* author: liyanm
+* createdDate: 2019-07-23
+*/
+/**-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template
+      ref="multipleTable"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsInitTable="false"
+      :dynamicIsColumnDrop="true"
+      :dyBrandList="brandList"
+    />
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { orgApis } from "@/api/graphQLApiList/org";
+import OneTableTemplate from "./dlrAccoundAmountTable";
+import { testTableColConfig } from "@/api/table";
+import { requestGraphQL } from "@/api/commonRequest";
+import { CacheConfig } from "@/cache/configCache/index";
+import { getParams } from "@/utils/getParamter";
+let dyTableCols = [
+  { prop: "dlrShortName", label: "经销商", width: 110, align: "center" },
+  {
+    prop: "updateControlId",
+    label: "并发控制",
+    width: 0,
+    align: "center",
+    hidden: true
+  }
+];
+let brandList = [];
+export default {
+  name: "dlrAccoundAmount",
+  // 组件混入对象：{data[listQuery] methods[queryTable]}
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate
+  },
+  beforeRouteEnter(to, from, next) {
+    // 读取列头&拼装
+    const queryObj = {
+      // api配置
+      apiConfig: orgApis.mdmCarBrandQueryByPage,
+      // 需要调用的API服务配置
+      apiServices: [
+        {
+          // 表格中台返回网格的字段
+          apiQueryRow: ["carBrandCn", "carBrandCode", "carBrandEn"]
+        }
+      ],
+      // 条件/实体参数（变量），根据typeParam中的定义配置
+      variables: {
+        pageSize: 1000,
+        pageIndex: 1,
+        // 当前中台使用的名称有dataInfo、info，具体查看API文档
+        dataInfo: {}
+      }
+    };
+    // 转换了中台请求格式数据
+    var paramD = getParams(queryObj);
+    // 调用中台API方法（可复用）
+    requestGraphQL(paramD).then(response => {
+      if (
+        response.data[queryObj.apiConfig.ServiceCode].result === "1" &&
+        response.data[queryObj.apiConfig.ServiceCode].rows
+      ) {
+        brandList = response.data[queryObj.apiConfig.ServiceCode].rows;
+        for (let j in brandList) {
+          let str = {
+            prop: "dlrAccountName" + j,
+            label: brandList[j].carBrandCn + "账户+",
+            width: 250,
+            align: "center",
+            isComponent: true,
+            comps: [
+              {
+                compKey: "propKey1",
+                isShowLabel: false,
+                codeField: "dlrAccountName" + j,
+                isMul: false,
+                clickEvent: () => null,
+                component: () => import("@/components/ve/accountName")
+              }
+            ]
+          };
+          dyTableCols.push(str);
+        }
+        CacheConfig.initData(to.path, function() {
+          next();
+        });
+      }
+    });
+  },
+  data() {
+    return {
+      // 网格查询API配置对象
+      apiConfig: orgApis.orcDbPurcashBrandQueryListForPage,
+      // 查询品牌API配置对象
+      brandApiConfig: orgApis.mdmCarBrandQueryByPage,
+      // 查询品牌API配置对象
+      dlrApiConfig: orgApis.mdmOrgDlrQueryByPage,
+      //品牌列表
+      brandList: brandList,
+      //经销商列表
+      dlrList: [],
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTables(1),
+          text: "查询"
+        },
+        {
+          compKey: "btnKey4",
+          type: "",
+          size: "small",
+          clickEvent: () => this.save(),
+          text: "保存"
+        },
+        {
+          compKey: "btnKey7",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: "重置"
+        }
+      ],
+      // 动态组件-查询条件
+      tableComponents:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              // 显示组件
+
+              {
+                compKey: "compKey5",
+                labelName: "经销商",
+                codeField: "dlrId",
+                component: () => import("@/components/org/orgDlr"),
+                type: "propus",
+                isMul: true,
+                isMust: true
+              },
+              {
+                compKey: "compKey1",
+                labelName: "是否设置",
+                codeField: "isEnable",
+                isRequire: false,
+                component: () => import("@/components/org/isSetting"),
+                type: "dropdownList",
+                isMust: true
+              }
+            ],
+      //动态生成网格
+      tableCols:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableCols.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableCols
+          : dyTableCols,
+
+      //表单查询数据（查询条件）
+      formField: {
+        carBrandCode: "",
+        isEnable: "",
+        dlrId: "",
+        usedCarBrandCode: "",
+        purcashBrandRelId: ""
+      }
+    };
+  },
+  beforeCreate() {},
+  created() {},
+  methods: {
+    //保存
+    save() {
+      this.$refs.multipleTable.save();
+    },
+    queryBrand(page) {
+      const queryObj = {
+        // api配置
+        apiConfig: this.brandApiConfig,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // 表格中台返回网格的字段
+            apiQueryRow: ["carBrandCn", "carBrandCode", "carBrandEn"]
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: 1000,
+          pageIndex: 1,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {}
+        }
+      };
+      // 转换了中台请求格式数据
+      var paramD = this.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      this.$requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result === "1"
+        ) {
+          this.brandList = this.$utils.changeToOneDeepArray(
+            response.data[queryObj.apiConfig.ServiceCode].rows
+          );
+          let str = {
+            prop: "dlrAccountName",
+            label: "其他品牌账户+",
+            width: 200,
+            align: "center",
+            isComponent: true,
+            hidden: this.hdd,
+            comps: [
+              {
+                compKey: "propKey1",
+                isShowLabel: false,
+                codeField: "dlrAccountName",
+                isMul: false,
+                clickEvent: () => null,
+                component: () => import("@/components/ve/accountName")
+              }
+            ]
+          };
+          this.tableCols.push(str);
+          debugger;
+        }
+      });
+    },
+    queryDlr(apge) {
+      const queryObj = {
+        // api配置
+        apiConfig: this.dlrApiConfig,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // 表格中台返回网格的字段
+            apiQueryRow: [
+              "dlrShortName",
+              "dlrCode",
+              "dlrId",
+              "carBrandCode",
+              "carBrandCn"
+            ]
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: 10,
+          pageIndex: 1,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {}
+        }
+      };
+      // 转换了中台请求格式数据
+      var paramD = this.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      this.$requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result === "1"
+        ) {
+          this.dlrList = this.$utils.changeToOneDeepArray(
+            response.data[queryObj.apiConfig.ServiceCode].rows
+          );
+          this.queryPur(this.dlrList);
+        }
+      });
+    },
+    queryPur(arr) {
+      let arrs = [];
+      for (let i = 0; i < arr.length; i++) {
+        const dlrId = arr[i].dlrId;
+        const queryObj = {
+          // api配置
+          apiConfig: this.apiConfig,
+          // 需要调用的API服务配置
+          apiServices: [
+            {
+              // 表格中台返回网格的字段
+              apiQueryRow: [
+                "carBrandCode",
+                "createdDate",
+                "createdName",
+                "creator",
+                "dlrAccountName",
+                "dlrCode",
+                "dlrFullName",
+                "dlrId",
+                "dlrShortName",
+                "dlrSort",
+                "groupCode",
+                "groupId",
+                "isEnable",
+                "lastUpdatedDate",
+                "modelName",
+                "modifier",
+                "modifyName",
+                "mycatOpTime",
+                "oemCode",
+                "oemId",
+                "orderNo",
+                "purcashBrandRelId",
+                "remark",
+                "sdpOrgId",
+                "sdpUserId",
+                "updateControlId",
+                "usedCarBrandCode"
+              ]
+            }
+          ],
+          // 条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            pageSize: 10,
+            pageIndex: 1,
+            // 当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: {
+              dlrId: dlrId
+            }
+          }
+        };
+        // 转换了中台请求格式数据
+        var paramD = this.$getParams(queryObj);
+        // 调用中台API方法（可复用）
+        this.$requestGraphQL(paramD).then(response => {
+          if (
+            response.data[queryObj.apiConfig.ServiceCode].result === "1"
+          ) {
+            let responseData = this.$utils.changeToOneDeepArray(
+              response.data[queryObj.apiConfig.ServiceCode].rows
+            );
+            arrs.push(responseData[0]);
+          }
+        });
+      }
+    },
+    queryTables(page, dataType, size, filterObj, cb) {
+      // 必填校验
+      this.$utils.validataMoth(this, "validpopup");
+      if (this.valid) {
+        this.$refs.multipleTable.queryDlr(page, dataType, size, filterObj, cb);
+      } else {
+      }
+    }
+  }
+};
+</script>

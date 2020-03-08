@@ -1,0 +1,372 @@
+<template>
+        <el-dialog width="900px"
+        :append-to-body="true"
+        :close-on-click-modal="false"
+        :title="showTitle " 
+        :visible.sync="dialogVisibled"
+        center
+        @close="sendCodeHandleVisible"
+        v-bind:class="isValid ? 'checkInput' :'validInput'"
+        >
+        <div class="filter-container filter-params" >
+            <el-form :model="ruleForm" :rules="rules" ref="ruleForm"  class="demo-ruleForm" inline-message=true>               
+                <el-row :gutter="10">
+                    <el-col :span="8">
+                        <el-form-item label="维修大类" prop="opratePlaceName">
+                        <el-select
+                        collapse-tags
+                        filterable
+                        v-model="ruleForm.opratePlaceName"
+                        placeholder="全部"
+                        clearable
+                        @change="operatePartChange"
+                        size="small"
+                        :disabled="isEditEnable">
+                        <el-option
+                        v-for="item in operatePartIdOptions"
+                        :key="item.code"
+                        :label="item.text"
+                        :value="item.code"
+                        >{{item.text}}</el-option>
+                        </el-select>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="8">
+                         <el-form-item label="维修小类" prop="repairSmallKindName">
+                         <el-select
+                         :multiple="false"
+                         collapse-tags
+                         filterable
+                         v-model="ruleForm.repairSmallKindName"
+                         placeholder="请选择"
+                         clearable
+                         @change="repairSmallKindChange"
+                         size="small"
+                         :disabled="isEditEnable">
+                         <el-option v-for="item in optionDatas" 
+                         :key="item.repairSmallKindCode" 
+                         :label="item.repairSmallKindName" 
+                         :value="item.repairSmallKindCode"
+                         >
+                         </el-option>
+                         </el-select>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="8">
+                         <el-form-item label="工时编码" prop="wiCode">
+                            <el-input  v-model="ruleForm.wiCode" placeholder="请输入" size="small" :disabled="isEditEnable"></el-input>
+                        </el-form-item>
+                    </el-col>
+                     <el-col :span="8">
+                         <el-form-item label="维修内容" prop="wiName">
+                            <el-input v-model="ruleForm.wiName" placeholder="请输入" size="small"></el-input>
+                        </el-form-item>
+                    </el-col>
+                     <el-col :span="8">
+                         <el-form-item label="工时关键字" prop="wiKey">
+                            <el-input  v-model="ruleForm.wiKey" placeholder="请输入" size="small"></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="8">
+                         <el-form-item label="最大工时数" prop="maxSaleWiQty">
+                            <el-input  
+                            v-model.number="ruleForm.maxSaleWiQty" 
+                            type="number"
+                            :min="0"
+                            :step="0.01" 
+                            placeholder="请输入" 
+                            size="small"></el-input>
+                        </el-form-item>
+                    </el-col>
+                    <!--<isEnable :span="8" :code="ruleForm.isEnable" labelName="状态" @changeCode="getIsEnableCode"></isEnable>-->
+                    <LookupValue
+                    :span="8"
+                    :isMul="false"
+                    :isShowLabel="true"
+                    :code="ruleForm.isEnable"
+                    :lookuptype="isEnableCode"
+                    :labelName="isEnableName"
+                    @changeCode="getIsEnableCode"
+                    />
+                    <!--维修类别-->
+                    <LookupValue 
+                    :span="8" 
+                    :isMul="false" 
+                    :key="repairTypeKey" 
+                    :code="ruleForm.repairType" 
+                    :isShowLabel="true" 
+                    :lookuptype="repairTypeLookupType" 
+                    :labelName='repairTypeLableName'  
+                    @changeCode="getRepairTypeCodeValue" 
+                    />
+                    <el-col :span="8">
+                      <el-form-item label="备注" prop="remark">
+                        <el-input type="textarea" v-model="ruleForm.remark" autosize></el-input>
+                      </el-form-item>
+                    </el-col>  
+                </el-row>
+                <el-form-item class="dialog-footer">
+                    <el-button type="primary" @click="submitForm('ruleForm')">保存</el-button>
+                    <el-button @click="sendCodeHandleVisible">取 消</el-button>
+                </el-form-item>
+            </el-form>
+        </div>
+        </el-dialog>
+</template>
+<script>
+import { apiSeDbWiQuery,seApis } from '@/api/graphQLApiList/se'
+import { requestGraphQL } from '@/api/commonRequest'
+import { doQueryFindAll,doQueryFindSmall } from "@/api/se/basedata/repair/repairWIType"
+import isEnable from '@/components/org/isEnable/isEnable'
+import LookupValue from '@/components/org/LookupValue'
+    export default {
+        name:"seDbWiMutationSave",
+        components: {
+            isEnable,
+            LookupValue
+        },
+        props:{
+            handleVisible: {
+                type: Boolean,
+                default: function() {
+                    return false
+                }
+            },
+            handleTitle: {
+                type: Number,
+                default: function() {
+                    return 1
+                }
+            },
+            editData: {
+                type: Object,
+                default: function() {
+                    return {}
+                }
+            },
+            isEdit: {
+                type: Number,
+                default: function() {
+                    return 0
+                }
+            },
+            doQuery: {
+                type: Function,
+                default: null
+            }
+        },
+        computed: {
+            
+        },
+        data(){
+            return {
+                uploadHeaders: {
+                    Authorization: this.$store.getters.token
+                },
+                //维修大类
+                operatePartIdOptions: [],
+                //维修小类
+                optionDatas: [],
+                dialogVisibled: this.handleVisible,
+                showTitle: this.handleTitle == 0? '添加': '修改',
+                isEditEnable: this.isEdit == 1? true : false,
+                isValid: false,
+                //维修类别值列表lableName
+                repairTypeLableName: '维修类别',
+                //维修类别值列表编码
+                repairTypeLookupType: 'SE0010',
+                isEnableCode: 'SE0058',
+                isEnableName: '状态',
+                repairTypeKey: 'a',
+                ruleForm:{
+                    wiId: this.editData.wiId || '',
+                    dlrCode: this.editData.dlrCode || this.$store.getters.orgInfo.DLR_CODE,
+                    dlrId: this.editData.dlrId || this.$store.getters.orgInfo.DLR_ID,
+                    operatePartId: '',
+                    opratePlaceName: this.editData.opratePlaceName || '' ,
+                    repairSmallKindCode: this.editData.repairSmallKindCode ||'',
+                    repairSmallKindName: this.editData.repairSmallKindName ||'',
+                    wiCode: this.editData.wiCode || '',
+                    wiName: this.editData.wiName || '',
+                    wiKey: this.editData.wiKey || '',
+                    maxSaleWiQty: /^[1-9]\d*([.]\d+)?$/.test(this.editData.maxSaleWiQty) ? Number(this.editData.maxSaleWiQty): 0,
+                    isEnable: String(this.editData.isEnable) != 'undefined' ? String(this.editData.isEnable) : '',
+                    repairType: this.editData.repairType || '',
+                    repairName: this.editData.repairName || '',
+                    remark: this.editData.remark || '',
+                    oemId: this.editData.oemId || '',
+                    groupId: this.editData.groupId || '',
+                    oemCode: this.editData.oemCode || '',
+                    groupCode: this.editData.groupCode || '',
+                    updateControlId: this.editData.updateControlId || ''
+                },
+                rules: {
+                    opratePlaceName: [
+                        { required: true, message: '请选择维修大类', trigger: 'change' },
+                        //{ min: 1, message: '维修大类不能为空', trigger: 'blur' }
+                    ],
+                    repairSmallKindName: [
+                        { required: true, message: '请选择维修小类', trigger: 'change' },
+                    ],
+                    wiCode: [
+                        { required: true, message: '工时编码不能为空', trigger: 'change' },
+                    ],
+                    wiName: [
+                        { required: true, message: '维修内容不能为空', trigger: 'change' },
+                        //{ min: 1, message: '维修内容不能为空', trigger: 'blur' }
+                        //{ type: 'number', required: false, message: '最大工时数必须为数字值', trigger: 'change'}
+                    ],
+                    maxSaleWiQty: [{
+                        validator: (rule,value,callback) => {
+                            if (value != "") {
+                                //1、正数，2、两位数及以上不能以0开头，3、最多只有两位小数
+                                if ((/^[1-9]+\d*(\.\d{0,2})?$|^0?\.\d{0,2}$/).test(value) == false) {
+                                    callback(new Error("请填写数字类型的最大工时数"));
+                                } else {
+                                    callback();
+                                }
+                            } else {
+                                 callback();
+                            }
+                        }, trigger: 'blur'}]
+                }
+            }
+        },
+         created() {
+             this.queryOperatePart();
+        },
+        watch: {
+            ruleForm(val){
+                this.repairTypeKey = this.repairTypeKey + 1;
+            }
+        },
+        methods:{
+            //查询维修大类
+            queryOperatePart() {
+                const that = this;
+                var pageSize = -1;
+                var pageIndex = -1;
+                doQueryFindAll(pageSize, pageIndex).then(response => {
+                if (response.data.seDbOpratePlaceQueryFindAll.result === "1") {
+                    let list = response.data[seApis.seDbOpratePlaceQueryFindAll.ServiceCode].rows;
+                    //第一次加载，大类下拉框
+                    var temp_array = [];
+                    list.forEach(row => {
+                        if(temp_array.filter(o=>o.code == row.operatePartId).length === 0) {
+                            //返回数据，按大类ID去重后的数据
+                            temp_array.push({
+                                code: row.operatePartId,
+                                text: row.opratePlaceName
+                            });
+                        }
+                    });
+                    this.operatePartIdOptions = temp_array;
+                   }
+                 });
+            },
+            operatePartChange(val) {
+                this.ruleForm.operatePartId = val;
+                this.ruleForm.repairSmallKindName = "";
+                this.querySmallKind(this.ruleForm.operatePartId);
+            },
+            repairSmallKindChange(val) {
+                this.ruleForm.repairSmallKindCode = val;
+            },
+            //根据维修大类查询维修小类
+            querySmallKind(operatePartId) { 
+                const that = this
+                doQueryFindSmall(1000, 1, {
+                    operatePartId: operatePartId
+               }).then(response => {
+                   var resData = response.data[seApis.seDbOpratePlaceQueryFindSmalll.ServiceCode]
+                   if (resData.result === "1") {
+                      that.optionDatas = resData.rows;
+                      console.log("维修小类");
+                      consoel.log(that.optionDatas);
+                    }
+                });
+            },
+       
+            submitForm(formName) {
+                const that  = this
+                this.$refs[formName].validate((valid) => {
+                if (valid) {
+                    //去除大类后的表单提交数据
+                    let submitObject = {
+                        isEnable: this.ruleForm.isEnable,
+                        maxSaleWiQty: this.ruleForm.maxSaleWiQty,
+                        remark: this.ruleForm.remark,
+                        repairSmallKindCode: this.ruleForm.repairSmallKindCode,
+                        repairType: this.ruleForm.repairType,
+                        wiCode: this.ruleForm.wiCode,
+                        wiId: this.ruleForm.wiId,
+                        wiKey: this.ruleForm.wiKey,
+                        wiName: this.ruleForm.wiName,
+                        oemId: this.ruleForm.oemId,
+                        groupId: this.ruleForm.groupId,
+                        oemCode: this.ruleForm.oemCode,
+                        groupCode: this.ruleForm.groupCode,
+                        dlrId: this.ruleForm.dlrId,
+                        dlrCode: this.ruleForm.dlrCode,
+                        updateControlId: this.ruleForm.updateControlId
+                    }
+                     let queryObj = {
+                        //保存需要传 type="mutation"
+                        type:'mutation',
+                        // api配置
+                        apiConfig: apiSeDbWiQuery.seDbWiMutationSaveWi,
+                        // 需要调用的API服务配置
+                        apiServices: [{
+                            //表格中台返回网格的字段
+                            apiQueryRow:[]
+                        }],
+                        //条件/实体参数（变量），根据typeParam中的定义配置
+                        variables: {
+                            //当前中台使用的名称有dataInfo、info，具体查看API文档
+                            dataInfo: submitObject
+                        }
+                      }
+                    //转换了中台请求格式数据
+                    var paramD = that.$getParams(queryObj);
+                     requestGraphQL(paramD).then(response => {
+                        if(response.data[apiSeDbWiQuery.seDbWiMutationSaveWi.ServiceCode].result === '1'){
+                            //通关如果的状态确认是编辑还是添加
+                            if(this.handleTitle == 0){
+                                this.$message({message:"添加成功",type: 'success'});
+                            }else{
+                                this.$message({message:"修改成功",type: 'success'});
+                            }
+                            //重新查询数据
+                            if (this.doQuery) {
+                                this.doQuery();
+                            }
+                        } else {
+                            this.$message({
+                                type: 'error',
+                                message: response.data[apiSeDbWiQuery.seDbWiMutationSaveWi.ServiceCode].msg
+                            });
+                        }
+                        this.sendCodeHandleVisible();
+                    })
+                } else {
+                    this.isValid = true;
+                    return false;
+                }
+                });
+            },
+            sendCodeHandleVisible() {
+                this.$refs.ruleForm.clearValidate();
+                //this.$refs[ruleForm].resetFields();
+                this.$emit("visible", false)
+            },
+            //获取是否可用组件的值
+            getIsEnableCode(val) {
+                this.ruleForm.isEnable = val;
+            },
+            //获取维修类别
+            getRepairTypeCodeValue(val) {
+                this.ruleForm.repairType = val
+            },
+        }
+    }
+</script>

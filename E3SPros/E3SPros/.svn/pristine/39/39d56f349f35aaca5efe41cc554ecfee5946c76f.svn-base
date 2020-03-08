@@ -1,0 +1,308 @@
+<template>
+  <div>
+    <TwoTable
+      ref="multipleTable"
+      :rightTableObject="rightTableObject"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicFormFields="formField"
+      :dynamicTableCols="tableCols"
+      :dynamicApiConfig="apiConfig"
+      :dynamicIsShowMoreBtn="isShowMoreBtn"
+      :dynamicTableOtherHeight="47"
+    />
+  </div>
+</template>
+<script>
+import { orgApis } from "@/api/graphQLApiList/org";
+import TwoTable from "@/components/templates/twoTable";
+import OneTableTemplate from "@/components/templates/oneTable";
+import { requestGraphQL } from "@/api/commonRequest";
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+export default {
+  mixins: [oneTableWithViewTemplateMixins],
+  name: "lookupMamager",
+  components: {
+    TwoTable
+  },
+  mounted() {},
+  data() {
+    return {
+      //树对象
+      rightTableObject: {
+        // 配置右侧网格查询API配置对象
+        apiConfig: orgApis.mdsLookupValueQueryByPage,
+        //设置是否显示更多按钮
+        isShowRightMoreBtn: true,
+        // 动态组件-按钮
+        tableButtons: [
+          {
+            compKey: "btnKey1",
+            type: "primary",
+            size: "small",
+            clickEvent: () => this.save(),
+            text: "保存"
+          },
+          {
+            compKey: "btnKey3",
+            type: "",
+            size: "small",
+            clickEvent: () => this.reset(),
+            text: "重置"
+          }
+        ],
+        // 动态组件-查询条件
+        tableComponents: [
+          // 显示组件
+          {
+            compKey: "compKey1",
+            labelName: "值列表明细编码",
+            codeField: "lookupValueCode",
+            isRequire: true,
+            component: () => import("@/components/org/commonInput"),
+            type: "inputText",
+            isMust: true
+          },
+          {
+            compKey: "compKey2",
+            labelName: "值列表明细名称",
+            isRequire: true,
+            codeField: "lookupValueName",
+            component: () => import("@/components/org/commonInput"),
+            type: "inputText",
+            isMust: true
+          },
+          {
+            compKey: "compKey4",
+            labelName: "是否启用",
+            codeField: "isEnable",
+            component: () => import("@/components/org/isEnable/isEnable"),
+            type: "dropdownList",
+            isMust: false
+          }
+        ],
+        // 动态生成网格列
+        tableCols: [
+          {
+            prop: "lookupValueCode",
+            label: "值列表编码",
+            width: null,
+            align: "center"
+          },
+          {
+            prop: "lookupValueName",
+            label: "值列表名称",
+            width: null,
+            align: "center"
+          },
+          { prop: "isEnable", label: "是否启用", width: null, align: "center" },
+          {
+            prop: "updateControlId",
+            label: "并发控制",
+            width: 0,
+            align: "center",
+            hidden: true
+          },
+            {
+            prop: "uid",
+            label: "主键id",
+            width: 0,
+            align: "center",
+            hidden: true
+          }
+        ],
+        //表单查询数据（查询条件）
+        formField: {
+          lookupValueCode: "",
+          lookupValueName: "",
+          isEnable: "",
+          lookupTypeName: "",
+          lookupTypeCode: "",
+          dlrId: "HOST",
+          updateControlId:"",
+          uid:""
+        }
+      },
+      //设置是否显示更多按钮
+      isShowMoreBtn: true,
+      clickRowsData: {},
+      // 网格查询API配置对象
+      apiConfig: orgApis.mdsLookupTypeQueryByPage,
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: "查询"
+        },
+        {
+          compKey: "btnKey4",
+          type: "",
+          size: "small",
+          clickEvent: () => this.resetNew(),
+          text: "重置"
+        }
+      ],
+      // 动态组件-查询条件
+      tableComponents: [
+        {
+          compKey: "compKey1",
+          labelName: "值列表编号",
+          codeField: "lookupTypeCode",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey2",
+          labelName: "值列表名称",
+          codeField: "lookupTypeName",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey3",
+          labelName: "是否启用",
+          codeField: "isEnable",
+          component: () => import("@/components/org/isEnable/isEnable"),
+          type: "dropdownList",
+          isMust: false
+        },
+        {
+          compKey: "compKey4",
+          labelName: "是否内置",
+          codeField: "isSystem",
+          component: () => import("@/components/org/isEnable/isEnable"),
+          type: "dropdownList",
+          isMust: false
+        }
+      ],
+      // 动态生成网格列
+      tableCols: [
+        {
+          prop: "lookupTypeCode",
+          label: "值列表编码",
+          width: null,
+          align: "center"
+        },
+        {
+          prop: "lookupTypeName",
+          label: "值列表名称",
+          width: null,
+          align: "center"
+        },
+        { prop: "isEnable", label: "是否启用", width: null, align: "center" },
+        { prop: "isSystem", label: "是否内置", width: null, align: "center" },
+        {
+          prop: "updateControlId",
+          label: "并发控制",
+          width: null,
+          align: "center",
+          hidden: true
+        }
+      ],
+      //表单查询数据
+      formField: {
+        lookupTypeCode: "",
+        lookupTypeName: "",
+        isSystem: "",
+        isEnable: ""
+      },
+     
+      //联动数据
+      toAnotherChild: {
+        // isEnable: "",
+        lookupTypeCode: ""
+        // lookupTypeName: ""
+      }
+    };
+  },
+  watch: {
+    "toAnotherChild.lookupTypeCode"(curVal, oldVal) {
+      if (curVal !== oldVal) {
+        this.$refs.multipleTable.queryRightTable(1, this.toAnotherChild);
+      }
+    },
+    clickRowsData(curVal, oldVal) {
+      // this.toAnotherChild.isEnable = curVal.isEnable;
+      this.toAnotherChild.lookupTypeCode = curVal.lookupTypeCode;
+      // this.toAnotherChild.lookupTypeName = curVal.lookupTypeName;
+    },
+    deep: true
+  },
+  methods: {
+  //重置右边
+    reset() {
+      
+      this.rightTableObject.formField.lookupValueCode='';
+      
+      this.rightTableObject.formField.lookupValueName='';
+      this.rightTableObject.formField.isEnable='';
+     
+      this.rightTableObject.formField.updateControlId='';
+
+      this.rightTableObject.formField.uid='';
+
+        
+        
+    },
+    //重置
+    resetNew() {
+      this.formField.lookupTypeCode = "";
+      this.formField.lookupTypeName = "";
+      this.formField.isEnable = "";
+      this.formField.isSystem = "";
+    },
+    save() {
+      this.$utils.validataMoth(this, "validpage", "twoTable");
+      if (this.valid) {
+        const that = this.$refs.multipleTable;
+        that.rightListLoading = true;
+        if (this.toAnotherChild !== {}) {
+          let queryObj = {
+            // 保存mutation
+            type: "mutation",
+            // api配置
+            apiConfig: orgApis.mdsLookupValueMutationSave,
+            //条件/实体参数（变量），根据typeParam中的定义配置
+            variables: {
+              //当前中台使用的名称有dataInfo、info，具体查看API文档
+              dataInfo: that.rightFormField
+            }
+          };
+          //转换了中台请求格式数据
+          var paramD = this.$refs.multipleTable.$getParams(queryObj);
+          // 调用中台API方法（可复用）
+          requestGraphQL(paramD).then(response => {
+            var getResult = response.data[queryObj.apiConfig.ServiceCode];
+            if (getResult.result === "1") {
+              this.$refs.multipleTable.queryRightTable(1, this.toAnotherChild);
+              that.rightListLoading = false;
+              that.dialogFormVisible = false;
+              that.$message({
+                message: getResult.msg,
+                type: "success",
+                duration: 2000
+              });
+            } else {
+              that.$message({
+                message: getResult.msg,
+                type: "warning",
+                duration: 2000
+              });
+            }
+          });
+        }
+      }
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+/deep/ .el-main {
+  margin-top: 25px;
+}
+
+</style>

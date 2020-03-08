@@ -1,0 +1,477 @@
+<!--
+* description: 备件仓库仓位维护--弹窗
+* author: chchhui
+* createdDate: 2019-08-01
+* logs：
+*  20190801 新增页面功能
+-->
+<template>
+  <section>
+    <el-dialog
+      :title="this.handleTitle == 0 ? '添加仓库' : '维护仓库'"
+      :visible.sync="wareHouseDialogFormVisible"
+      :append-to-body="true"
+      width="900px"
+      @close="sendCodeHandleVisible"
+      v-bind:class="isValiad ? 'checkInput' :'validInput'"
+    >
+      <div class="filter-container filter-params">
+        <el-form :model="ruleForm" :rules="rules" ref="ruleForm" class="demo-ruleForm">
+          <el-row :gutter="24">
+            <el-col :span="8">
+              <el-form-item label="仓库编码" prop="warehouseCode">
+                <el-input
+                  v-model="ruleForm.warehouseCode"
+                  size="small"
+                  :disabled="this.handleTitle == 0 ? false : true"
+                ></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="仓库名称" prop="warehouseName">
+                <el-input v-model="ruleForm.warehouseName" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="是否启用" prop="isEnable" clearable>
+                <el-select v-model="ruleForm.isEnable" placeholder="请选择" @change="getIsEnable">
+                  <el-option label="是" value="1"></el-option>
+                  <el-option label="否" value="0"></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="24" class="remarkStyle">
+              <label>备注</label>
+              <el-input v-model="ruleForm.remark" placeholder="请输入" size="small"></el-input>
+            </el-col>
+          </el-row>
+          <div class="filter-container filter-title">仓位信息</div>
+          <el-table
+            :data="list"
+            element-loading-text="Loading"
+            height="200"
+            border
+            fit
+            stripe
+            @select="isSelected"
+            @select-all="isSelected"
+          >
+            <el-table-column prop="warehouseId" label="序号" type="index" width="60" align="center"></el-table-column>
+            <el-table-column type="selection" width="55" label="选择+" />
+            <el-table-column label="仓位编码+" prop="placeCode" align="center" width="110">
+              <template slot-scope="scope">
+                <el-input
+                  size="mini"
+                  controls-position="center"
+                  :min="0"
+                  :max="200"
+                  v-model="scope.row.placeCode"
+                  placeholder="请输入"
+                  @change="getInputCode"
+                ></el-input>
+              </template>
+            </el-table-column>
+            <el-table-column label="是否有备件" align="center">
+              <template slot-scope="scope">
+                <span v-if="scope.row.hasPart == '1'">有</span>
+                <span v-else>无</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="remark" label="备注" align="left"></el-table-column>
+          </el-table>
+          <div class="filter-container filter-button">
+            <el-button type="primary" @click="addPlace">新增仓位</el-button>
+            <el-button @click="delPlace">删除仓位</el-button>
+            <el-button @click="submitForm('ruleForm')">保存</el-button>
+          </div>
+        </el-form>
+      </div>
+    </el-dialog>
+  </section>
+</template>
+<script>
+import { paApis } from "@/api/graphQLApiList/pa";
+import { requestGraphQL } from "@/api/commonRequest";
+export default {
+  props: {
+    wareHouseDialogFormVisible: {
+      type: Boolean,
+      default: function() {
+        return false;
+      }
+    },
+    handleTitle: {
+      type: Number,
+      default: function() {
+        return 1;
+      }
+    },
+    editData: {
+      type: Object,
+      default: function() {
+        return {};
+      }
+    }
+  },
+  data() {
+    return {
+      uploadHeaders: {
+        Authorization: this.$store.getters.token
+      },
+      warehouseId: "",
+      list: [],
+      selected: "",
+      i: 0,
+      handleVisibled: this.handleVisible,
+      showTitle: this.handleTitle == 0 ? "仓库编辑" : "添加仓库",
+      isValiad: false,
+      pageIndex: 1,
+      pageSize: 10,
+      listQuery: {
+        dlrId: this.$store.getters.orgInfo.DLR_ID || undefined,
+        warehouseId: this.editData.warehouseId || undefined,
+        oemCode: this.editData.oemCode || undefined,
+        groupCode: this.editData.groupCode || undefined
+      },
+      ruleForm: {
+        warehouseId: this.editData.warehouseId || "",
+        updateControlId: this.editData.updateControlId || "",
+        dlrId: this.$store.getters.orgInfo.DLR_ID,
+        warehouseCode: this.editData.warehouseCode || "",
+        warehouseName: this.editData.warehouseName || "",
+        isEnable: this.editData.isEnable || "",
+        remark: this.editData.remark || ""
+      },
+      rules: {
+        warehouseCode: [
+          { required: true, message: "请填写仓库编码", trigger: "blur" }
+        ],
+        warehouseName: [
+          { required: true, message: "请填写仓库名称", trigger: "blur" }
+        ]
+      }
+    };
+  },
+  created() {
+    if (this.handleTitle == 0) {
+      return;
+    } else {
+      this.placeQuery();
+    }
+  },
+
+  methods: {
+    getInputCode(val) {},
+    getIsEnable(val) {
+      this.ruleForm.isEnable = val;
+    },
+    isSelected(selection) {
+      //console.log(selection);
+      const tempList = selection;
+      var tempOptions = [];
+      tempList.forEach(row => {
+        tempOptions.push({
+          placeId: row.placeId,
+          updateControlId: row.updateControlId
+        });
+      });
+      this.selected = tempOptions;
+      //console.log(this.selected);
+    },
+    //新增仓位
+    addPlace() {
+      this.i = this.list.length;
+      this.i += 1;
+      this.list.push({
+        dlrId: this.editData.dlrId,
+        warehouseId: this.editData.warehouseId,
+        placeCode: String(this.i),
+        remark: ""
+      });
+      //this.savePlace();
+    },
+    //删除仓位
+    delPlace() {
+      if (this.selected.length == 0) {
+        this.$message({ message: "请选择要删除的数据", type: "success" });
+        return;
+      } else {
+        this.$confirm("是否确认删除选中信息？", "确认信息", {
+          distinguishCancelAndClose: true,
+          confirmButtonText: "确认",
+          cancelButtonText: "取消删除"
+        })
+          .then(() => {
+            for (var i = 0; i < this.selected.length; i++) {
+              for (var j = 0; j < this.list.length; j++) {
+                if (this.selected[i].placeCode === this.list[j].placeCode) {
+                  this.list.splice(j, 1);
+                }
+              }
+            }
+            this.$message({
+              type: "success",
+              message: "删除成功"
+            });
+            //this.textQuery();
+          })
+          .catch(action => {
+            this.$message({
+              type: "info",
+              message: action === "cancel" ? "已取消删除" : "已取消删除"
+            });
+          });
+      }
+
+      //this.deletePlace();
+      //this.placeQuery();
+    },
+
+    //仓位查询
+    placeQuery(page) {
+      const that = this;
+      let queryObj = {
+        // api配置
+        apiConfig: paApis.partsDlrPlaceQueryFindAll,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: [
+              "placeCode",
+              "hasPart",
+              "remark",
+              "placeId",
+              "updateControlId",
+              "dlrId",
+              "warehouseId"
+            ]
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageIndex: that.pageIndex,
+          pageSize: page || that.pageSize,
+          dataInfo: that.listQuery
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      //console.log(paramD)
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        //console.log(response)
+        if (
+          response.data[paApis.partsDlrPlaceQueryFindAll.ServiceCode].result ===
+          "1"
+        ) {
+          if (page) {
+            //查询完返回指定的page页数
+            that.pageIndex = page;
+          }
+          that.pageTotal =
+            response.data[paApis.partsDlrPlaceQueryFindAll.ServiceCode].records;
+          that.list =
+            response.data[paApis.partsDlrPlaceQueryFindAll.ServiceCode].rows;
+        }
+      });
+    },
+
+    //仓库保存
+    submitForm(formName) {
+      const that = this;
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          let queryObj = {
+            //保存需要传 type="mutation"
+            type: "mutation",
+            // api配置
+            apiConfig: paApis.partsDlrWareHouseMutationSave,
+            // 需要调用的API服务配置
+            apiServices: [
+              {
+                //表格中台返回网格的字段
+                apiQueryRow: []
+              }
+            ],
+            //条件/实体参数（变量），根据typeParam中的定义配置
+            variables: {
+              //当前中台使用的名称有dataInfo、info，具体查看API文档
+              dataInfo: that.ruleForm
+            }
+          };
+          //转换了中台请求格式数据
+          var paramD = that.$getParams(queryObj);
+          requestGraphQL(paramD).then(response => {
+            if (
+              response.data[paApis.partsDlrWareHouseMutationSave.ServiceCode]
+                .result === "1"
+            ) {
+              //通关如果的状态确认是编辑还是添加
+              if (that.handleTitle == 0) {
+                that.$message({ message: "添加成功", type: "success" });
+                let str =
+                  response.data[
+                    paApis.partsDlrWareHouseMutationSave.ServiceCode
+                  ].rows;
+                console.log(str.split("："));
+              } else {
+                that.$message({ message: "修改成功", type: "success" });
+              }
+              this.sendCodeHandleVisible();
+            } else {
+              // 保存失败
+              this.$message({
+                message:
+                  "保存失败：" +
+                  response.data[
+                    paApis.partsDlrWareHouseMutationSave.ServiceCode
+                  ].msg,
+                type: "warn",
+                uration: 2000
+              });
+            }
+          });
+        } else {
+          this.isValiad = true;
+          console.log("error submit!!");
+          return false;
+        }
+      });
+    },
+
+    //仓位保存
+    savePlace() {
+      const that = this;
+      let saveCode = [];
+      for (var i = 0; i < that.list.length; i++) {
+        saveCode = that.list[i];
+      }
+      let queryObj = {
+        //保存需要传 type="mutation"
+        type: "mutation",
+
+        // api配置
+        apiConfig: paApis.partsDlrPlaceMutationSave,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: saveCode
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[paApis.partsDlrPlaceMutationSave.ServiceCode].result ===
+          "1"
+        ) {
+          this.$message({ message: "新建成功", type: "success" });
+        }
+      });
+    },
+
+    //删除仓位
+    deletePlace() {
+      const that = this;
+      let queryObj = {
+        //保存需要传 type="mutation"
+        type: "mutation",
+
+        // api配置
+        apiConfig: paApis.partsDlrPlaceMutationDelete,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: that.selected
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[paApis.partsDlrPlaceMutationDelete.ServiceCode]
+            .result === "1"
+        ) {
+          this.$message({ message: "删除成功", type: "success" });
+        }
+      });
+    },
+    sendCodeHandleVisible() {
+      this.$emit("visible", false);
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped>
+/deep/ .remarkStyle {
+  margin-top: 3px !important;
+  margin-bottom: 10px !important;
+}
+/deep/ .remarkStyle > label {
+  margin-right: 7px !important;
+  width: 8%;
+}
+/deep/ .remarkStyle .el-input {
+  width: 470px !important;
+}
+/deep/ .inputStyle {
+  text-align: left !important;
+  margin-left: 53px !important;
+}
+/deep/ .inputStyle > label {
+  margin-right: 7px !important;
+}
+/deep/ .inputStyle .el-input {
+  width: 470px !important;
+}
+/deep/ .filter-params label {
+  margin-right: 0px;
+}
+/deep/ .el-input__inner {
+  height: 28px;
+  line-height: 28px;
+}
+/deep/ .el-input__icon {
+  line-height: 0;
+}
+/deep/ .el-input__prefix {
+  top: 0px;
+}
+/deep/ .filter-params .el-col {
+  margin-bottom: 0px;
+}
+/deep/ .filter-title {
+  height: 0px;
+  border-bottom: none;
+}
+/deep/ .checkInput .el-dialog {
+  height: 430px;
+}
+/deep/ .validInput .el-dialog {
+  height: 400px;
+}
+/deep/.checkInput .el-form-item {
+  margin-bottom: 22px;
+}
+/deep/ .validInput .el-form-item {
+  margin-bottom: 0px;
+}
+.filter-button {
+  padding-top: 10px;
+}
+</style>
+

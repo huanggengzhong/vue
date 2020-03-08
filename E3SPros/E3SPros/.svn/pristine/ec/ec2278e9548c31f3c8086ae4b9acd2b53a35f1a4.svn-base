@@ -1,0 +1,253 @@
+<!--
+* description: 经销商销售扩展信息-修改弹窗
+* author: dinggf
+* createdDate: 2019-10-19
+-->
+<template>
+  <section class="editDlrSales">
+    <el-dialog
+      :close-on-click-modal="false"
+      :title="textMap[popupsState]"
+      :append-to-body="true"
+      :visible.sync="curPopupsVisible"
+      @close="sendCode"
+      width="1000px"
+    >
+      <div class="filter-container filter-params">
+        <el-row :gutter="26" ref="vailComponentList">
+          <component
+            v-for="comp in tableComponents.filter(o => o.isMust === true)"
+            :ref="comp.isRequire ? comp.isRequire+ comp.compKey : comp.compKey"
+            :validrule="comp.validrule"
+            :key="comp.compKey"
+            :codeField="comp.codeField"
+            :textField="comp.textField"
+            :popupsKey="comp.compKey"
+            :is="comp.component"
+            :code="formField[comp.codeField]"
+            @changeCode="getComponentCode"
+            @focusCode="getFocusCode"
+            :disabled="comp.disabled"
+            :isRequire="comp.isRequire"
+            :isMul="comp.isMul"
+            :span="comp.span || 8"
+            :labelName="comp.labelName"
+            :lookuptype="comp.lookuptype"
+            :dateOptionsType="comp.dateOptionsType"
+          ></component>
+        </el-row>
+      </div>
+      <template>
+        <el-checkbox-group v-model="checkList" @change="change">
+          <el-checkbox label="东风日产-日产"></el-checkbox>
+          <el-checkbox label="英菲尼迪-国产"></el-checkbox>
+          <el-checkbox label="东风启辰-启辰"></el-checkbox>
+          <el-checkbox label="东风日产-进口尼桑"></el-checkbox>
+          <el-checkbox label="其它品牌"></el-checkbox>
+        </el-checkbox-group>
+      </template>
+      <div slot="footer" class="dialog-footer">
+        <el-button
+          v-for="comp in tableButtons"
+          :key="comp.compKey"
+          :type="comp.type"
+          @click="comp.clickEvent"
+        >{{comp.text}}</el-button>
+      </div>
+      <el-table>
+        <el-table-column
+          v-for="item in box"
+          :key="item.value"
+          :show-overflow-tooltip="true"
+          :label="item+'+'"
+          align="center"
+          class-name="editInput"
+        >
+          <template slot-scope="{row}">
+            <el-input v-model="row.name1" size="mini" :placeholder="'销售经理'" />
+          </template>
+        </el-table-column>
+        
+      </el-table>
+    </el-dialog>
+  </section>
+</template>
+
+<script>
+import { formMixins } from "@/components/mixins/formMixins";
+import { veApis } from "@/api/graphQLApiList/ve";
+import OneTableTemplate from "@/components/templates/popupsOneTable";
+export default {
+  mixins: [formMixins],
+  data() {
+    return {
+      // 保存API配置对象
+      apiConfig: veApis.veBuAgentProjectTypeMutationSave,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.save(),
+          text: this.$t("sys.button.save")
+        }, // '保存'
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: "全部清除"
+        } //重置
+      ],
+      // 动态组件-查询条件
+      tableComponents: [
+        {
+          compKey: "compKey1",
+          span: 12,
+          labelName: "经销商",
+          codeField: "agentProjectCode",
+          isRequire: true,
+          component: () => import("@/components/org/orgDlr"),
+          type: "propus",
+          isMust: true
+        },
+        {
+          compKey: "compKey2",
+          span: 12,
+          labelName: "ANSWER编码",
+          codeField: "agent2",
+          isRequire: true,
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey3",
+          span: 12,
+          labelName: "经销商规模",
+          codeField: "agent3",
+          lookuptype: "VE0079",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey4",
+          span: 12,
+          labelName: "SAP编码",
+          codeField: "agent4",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey5",
+          span: 12,
+          labelName: "传真",
+          codeField: "agent5",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey6",
+          span: 12,
+          labelName: "排放标准",
+          codeField: "agent6",
+          lookuptype: "VE0079",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey7",
+          span: 12,
+          labelName: "适应气候",
+          codeField: "agent7",
+          lookuptype: "VE0079",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey8",
+          span: 12,
+          labelName: "销售热线",
+          codeField: "agent8",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey9",
+          span: 12,
+          labelName: "销售联络EMAIL",
+          codeField: "agent9",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey10",
+          span: 12,
+          labelName: "专营店地址",
+          codeField: "agent10",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey11",
+          span: 12,
+          labelName: "邮编",
+          codeField: "agent11",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey12",
+          span: 12,
+          labelName: "整车收货地址",
+          codeField: "agent12",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey13",
+          span: 24,
+          labelName: "销售区域",
+          codeField: "agent13",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        }
+      ],
+      formField:{
+        agentProjectCode: '',
+        agent2: '',
+        agent3: '',
+        agent4: '',
+        agent5: '',
+        agent6: '',
+        agent7: '',
+        agent8: '',
+      },
+      box:['类型编码','姓名','手机','电话','EMAIL','邮编'],
+      name1:'销售经理',
+      checkList:[]
+    };
+  },
+  methods: {
+    change(){
+      // console.log(this.checkList);
+      this.checkList.shift()
+    }
+  },
+};
+</script>
+
+<style>
+</style>

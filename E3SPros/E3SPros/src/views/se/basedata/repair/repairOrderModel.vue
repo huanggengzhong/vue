@@ -1,0 +1,1853 @@
+<template>
+  <div class="app-container app-container-table" style="margin-top: 0px;">
+    <el-col :span="12">
+      <!-- 查询条件 -->
+      <div class="filter-container filter-params">
+        <el-row :gutter="12">
+          <el-col :span="11">
+            <label>品牌</label>
+            <el-select
+              collapse-tags
+              filterable
+              v-model="listQuery.carBrandCode"
+              placeholder="请选择"
+              clearable
+              size="small"
+            >
+              <el-option
+                v-for="item in carBrandOptions"
+                :key="item.code"
+                :label="item.text"
+                :value="item.code"
+              >{{item.text}}</el-option>
+            </el-select>
+          </el-col>
+          <el-col :span="11">
+            <label>模板编码</label>
+            <el-input v-model="listQuery.repairModeCode" placeholder="请输入" size="small" />
+          </el-col>
+          <el-col :span="11">
+            <label>模板名称</label>
+            <el-input v-model="listQuery.repairModeName" placeholder="请输入" size="small" />
+          </el-col>
+          <!-- 是否可用 -->
+          <el-col :span="11">
+            <label>是否可用</label>
+            <el-select
+              collapse-tags
+              filterable
+              v-model="listQuery.isEnable"
+              placeholder="请选择"
+              clearable
+              size="small"
+            >
+              <el-option
+                v-for="item in isEnableList"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              >{{item.label}}</el-option>
+            </el-select>
+          </el-col>
+          <!-- 是否可用 -->
+          <el-col :span="11">
+            <label>付费性质</label>
+            <el-select
+              collapse-tags
+              filterable
+              v-model="listQuery.payKind"
+              placeholder="请选择"
+              clearable
+              size="small"
+            >
+              <el-option
+                v-for="item in payKindOptions"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              >{{item.label}}</el-option>
+            </el-select>
+          </el-col>
+          <el-col :span="11">
+            <el-button type="primary" size="small" @click="fetchData()">查询</el-button>
+            <el-button type="primary" size="small" @click="resetControl()">重置</el-button>
+          </el-col>
+        </el-row>
+      </div>
+      <!-- 查询结果-估价单模板表格 -->
+      <div class="filter-container filter-params">
+        <el-table
+          v-loading="listLoading"
+          :data="list"
+          element-loading-text="Loading"
+          border
+          fit
+          stripe
+          highlight-current-row
+          height="240"
+          @row-click="rowClickModel" >
+          <el-table-column align="center" label="序号" width="60">
+            <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+          </el-table-column>
+          <!-- <el-table-column type="selection" width="55" label="选择+" /> -->
+          <el-table-column label="品牌" align="center" width="110">
+            <template slot-scope="scope">{{ scope.row.carBrandCn }}</template>
+          </el-table-column>
+          <el-table-column label="模板编码" align="center">
+            <template slot-scope="scope">{{ scope.row.repairModeCode }}</template>
+          </el-table-column>
+          <el-table-column label="模板名称" align="center">
+            <template slot-scope="scope">{{ scope.row.repairModeName }}</template>
+          </el-table-column>
+          <el-table-column label="是否可用" align="center">
+            <template slot-scope="scope">{{ scope.row.isEnable === '1'?'是':'否' }}</template>
+          </el-table-column>
+          <el-table-column label="付费性质" align="center">
+            <template slot-scope="scope">{{ scope.row.payKindName }}</template>
+          </el-table-column>
+          <el-table-column label="是否系统" v-if="false">
+            <template slot-scope="scope">{{ scope.row.isSystem }}</template>
+          </el-table-column>
+          <el-table-column label="施工单模板id" v-if="false">
+            <template slot-scope="scope">{{ scope.row.repairModeId }}</template>
+          </el-table-column>
+          <el-table-column label="并发控制id" v-if="false">
+            <template slot-scope="scope">{{ scope.row.updateControlId }}</template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <!-- 数据维护区域-估价单模板 -->
+      <div class="filter-container filter-params" style="height: 275px;">
+        <div class="filter-container filter-title">施工单模板维护</div>
+        <el-form :model="ruleForm" :rules="rules" ref="ruleForm">
+          <el-row :gutter="24">
+            <el-col :span="12">
+              <el-form-item label="品牌" prop="carBrand" size="small" class="afdsaf">
+                <el-select
+                  collapse-tags
+                  filterable
+                  v-model="ruleForm.carBrandCode"
+                  placeholder="请选择"
+                  size="small"
+                >
+                  <el-option
+                    v-for="item in carBrandOptions"
+                    :key="item.code"
+                    :label="item.text"
+                    :value="item.code"
+                  >{{item.text}}</el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="12">
+              <el-form-item label="模板编码" prop="repairModeCode" size="small" class="afdsaf">
+                <el-input v-model="ruleForm.repairModeCode" size="small" :disabled="true"></el-input>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="12">
+              <el-form-item label="模板名称" prop="repairModeName" size="small" class="afdsaf">
+                <el-input v-model="ruleForm.repairModeName" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="12">
+              <el-form-item label="是否可用" prop="isEnable" size="small" class="afdsaf">
+                <el-select
+                  collapse-tags
+                  filterable
+                  v-model="ruleForm.isEnable"
+                  placeholder="请选择"
+                  clearable
+                  size="small"
+                >
+                  <el-option
+                    v-for="item in isEnableList"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  >{{item.label}}</el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="12">
+              <el-form-item label="付费性质" prop="payKind" size="small" class="afdsaf">
+                <el-select
+                  collapse-tags
+                  filterable
+                  v-model="ruleForm.payKind"
+                  placeholder="请选择"
+                  clearable
+                  size="small"
+                >
+                  <el-option
+                    v-for="item in payKindOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  >{{item.label}}</el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+
+            <el-col :span="12">
+              <el-button type="primary" size="small" @click="SaveModel('ruleForm')">保存</el-button>
+              <el-button type="primary" size="small" @click="resetControl2()">清除</el-button>
+            </el-col>
+          </el-row>
+        </el-form>
+      </div>
+    </el-col>
+    <el-col :span="12">
+      <!-- 模板车型对应关系表格 -->
+      <div class="filter-container filter-params">
+        <!-- 按钮 -->
+        <div class="filter-container filter-button">
+          <el-button type="primary" size="small" @click="upAndDown">新增模板适用车型</el-button>
+          <el-button size="small" @click="showCarType">选择车型</el-button>
+          <el-button size="small" @click="deleteModelType">删除</el-button>
+          <el-button size="small" @click="saveModelType">保存</el-button>
+        </div>
+        <el-table
+          :data="typeCarList"
+          v-loading="modeTypeLoading"
+          element-loading-text="Loading"
+          border
+          fit
+          stripe
+          highlight-current-row
+          height="330"
+          @row-click="modelCarRowClick"
+        >
+          <el-table-column align="center" label="序号" width="60">
+            <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+          </el-table-column>
+          <el-table-column label="车系编码" align="center">
+            <template slot-scope="scope">{{ scope.row.carSeriesCode }}</template>
+          </el-table-column>
+          <el-table-column label="车型编码" align="center">
+            <template slot-scope="scope">{{ scope.row.carTypeCode }}</template>
+          </el-table-column>
+          <el-table-column label="车型名称" align="center">
+            <template slot-scope="scope">{{ scope.row.carTypeCode }}</template>
+          </el-table-column>
+          <el-table-column label="工时费用" align="center">
+            <template slot-scope="scope">{{ scope.row.wiAmount }}</template>
+          </el-table-column>
+          <el-table-column label="备件费" align="center">
+            <template slot-scope="scope">{{ scope.row.partAmount }}</template>
+          </el-table-column>
+          <el-table-column label="总费用" align="center">
+            <template slot-scope="scope">{{ scope.row.fixedAmount }}</template>
+          </el-table-column>
+
+          <el-table-column label="并发控制id" v-if="false">
+            <template slot-scope="scope">{{ scope.row.updateControlId }}</template>
+          </el-table-column>
+          <el-table-column label="工单模板车型id" v-if="false">
+            <template slot-scope="scope">{{ scope.row.repairModeCartypeId }}</template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <!-- 页签 -->
+      <div class="filter-container filter-params">
+        <el-tabs v-model="activeName" @tab-click="handleClick">
+          <el-tab-pane label="工时信息" name="first">
+            <!-- <div class="filter-container filter-button"> -->
+            <el-button size="small" @click="openWiDialog">选择工时</el-button>
+            <el-button size="small" @click="deleteWi">删除</el-button>
+            <el-button type="primary" size="small" @click="saveModelTypeWi">保存</el-button>
+
+            <!-- </div> -->
+            <!-- 工时页签 -->
+            <el-table
+              :data="listModelTypeWi"
+              v-loading="modeTypeWiLoading"
+              element-loading-text="Loading"
+              border
+              fit
+              stripe
+              highlight-current-row
+              height="180"
+              @row-click="modelCarWiRowClick"
+            >
+              <!-- 显示列 -->
+              <el-table-column align="center" label="序号" width="60">
+                <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+              </el-table-column>
+              <el-table-column label="工时编码" align="center">
+                <template slot-scope="scope">{{ scope.row.wiCode }}</template>
+              </el-table-column>
+              <el-table-column label="工时名称" align="center">
+                <template slot-scope="scope">{{ scope.row.wiName }}</template>
+              </el-table-column>
+              <el-table-column label="工时数量+" align="center" width="100" class-name="editInput">
+                <template slot-scope="scope">
+                  <el-input
+                    size="small"
+                    oninput="value=value.replace(/[^0-9.]/g,'')"
+                    v-model="scope.row.wiQty"
+                    placeholder="请输入"
+                  ></el-input>
+                </template>
+              </el-table-column>
+              <el-table-column label="工时单价" align="center">
+                <template slot-scope="scope">{{ scope.row.wiPrice }}</template>
+              </el-table-column>
+              <el-table-column label="业务类别" width="150" align="center">
+                <template slot-scope="scope">
+                  <el-select
+                    collapse-tags
+                    filterable
+                    v-model="scope.row.businessType"
+                    placeholder="请选择"
+                    clearable
+                    size="small"
+                  >
+                    <el-option
+                      v-for="item in businessTypeOptions"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    >{{item.label}}</el-option>
+                  </el-select>
+                </template>
+              </el-table-column>
+              <el-table-column label="工时总费用" align="center" width="120">
+                <template slot-scope="scope">{{ scope.row.wiTotalFee }}</template>
+              </el-table-column>
+
+              <!-- 隐藏列 -->
+
+              <el-table-column label="并发控制id" v-if="false">
+                <template slot-scope="scope">{{ scope.row.updateControlId }}</template>
+              </el-table-column>
+              <el-table-column label="施工单模板工时ID" v-if="false">
+                <template slot-scope="scope">{{ scope.row.repairModeWiId }}</template>
+              </el-table-column>
+              <el-table-column label="施工单模板ID" v-if="false">
+                <template slot-scope="scope">{{ scope.row.repairModeId }}</template>
+              </el-table-column>
+            </el-table>
+          </el-tab-pane>
+          <!-- 备件页签 -->
+          <el-tab-pane label="备件信息" name="second">
+            <el-button size="small" @click="openSelectPart">选择备件</el-button>
+            <el-button size="small" @click="deletePart">删除</el-button>
+            <el-button type="primary" size="small" @click="saveModelTypePart">保存</el-button>
+
+            <el-table
+              v-loading="modeTypePartLoading"
+              :data="listModelTypePart"
+              element-loading-text="Loading"
+              border
+              fit
+              stripe
+              highlight-current-row
+              height="180"
+              @row-click="modelCarPartRowClick"
+            >
+              <!-- 显示列 -->
+              <el-table-column align="center" label="序号" width="60">
+                <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+              </el-table-column>
+              <el-table-column label="备件编码" align="center" width="150">
+                <template slot-scope="scope">{{ scope.row.partNo }}</template>
+              </el-table-column>
+              <el-table-column label="备件名称" align="center" width="150">
+                <template slot-scope="scope">{{ scope.row.partName }}</template>
+              </el-table-column>
+              <el-table-column label="备件数量+" align="center" width="100">
+                <template slot-scope="scope">
+                  <el-input
+                    size="small"
+                    oninput="value=value.replace(/[^0-9.]/g,'')"
+                    v-model="scope.row.partQty"
+                    placeholder="请输入"
+                  ></el-input>
+                </template>
+              </el-table-column>
+              <el-table-column label="备件单价" align="center">
+                <template slot-scope="scope">{{ scope.row.partPrice }}</template>
+              </el-table-column>
+              <el-table-column label="业务类别" width="150" align="center">
+                <template slot-scope="scope">
+                  <el-select
+                    collapse-tags
+                    filterable
+                    v-model="scope.row.businessType"
+                    placeholder="请选择"
+                    clearable
+                    size="small"
+                  >
+                    <el-option
+                      v-for="item in businessTypeOptions"
+                      :key="item.code"
+                      :label="item.text"
+                      :value="item.code"
+                    >{{item.text}}</el-option>
+                  </el-select>
+                </template>
+              </el-table-column>
+              <el-table-column label="备件总金额" align="center" width="120">
+                <template slot-scope="scope">{{ scope.row.partTotalFee }}</template>
+              </el-table-column>
+              <el-table-column label="车型编码" align="center">
+                <template slot-scope="scope">{{ scope.row.carTypeCode }}</template>
+              </el-table-column>
+
+              <!-- 隐藏列 -->
+
+              <el-table-column label="并发控制id" v-if="false">
+                <template slot-scope="scope">{{ scope.row.updateControlId }}</template>
+              </el-table-column>
+              <el-table-column label="施工单模板ID" v-if="false">
+                <template slot-scope="scope">{{ scope.row.repairModeId }}</template>
+              </el-table-column>
+            </el-table>
+          </el-tab-pane>
+        </el-tabs>
+      </div>
+    </el-col>
+    <!-- 新增模板车型弹框 -->
+    <el-dialog
+      title="新增模板适用车型"
+      :visible.sync="dialogVisible"
+      center
+      width="70%"
+      style="height:650px;"
+      :close-on-click-modal="false"
+      :append-to-body="true">
+      <div class="filter-container filter-params">
+        <el-row :gutter="24">
+          <el-col :span="8">
+            <label>车辆品牌</label>
+            <el-input v-model="dialogParam.carBrandName" :disabled="false" size="small" />
+          </el-col>
+          <el-col :span="8">
+            <label>模板编码</label>
+            <el-input v-model="dialogParam.repairModeCode" :disabled="false" size="small" />
+          </el-col>
+          <el-col :span="8">
+            <label>模板名称</label>
+            <el-input v-model="dialogParam.repairModeName" :disabled="false" size="small" />
+          </el-col>
+          <el-col :span="8">
+            <label>适用车型</label>
+            <el-input v-model="dataInfo.carTypes" :disabled="false" size="small" />
+          </el-col>
+          <el-col :span="16" class="f-tr">
+            <el-button type="primary" size="small" @click="showCarTypeDialog">车型选择</el-button>
+          </el-col>
+        </el-row>
+        <!-- 页签 -->
+        <div class="filter-container filter-params">
+          <el-tabs v-model="activeName" @tab-click="handleClick">
+            <el-tab-pane label="工时信息" name="first">
+              <el-button size="small" type="primary" @click="openSelectWiDialog">选择工时</el-button>
+              <el-table
+                :data="this.dataInfo.dtmodewi"
+                element-loading-text="Loading"
+                border
+                fit
+                stripe
+                highlight-current-row
+                height="280" >
+                <!-- 显示列 -->
+                <el-table-column align="center" label="序号" width="60">
+                  <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+                </el-table-column>
+                <el-table-column label="工时编码" align="center">
+                  <template slot-scope="scope">{{ scope.row.wiCode }}</template>
+                </el-table-column>
+                <el-table-column label="工时名称" align="center">
+                  <template slot-scope="scope">{{ scope.row.wiName }}</template>
+                </el-table-column>
+                <el-table-column label="工时数量" align="center" width="150">
+                  <template slot-scope="scope">
+                    <el-input-number
+                      size="small"
+                      controls-position="right"
+                      :min="0"
+                      :max="100"
+                      :step="0.01"
+                      v-model="scope.row.partQty"
+                      placeholder="请输入"
+                    ></el-input-number>
+                  </template>
+                </el-table-column>
+                <el-table-column label="工时单价" align="center">
+                  <template slot-scope="scope">{{ scope.row.wiPrice }}</template>
+                </el-table-column>
+                <el-table-column label="业务类别" width="150" align="center">
+                  <template slot-scope="scope">
+                    <el-select
+                      collapse-tags
+                      filterable
+                      v-model="scope.row.businessType"
+                      placeholder="请选择"
+                      clearable
+                      size="small" >
+                      <el-option
+                        v-for="item in businessTypeOptions"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                      >{{item.label}}</el-option>
+                    </el-select>
+                  </template>
+                </el-table-column>
+                <el-table-column label="工时总费用" align="center" width="120">
+                  <template slot-scope="scope">{{ scope.row.wiTotalFee }}</template>
+                </el-table-column>
+
+                <!-- 隐藏列 -->
+                <el-table-column label="业务类别" v-if="false">
+                  <template slot-scope="scope">{{ scope.row.businessType }}</template>
+                </el-table-column>
+                <el-table-column label="并发控制id" v-if="false">
+                  <template slot-scope="scope">{{ scope.row.updateControlId }}</template>
+                </el-table-column>
+                <el-table-column label="施工单模板工时ID" v-if="false">
+                  <template slot-scope="scope">{{ scope.row.repairModeWiId }}</template>
+                </el-table-column>
+                <el-table-column label="施工单模板ID" v-if="false">
+                  <template slot-scope="scope">{{ scope.row.repairModeId }}</template>
+                </el-table-column>
+              </el-table>
+            </el-tab-pane>
+            <!-- 备件页签 -->
+            <el-tab-pane label="备件信息" name="second">
+              <el-button size="small" type="primary" @click="openSelectPartDialog">选择备件</el-button>
+              <el-table
+                :data="this.dataInfo.dtmodepart"
+                element-loading-text="Loading"
+                border
+                fit
+                stripe
+                highlight-current-row
+                height="280"
+              >
+                <!-- 显示列 -->
+                <el-table-column align="center" label="序号" width="60">
+                  <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+                </el-table-column>
+                <el-table-column label="备件编码" align="center" width="150">
+                  <template slot-scope="scope">{{ scope.row.partNo }}</template>
+                </el-table-column>
+                <el-table-column label="备件名称" align="center" width="150">
+                  <template slot-scope="scope">{{ scope.row.partName }}</template>
+                </el-table-column>
+                <el-table-column label="备件数量+" align="center" width="150">
+                  <template slot-scope="scope">
+                    <el-input-number
+                      size="small"
+                      controls-position="right"
+                      :min="0"
+                      :max="100"
+                      :step="0.01"
+                      v-model="scope.row.partQty"
+                      placeholder="请输入"
+                    ></el-input-number>
+                  </template>
+                </el-table-column>
+                <el-table-column label="备件单价" align="center">
+                  <template slot-scope="scope">{{ scope.row.partPrice }}</template>
+                </el-table-column>
+                <el-table-column label="业务类别" width="200" align="center">
+                  <template slot-scope="scope">
+                    <el-select
+                      collapse-tags
+                      filterable
+                      v-model="scope.row.businessType"
+                      placeholder="请选择"
+                      clearable
+                      size="small" >
+                      <el-option
+                        v-for="item in businessTypeOptions"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                      >{{item.label}}</el-option>
+                    </el-select>
+                  </template>
+                </el-table-column>
+                <el-table-column label="备件总金额" align="center" width="120">
+                  <template slot-scope="scope">{{ scope.row.partTotalFee }}</template>
+                </el-table-column>
+                <el-table-column label="车型编码" align="center">
+                  <template slot-scope="scope">{{ scope.row.carTypeCode }}</template>
+                </el-table-column>
+
+                <!-- 隐藏列 -->
+                <el-table-column label="业务类别" v-if="false">
+                  <template slot-scope="scope">{{ scope.row.businessType }}</template>
+                </el-table-column>
+                <el-table-column label="并发控制id" v-if="false">
+                  <template slot-scope="scope">{{ scope.row.updateControlId }}</template>
+                </el-table-column>
+                <el-table-column label="施工单模板ID" v-if="false">
+                  <template slot-scope="scope">{{ scope.row.repairModeId }}</template>
+                </el-table-column>
+              </el-table>
+            </el-tab-pane>
+          </el-tabs>
+        </div>
+      </div>
+      <div slot="footer" class="dialog-footer f-tr">
+        <el-button type="primary" @click="saveAll()">保存</el-button>
+      </div>
+    </el-dialog>
+    <!-- 工时选择弹窗 -->
+    <seChooseWiSelect
+      :seChooseWiSelectVisibles="seChooseWiSelectVisibleDialog"
+      ref="seChooseWiSelect"
+      :title="1"
+      @seChooseWiData="getWiDataDialog"
+      @close="closeChooseWiSelect"
+    ></seChooseWiSelect>
+
+    <!-- 备件选择弹窗 -->
+    <paChoosePartSelect
+      :paChoosePartVisible="paChoosePartVisibleDialog"
+      :title="1"
+      @seChoosePartData="getPartDataDialog"
+      @close="closeChoosePaSelect"
+    ></paChoosePartSelect>
+
+    <!-- 新增模板适用车型-工时选择弹窗 -->
+    <seChooseWiSelect
+      :seChooseWiSelectVisibles="seChooseWiSelectVisible"
+      ref="seChooseWiSelect1"
+      :title="1"
+      @seChooseWiData="getWiData"
+      @close="closeChooseWiSelect1"
+    ></seChooseWiSelect>
+
+    <!-- 新增模板适用车型-备件选择弹窗 -->
+    <paChoosePartSelect
+      :paChoosePartVisible="paChoosePartVisible"
+      :title="1"
+      @seChoosePartData="getPartData"
+      @close="closeChoosePaSelectDialog"
+    ></paChoosePartSelect>
+
+    <carType :isMul="true" ref="CarTypeModal" @changeCode="getCarType" />
+    <carType :isMul="true" ref="CarTypeModal1" @changeCode="getCarTypeDialog" />
+  </div>
+</template>
+<script>
+import {
+  getModelList,
+  seDbRepairModeChooseSave,
+  doSave,
+  seDbRepairModeCarTypeDelete,
+  seDbRepairModeCarTypeSave,
+  seDbRepairModeWiDelete,
+  seDbRepairModeWiSave,
+  seDbRepairModePartDelete,
+  seDbRepairModePartSave,
+  seDbRepairModeCarTypeQuery,
+  weDbRepairModeWiQuery,
+  seDbRepairModePartQuery,
+  doBrandQuery
+} from "@/api/se/basedata/repair/repairOrderModel";
+import { orgApis } from "@/api/graphQLApiList/org";
+import { seApis } from "@/api/graphQLApiList/se";
+import { apiRepairOrderModel } from "@/api/graphQLApiList/se";
+import { requestGraphQL } from "@/api/commonRequest";
+import carType from "@/components/se/CarTypeModal/CarTypeModal";
+import LookupValue from "@/components/org/LookupValue";
+import seChooseWiSelect from "@/components/se/seChooseWiSelect";
+import paChoosePartSelect from "@/components/se/paChoosePart";
+import carBrand from "@/components/org/carBrand/carBrand";
+import { queryLookupValue,doQueryPayBusiness } from "@/api/se/process/workorder/repairWorkOrderEdit";
+import { repairOrderModelMain } from './mixins/repairOrderModelMain';
+import { paApis } from "@/api/graphQLApiList/pa";
+
+
+import Vue from "vue";
+import { isNumber } from 'util';
+// import { mapGetters } from "vuex";
+export default {
+  mixins: [repairOrderModelMain],
+  components: {
+    carType,
+    LookupValue,
+    seChooseWiSelect,
+    paChoosePartSelect,
+    carBrand
+  },
+  props: {
+    closeOnClickModal: {
+      type: Boolean,
+      default: function() {
+        return false;
+      }
+    }
+  },
+  data() {
+    return {
+      saveModelTypeData:{},
+      repairModeWiSaveData:{},
+      saveModelTypeModelCarData:{},
+      repairModePartSaveData:{},
+      carBrandOptions: [],
+      businessTypeOptions: [],
+      value1: "",
+      value2: "",
+      value3: "",
+      ruleForm: {
+        repairModeId: '',
+        carBrandCode: '',
+        repairModeCode: '',
+        repairModeName: '',
+        isEnable: '',
+        payKind: '',
+        updateControlId :''
+      },
+      rules: {
+      },
+      //车型临时对象
+      carTypeTempModel: {
+        oemCode: "",
+        groupCode: "",
+        repairModeId: "",
+        repairModeCode: "",
+        isEnable: "1",
+        isSystem: "",
+        oemId: "",
+        groupId: "",
+        repairModeCartypeId: "",
+        carBrandCode: "",
+        carSeriesCode: "",
+        carTypeCode: "",
+        wiAmount: 0,
+        partAmount: 0,
+        fixedAmount: 0,
+        carTypeCn: ""
+      },
+      // 备件选择弹窗是否显示
+      paChoosePartVisible: false,
+      paChoosePartVisibleDialog: false,
+      // 工时选择弹窗是否显示
+      seChooseWiSelectVisible: false,
+      seChooseWiSelectVisibleDialog: false,
+      //新增模板适用车型保存参数
+      dataInfo: {
+        oemCode: null,
+        groupCode: null,
+        repairModeId: null,
+        repairModeCode: null,
+        isEnable: null,
+        isSystem: null,
+        oemId: null,
+        groupId: null,
+        carTypes: "",
+        //模板对应车型的数据集                                                 //这个
+        dtmodecartype: [],
+        //模板对应车型的维修项目数据集
+        dtmodewi: [],
+        // 模板对应车型的维修备件数据集
+        dtmodepart: []
+      },
+      isFalse: false,
+      dialogVisible: false,
+      //模板id，用于表示是否选中对应模板
+      repairModeCode: "",
+      //模板车型id，用户标识是否选中对应模板车型
+      repairTypeModId: "",
+      //估价单模板工时id，用于标识是否选中工时
+      repairModeWi: null,
+      //估价单模板备件id,用于标识是否选中备件
+      repairModePart: null,
+      modeCarIsSuccess: false,
+      isAddFlag: true,
+      isEnableList: [],
+      payKindOptions: [],
+      activeName: "first",
+      list: null,
+      carTypeVisible: false,
+      carTypeVisibleDialog: false,
+      listLoading: true,
+      modeTypeLoading: false,
+      modeTypeWiLoading: false,
+      modeTypePartLoading: false,
+      typeCarList: null,
+      typeCarPageTotal: 0,
+      typeCarWiPageTotal: 0,
+      typeCarPartPageTotal: 0,
+      //弹出条件字段
+      dialogParam: {
+        oemCode: "",
+        groupCode: "",
+        repairModeId: "",
+        repairModeCode: "",
+        repairModeName: "",
+        carBrandName: "",
+        carTypes: ""
+      },
+
+      listQueryPage:{
+        pageIndex:1,
+        pageSize:10
+      },
+      listQueryPage1:{
+        pageIndex:1,
+        pageSize:10
+      },
+      lookupVari: [
+        "oemCode",
+        "groupCode",
+        "lookupTypeCode",
+        "lookupValueCode",
+        "lookupValueName"
+      ], 
+      //模板车型对应关系查询条件
+      modelCartypeQuery: {
+        pageIndex: 1,
+        pageSize: 1000,
+        dataInfo:{
+          oemCode: "",
+          groupCode: "",
+          carTypeCode: "",
+          repairModeId: "",
+          isEnable: "1"
+        }
+      },
+      //删除模板车型对应关系请求参数
+      deleteModelTypeParam: {
+      },
+      //模板车型管理工时及备件查询条件
+      queryModelType: {
+        query: "query",
+        pageIndex: 1,
+        pageSize: 1000,
+        oemCode: "",
+        groupCode: "",
+        repairModeId: "",
+        carTypeCode: "",
+        dlrId: ""
+      },
+      //模板车型工时结果
+      listModelTypeWi: null,
+      //模板车型备件结果
+      listModelTypePart: []
+    };
+  },
+  created() {
+    this.fetchData()
+    // this.queryLookupValue()
+    this.queryBrand()
+    // this.queryPayBusinessList()
+    this.initFetchData()
+  },
+  methods: {
+    // queryPayBusinessList() { // 调用查询付费性质和业务类别关系数据
+    //   const that = this
+    //   doQueryPayBusiness(9999, 1, { oemCode: this.$store.getters.orgInfo.OEM_CODE, groupCode: this.$store.getters.orgInfo.GROUP_CODE, payKind: '' })
+    //     .then(response => {
+    //       var resData = response.data[seApis.seDbPayBusinessQuery.ServiceCode]
+    //       if (resData.result === '1' && resData.rows != null) {
+    //         const tempList = resData.rows
+    //         var tempOptions = []// 付费性质列表
+    //         tempList.forEach(row => {
+    //           var existItems = tempOptions.filter(o => o.code === row.payKind)
+    //           if (existItems.length === 0) tempOptions.push({ code: row.payKind, text: row.payKindName })
+    //         })
+    //         that.payKindOptions = tempOptions
+    //       }
+    //     })
+    // },
+    //获取车型-新增模板适应车型用
+    getCarTypeDialog(code,text,carTypeCode,carBrandCn,codeField,comType,popupsKey,data) {
+      console.log(data)
+      this.dataInfo.dtmodecartype = []
+      for (var n = 0; n < data.length; n++) {
+        let obj = data[n]
+        //判断该行数据是否存在于工时表格
+        let falg = false;
+        var kValue = {
+          carTypeCode: "",
+          carBrandCode: "",
+          carSeriesCode: ""
+        }
+        kValue.carTypeCode = obj.carTypeCode
+        kValue.carBrandCode = obj.carBrandCode
+        kValue.carSeriesCode = obj.carSeriesCode
+        this.dataInfo.dtmodecartype.push(kValue)
+      }
+      //重新绑定适用车型文本框
+      this.dataInfo.carTypes = ""
+      for (var x = 0; x < this.dataInfo.dtmodecartype.length; x++) {
+        if (this.dataInfo.carTypes == "") {
+          this.dataInfo.carTypes = this.dataInfo.dtmodecartype[0].carTypeCode;
+        } else {
+          this.dataInfo.carTypes =
+            this.dataInfo.carTypes +
+            "," +
+            this.dataInfo.dtmodecartype[x].carTypeCode
+        }
+      }
+    },
+    //获取车型
+    getCarType(code,text,carTypeCode,carBrandCn,codeField,comType,popupsKey,data) {
+      for (var n = 0; n < data.length; n++) {
+        let obj = data[n]
+        //判断该行数据是否存在于工时表格
+        let falg = true;
+        for (var m = 0; m < this.typeCarList.length; m++) {
+          if (this.typeCarList[m].carTypeCode == obj.carTypeCode)
+            falg = false;
+        }
+
+        if (falg) {
+          this.carTypeTempModel.carTypeCode = obj.carTypeCode;
+          this.carTypeTempModel.carTypeCn = obj.carTypeCn;
+          this.carTypeTempModel.carSeriesCode = obj.carSeriesCode;
+          this.typeCarList.push(JSON.parse(JSON.stringify(this.carTypeTempModel)));
+        }
+      }
+    },
+    //控制车型弹框可见
+    showCarType() {
+      if (this.repairModeId == "") {
+        this.$message({
+          type: "warning",
+          message: `请选择施工单模板！`
+        });
+        return;
+      }
+      // this.carTypeVisible = true;
+
+      this.$refs.CarTypeModal.open();
+    },
+    //控制车型弹框可见-新增模板适用车型
+    showCarTypeDialog() {
+      if (this.repairModeId == "") {
+        this.$message({
+          type: "warning",
+          message: `请选择施工单模板！`
+        });
+        return;
+      }
+      this.$refs.CarTypeModal1.open();
+      // this.carTypeVisibleDialog = true;
+    },
+    closeCarType() {
+      this.carTypeVisible = false;
+    },
+    closeCarTypeDialog() {
+      this.carTypeVisibleDialog = false;
+    },
+    closeChoosePaSelectDialog(val) {
+     this.paChoosePartVisible = val;
+    },
+    //关闭工时弹窗
+    closeChooseWiSelect(val) {
+      val === '!**!' ? this.seChooseWiSelectVisibleDialog = false: '';
+    },
+    //关闭新增模板适用车型 工时选择弹窗
+    closeChooseWiSelect1(val) {
+      val === '!**!' ? this.seChooseWiSelectVisible = false: '';
+      
+    } ,
+    closeChoosePaSelect(val) {
+      this.paChoosePartVisibleDialog = val;
+    },
+    //获取工时信息到表格
+    getPartData(val) {
+      debugger
+      for (var n = 0; n < val.length; n++) {
+        //判断该行数据是否存在于工时表格
+        let falg = true;
+        for (var m = 0; m < this.listModelTypePart.length; m++) {
+          if (this.listModelTypePart[m].partId == val[n].partId) falg = false;
+        }
+
+        if (falg) {
+          this.listModelTypePart.push(val[n]);
+        }
+      }
+      //关闭窗体
+      this.paChoosePartVisible = false;
+    },
+    //获取工时信息到表格
+    getWiDataDialog(val) {
+      const that = this
+      if(val !== '!**!'){
+        for (var n = 0; n < val.length; n++) {
+          let flag = true;
+          for (var m = 0; m < that.listModelTypeWi.length; m++) {
+            if (that.listModelTypeWi[m].wiId == val[n].wiId) flag = false;
+          }
+          if (flag) {
+            that.listModelTypeWi.push(val[n]);
+          }
+        }
+      }
+      //关闭窗体
+      that.seChooseWiSelectVisibleDialog = false;
+    },
+    //获取工时信息到表格-新增模板适应车型
+    getPartDataDialog(val) {
+      for (var n = 0; n < val.length; n++) {
+        let falg = true;
+        for (var m = 0; m < this.dataInfo.dtmodepart.length; m++) {
+          if (this.dataInfo.dtmodepart[m].partId == val[n].partId) falg = false;
+        }
+
+        if (falg) {
+          this.dataInfo.dtmodepart.push(val[n])
+        }
+      }
+      //关闭窗体
+      this.paChoosePartVisibleDialog = false;
+    },
+    //获取备件信息到表格-新增模板适应车型
+    getWiData(val) {
+      const that = this
+      if(val !== '!**!'){
+        for (var n = 0; n < val.length; n++) {
+          let flag = true;
+          for (var m = 0; m < that.dataInfo.dtmodewi.length; m++) {
+            if (that.dataInfo.dtmodewi[m].wiId == val[n].wiId) flag = false;
+          }
+          if (flag) {
+            that.dataInfo.dtmodewi.push(val[n]);
+          }
+        }
+      }
+      //关闭窗体
+      that.seChooseWiSelectVisible = false;
+    },
+    //打开选择工时弹窗
+    openWiDialog() {
+      if (this.repairTypeModeId == "") {
+        this.$message({
+          type: "warning",
+          message: `请选择模板适应车型！`
+        });
+        return;
+      }
+      this.seChooseWiSelectVisibleDialog = true;
+    },
+    openSelectPartDialog() {
+      // if (this.repairTypeModeId == "") {
+      //   this.$message({
+      //     type: "warning",
+      //     message: `请选择模板适应车型！`
+      //   });
+      //   return;
+      // }
+      this.paChoosePartVisibleDialog = true;
+    },
+    //打开选择工时弹窗-弹框中
+    openSelectWiDialog() {
+      this.seChooseWiSelectVisible = true;
+    },
+    openSelectPart() {
+      if (this.repairTypeModeId == "") {
+        this.$message({
+          type: "warning",
+          message: `请选择模板适应车型！`
+        });
+        return;
+      }
+      this.paChoosePartVisible = true;
+    },
+    //主界面车型选择弹窗
+    selectCarType() {},
+
+    //新增模板适用车型
+    saveAll() {
+      //判断是否选中施工单模板
+      if (this.repairModeId == "") {
+        this.$message({
+          type: "warning",
+          message: `请选择施工单模板！`
+        });
+        return;
+      }
+      const that = this
+      var typeData = this.dataInfo.dtmodecartype.concat([])
+      if (typeData.length === 0) {
+        this.$message({
+          type: "warning",
+          message: `请选择适用车型！`
+        })
+        return
+      }
+      typeData.forEach(row => {
+        row.repairModeId = this.dataInfo.repairModeId
+      })
+      var wi = this.dataInfo.dtmodewi.concat([])
+      wi.forEach(row => {
+        row.repairModeId = this.dataInfo.repairModeId
+        delete row.wiPrice
+        delete row.businessTypeName
+        delete row.wiTotalFee
+        delete row.carTypeId
+        delete row.carTypeCode
+        delete row.dlrId
+        delete row.partQty
+        delete row.isEnable
+      })
+      var part = this.dataInfo.dtmodepart.concat([])
+      part.forEach(row => {
+        row.repairModeId = this.dataInfo.repairModeId
+        delete row.businessTypeName
+        delete row.dlrLeastSaleQty
+        delete row.isEnable
+      })
+      seDbRepairModeChooseSave(typeData, wi, part).then(response => {
+        var resData = response.data[apiRepairOrderModel.seDbRepairModeChooseSave.ServiceCode]
+        if (resData.result === "1") {
+          that.dialogVisible = false
+          that.$message({
+            type: "info",
+            message: `保存成功`
+          })
+          that.funQueryModelType(that.repairModeCode)
+        } else {
+          that.$message({
+            type: "warning",
+            message: resData.msg
+          })
+        }
+      })
+    },
+    //保存模板车型关系
+    saveModelType() {
+      if (JSON.stringify(this.saveModelTypeData) === "{}") {
+        this.$message({
+          type: "warning",
+          message: `请选择施工单模板！`
+        });
+        return;
+      }
+      if (JSON.stringify(this.saveModelTypeModelCarData) === "{}") {
+        this.$message({
+          type: "warning",
+          message: `请选择一行数据进行保存！`
+        });
+        return;
+      }
+      if (!this.$utils.isEmpty(this.saveModelTypeModelCarData.repairModeCartypeId)) {
+        this.$message({
+          type: "warning",
+          message: `模板车型不能修改`
+        })
+        return
+      }
+      let obj = {}
+      obj.oemCode = this.saveModelTypeModelCarData.oemCode
+      obj.groupCode = this.saveModelTypeModelCarData.groupCode
+      obj.repairModeId = this.saveModelTypeData.repairModeId
+      obj.isEnable = this.saveModelTypeModelCarData.isEnable
+      obj.isSystem = this.saveModelTypeModelCarData.isSystem
+      obj.oemId = this.saveModelTypeModelCarData.oemId
+      obj.groupId = this.saveModelTypeModelCarData.groupId
+      obj.repairModeCartypeId = this.saveModelTypeModelCarData.repairModeCartypeId
+      obj.carBrandCode = this.saveModelTypeData.carBrandCode
+      obj.carSeriesCode = this.saveModelTypeModelCarData.carSeriesCode
+      obj.carTypeCode = this.saveModelTypeModelCarData.carTypeCode
+      obj.updateControlId = this.saveModelTypeModelCarData.updateControlId
+      obj.wiAmount = Number(this.saveModelTypeModelCarData.wiAmount)
+      obj.partAmount = Number(this.saveModelTypeModelCarData.partAmount)
+      obj.fixedAmount = Number(this.saveModelTypeModelCarData.fixedAmount)
+
+      seDbRepairModeCarTypeSave(obj).then(response => {
+        var resData = response.data[apiRepairOrderModel.seDbRepairModeCarTypeSave.ServiceCode]
+        if(resData.result === '1'){
+          this.$message({
+            message: '保存成功',
+            type: 'success'
+          })
+          this.saveModelTypeModelCarData = {}
+          this.funQueryModelType(this.repairModeCode)
+        } else {
+          this.$message({
+            message: '保存失败：' + resData.msg,
+            type: 'warn',
+            duration: 2000
+          })
+          this.saveModelTypeModelCarData = {}
+        }
+      })
+
+    },
+    //保存模板车型-工时关系
+    /**
+     * 保存事件只能传递对象无法传递数组，逐个遍历
+     * 保存多余字段：wiPrice，businessTypeName，wiTotalFee，carTypeId，dlrId
+     */
+    saveModelTypeWi() {
+      if (this.repairTypeModeId == "") {
+        this.$message({
+          type: "warning",
+          message: `请选择模板适应车型！`
+        })
+        return
+      }
+
+      if (JSON.stringify(this.repairModeWiSaveData) === "{}") {
+        this.$message({
+          type: "warning",
+          message: `请选择需要保存的数据！`
+        });
+        return;
+      }
+      if (!this.$utils.isEmpty(this.repairModeWiSaveData.repairModeWiId)) {
+        this.$message({
+          type: "warning",
+          message: `工时信息不能修改`
+        })
+        return
+      }
+      let obj = {}
+      obj = JSON.parse(JSON.stringify(this.repairModeWiSaveData)) // 复制对象
+      obj.wiQty = Number(obj.wiQty)
+      delete obj.wiPrice
+      delete obj.businessTypeName
+      delete obj.wiTotalFee
+      delete obj.dlrId
+      seDbRepairModeWiSave(obj).then(response => {
+        var resData =response.data[apiRepairOrderModel.seDbRepairModeWiSave.ServiceCode]
+        if (resData.result === '1') {
+          this.$message({
+            message: '保存成功',
+            type: 'success'
+          })
+          this.repairModeWiSaveData = {}
+          this.queryModelTypeWi()
+        } else {
+          this.$message({
+            message: '保存失败：' + resData.msg,
+            type: 'warn',
+            duration: 2000
+          })
+        }
+      })
+    },
+    //保存模板车型-备件关系
+     /**
+     * 
+     * 保存多余字段：businessTypeName,dlrLeastSaleQty
+     * lastUpdatedDate' has an invalid value. can't parseValue [ssfrefsd] to LocalDateTime,formater [yyyy-MM-dd HH:mm:ss]"
+     */
+    saveModelTypePart() {
+      if (this.repairTypeModeId == "") {
+        this.$message({
+          type: "warning",
+          message: `请选择模板适应车型！`
+        })
+        return
+      }
+      if (JSON.stringify(this.repairModePartSaveData) === "{}") {
+        this.$message({
+          type: "warning",
+          message: `请选择需要保存的数据！`
+        })
+        return
+      }
+      // this.listLoading = true;
+      const that = this
+      let obj = {}
+      obj = JSON.parse(JSON.stringify(this.repairModePartSaveData)) // 复制对象
+      obj.partQty = Number(obj.partQty)
+      delete obj.businessTypeName
+      delete obj.dlrLeastSaleQty
+      delete obj.isEnable
+      delete obj.isSystem
+      delete obj.updateControlId
+      delete obj.oemId
+      delete obj.oemCode
+      delete obj.groupCode
+      delete obj.groupId
+      seDbRepairModePartSave(obj).then(response => {
+        var resData = response.data[apiRepairOrderModel.seDbRepairModePartSave.ServiceCode]
+        if (resData.result === '1') {
+          this.$message({
+            message: '保存成功',
+            type: 'success'
+          })
+          this.repairModePartSaveData = {}
+          this.queryModelTypePart()
+        } else {
+          this.$message({
+            message: '保存失败：' + resData.msg,
+            type: 'warn',
+            duration: 2000
+          })
+        }
+      });
+    },
+    //弹窗开关按钮
+    upAndDown() {
+      if (this.dialogVisible == false) {
+        //判断是否有选择对应模板
+        if (this.repairModeId == "") {
+          this.$message({
+            type: "warning",
+            message: `请选择施工单模板！`
+          });
+          return;
+        }
+
+        this.dialogVisible = true;
+      } else if (this.dialogVisible == true) {
+        this.dialogVisible = false;
+      }
+    },
+    //保存估价单模板
+    SaveModel(formName) {
+      // //数据校验
+      if (this.ruleForm.carBrandCode == "") {
+        this.$message({
+          type: "warning",
+          message: `请选择品牌！`
+        });
+        return;
+      }
+        if (this.ruleForm.repairModeName == "") {
+        this.$message({
+          type: "warning",
+          message: `请输入模板名称`
+        });
+        return;
+      }
+        if (this.ruleForm.isEnable == "") {
+        this.$message({
+          type: "warning",
+          message: `请选择是否可用！`
+        });
+        return;
+      }
+       if (this.ruleForm.payKind == "") {
+        this.$message({
+          type: "warning",
+          message: `请选择付费性质！`
+        });
+        return;
+      }
+      /**
+       * 保存事件参数无法传递数组，需逐个遍历数组的对象，然后逐个传递给API
+       *  */
+
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          let obj = {}
+          obj.oemCode =           this.$store.getters.orgInfo.OEM_CODE
+          obj.groupCode =         this.$store.getters.orgInfo.GROUP_CODE
+          obj.oemId =             this.$store.getters.orgInfo.OEM_ID
+          obj.groupId =           this.$store.getters.orgInfo.GROUP_ID
+          obj.dlrId =           this.$store.getters.orgInfo.DLR_ID
+          obj.repairModeId =      this.ruleForm.repairModeId
+          obj.repairModeName =    this.ruleForm.repairModeName
+          obj.repairModeCode =    this.ruleForm.repairModeCode
+          obj.isEnable =          this.ruleForm.isEnable
+          obj.payKind =           this.ruleForm.payKind
+          obj.carBrandCode =      this.ruleForm.carBrandCode
+          obj.updateControlId =   this.ruleForm.updateControlId
+
+          this.listLoading = true
+          const that = this
+
+          doSave(obj).then(response => {
+            that.listLoading = false
+            var resData = response.data[apiRepairOrderModel.seDbRepairModeSave.ServiceCode]
+            if(resData.result === '1') {
+              this.$message({
+                message: '保存成功',
+                type: 'success'
+              })
+              this.resetControl2()
+              this.fetchData()
+            } else {
+              let a = []
+              a = resData.msg.split(","); 
+              let src = a.join(' <br/> ')
+              this.$message({
+                dangerouslyUseHTMLString: true,
+                message: '保存失败： <br/>' + src,
+                type: 'warn',
+                duration: 2000
+              })
+            }
+          })
+
+        } else return
+      })
+    },
+    //查询模板车型
+    funQueryModelType(repairModelId, page = "1") {  //
+      // this.modelCartypeQuery.repairModeId = repairModelId;
+      this.modeTypeLoading = true;
+      const that = this;
+      that.curTableRow = {};
+      seDbRepairModeCarTypeQuery(this.modelCartypeQuery.pageSize, this.modelCartypeQuery.pageIndex, this.modelCartypeQuery.dataInfo).then(
+        response => {
+          var resData = response.data[apiRepairOrderModel.seDbRepairModeCarTypeQuery.ServiceCode]
+          if (resData.result === "1") {
+            that.typeCarPageTotal = resData.records
+            that.typeCarList = resData.rows
+          } else {
+            this.$message({
+              message: '新增失败：' + resData.msg,
+              type: 'warn',
+              uration: 2000
+            })
+            that.modeTypeLoading = false
+          }
+          that.modeTypeLoading = false
+        }
+      )
+      this.repairTypeModeId = ""
+    },
+
+    //查询模板车型-工时
+    queryModelTypeWi() {
+      if (this.$utils.isEmpty(this.queryModelType.repairModeId)) {
+        this.listModelTypeWi = []
+        this.typeCarWiPageTotal = 0
+        return
+      }
+      this.modeTypeWiLoading = true;
+      const that = this;
+      that.curTableRow = {};
+      let obj = {}
+      obj.oemCode = this.queryModelType.oemCode
+      obj.groupCode = this.queryModelType.groupCode
+      obj.repairModeId = this.queryModelType.repairModeId
+      obj.carTypeCode = this.queryModelType.carTypeCode
+      
+      weDbRepairModeWiQuery(100, 1,obj).then(response => {
+        var resData = response.data[apiRepairOrderModel.weDbRepairModeWiQuery.ServiceCode]
+        if (resData.result === '1') { // 成功
+                this.listModelTypeWi = resData.rows
+                this.modeTypeWiLoading = false
+                this.typeCarWiPageTotal = resData.records
+            } else { // 保存失败
+                this.$message({
+                    message: '查询失败：' + resData.msg,
+                    type: 'warn',
+                    uration: 2000
+                })
+            }
+      });
+      this.repairModeWi = null;
+    },
+
+    //查询模板车型-备件
+    queryModelTypePart() {
+      if (this.$utils.isEmpty(this.queryModelType.repairModeId)) {
+        this.listModelTypePart = []
+        this.typeCarPartPageTotal = 0
+        return
+      }
+      this.modeTypePartLoading = true
+      const that = this
+      that.curTableRow = {}
+      let obj = {}
+      obj.oemCode = this.queryModelType.oemCode
+      obj.groupCode = this.queryModelType.groupCode
+      obj.repairModeId = this.queryModelType.repairModeId
+      obj.carTypeCode = this.queryModelType.carTypeCode
+      seDbRepairModePartQuery(100, 1,obj).then(response => {
+        var resData = response.data[apiRepairOrderModel.seDbRepairModePartQuery.ServiceCode]
+        if (resData.result === '1') {
+                that.typeCarPartPageTotal = resData.records
+                this.listModelTypePart= resData.rows
+                that.modeTypePartLoading = false;
+            } else {
+                // 保存失败
+                // this.sendCode('0')
+                this.$message({
+                    message: '查询失败：' + resData.msg,
+                    type: 'warn',
+                    uration: 2000
+                })
+            }
+      })
+      this.repairModePart = null
+    },
+
+    //单击模板车型表格行
+    modelCarRowClick(row, column, event) {
+      this.saveModelTypeModelCarData = row
+      this.deleteModelTypeParam = row;
+      this.queryModelType.oemCode = row.oemCode;
+      this.queryModelType.groupCode = row.groupCode;
+      this.queryModelType.repairModeId = row.repairModeId;
+      this.queryModelType.carTypeCode = row.carTypeCode;
+      this.queryModelType.dlrId = "";
+      this.repairTypeModeId = row.repairModeCartypeId;
+
+      this.queryModelTypeWi();
+      this.queryModelTypePart();
+    },
+    //单击模板车型工时表格行
+    modelCarWiRowClick(row, column, event) {
+      this.repairModeWi = row;
+      this.repairModeWiSaveData = row;
+    },
+    //单击模板车型备件表格行
+    modelCarPartRowClick(row, column, event) {
+      this.repairModePart = row;
+      this.repairModePartSaveData = row;
+
+    },
+    //删除模板对应车型
+    deleteModelType() {
+      const that = this
+      //数据校验
+      if (!this.deleteModelTypeParam) {
+        this.$message({
+          type: "warning",
+          message: `请选择删除行！`
+        })
+        return
+      }else{
+        if(this.deleteModelTypeParam.repairModeCartypeId !== ''){
+          this.modeTypeLoading = true
+          let obj = {}
+          obj.oemCode = this.deleteModelTypeParam.oemCode
+          obj.groupCode = this.deleteModelTypeParam.groupCode
+          obj.repairModeId = this.deleteModelTypeParam.repairModeId
+          obj.updateControlId = this.deleteModelTypeParam.updateControlId
+          obj.isEnable = this.deleteModelTypeParam.isEnable
+          obj.repairModeCartypeId = this.deleteModelTypeParam.repairModeCartypeId
+          obj.carTypeCode = this.deleteModelTypeParam.carTypeCode
+          seDbRepairModeCarTypeDelete(obj).then(response => {
+            var resData = response.data[apiRepairOrderModel.seDbRepairModeCarTypeDelete.ServiceCode]
+            if (resData.result === '1'){
+              this.$message({
+                message: '删除成功',
+                type: 'success'
+              })
+              this.modeCarIsSuccess = true
+              this.funQueryModelType(this.repairModeCode)
+            } else {
+              this.$message({
+                message: '删除失败：' + resData.msg,
+                type: 'warn',
+                duration: 2000
+              })
+              this.modeCarIsSuccess = false
+              this.funQueryModelType(this.repairModeCode)
+            }
+          })
+          this.deleteModelTypeParam.repairModeCartypeId = ""
+        }else{
+          let index = null
+          this.typeCarList.map(function(item, i){
+            if(item.carTypeCode === that.deleteModelTypeParam.carTypeCode){
+              index = i
+              return false
+            }
+          })
+          that.typeCarList.splice(i, 1)
+        }
+      }
+    },
+
+    /**
+     * 删除模板对应车型-工时
+     * 多余字段：wiPrice，businessTypeName，wiTotalFee，carTypeId，dlrId
+     */
+    deleteWi() {
+      //数据校验
+      if (this.repairModeWi == null) {
+        this.$message({
+          type: "warning",
+          message: `请选择删除行！`
+        });
+        return;
+      }
+
+      const that = this
+
+      seDbRepairModeWiDelete(this.repairModeWi).then(response => {
+        var resData = response.data[apiRepairOrderModel.seDbRepairModeWiDelete.ServiceCode] 
+        if (resData.result === '1') {
+          this.$message({
+            message: '删除成功',
+            type: 'success'
+          })
+          this.queryModelTypeWi()
+        } else {
+          this.$message({
+            message: '删除失败：' + resData.msg,
+            type: 'warn',
+            duration: 2000
+          })
+          this.queryModelTypeWi()
+        }
+      })
+      this.repairModeWi = null
+    },
+
+     /**
+     * 删除模板对应车型-备件
+     * 保存多余字段：businessTypeName,dlrLeastSaleQty
+     * lastUpdatedDate' has an invalid value. can't parseValue [ssfrefsd] to LocalDateTime,formater [yyyy-MM-dd HH:mm:ss]"
+     */
+    deletePart() {
+      //数据校验
+      if (this.repairModePart == null) {
+        this.$message({
+          type: "warning",
+          message: `请选择删除行！`
+        })
+        return
+      }
+      seDbRepairModePartDelete(this.repairModePart).then(response => {
+        var resData = response.data[apiRepairOrderModel.seDbRepairModePartDelete.ServiceCode]
+        if (resData.result === '1') {
+          this.$message({
+            message: '删除成功',
+            type: 'success'
+          })
+          this.queryModelTypePart()
+        } else {
+          this.$message({
+            message: '删除失败：' + resData.msg,
+            type: 'warn',
+            duration: 2000
+          })
+          this.queryModelTypePart()
+        }
+      })
+      this.repairModePart = null
+    },
+
+    resetControl2() {
+      this.ruleForm.repairModeCode = ""
+      this.ruleForm.repairModeName = ""
+      this.ruleForm.isEnable = ""
+      this.ruleForm.payKind = ""
+      this.ruleForm.repairModeId = ''
+      this.ruleForm.updateControlId = ''
+      this.ruleForm.carBrandCode = ''
+    },
+    resetControl() {
+      this.listQuery.payKind = "";
+      this.listQuery.carBrandCode = "";
+      this.listQuery.repairModeCode = "";
+      this.listQuery.repairModeName = "";
+      this.listQuery.isEnable = "";
+    },
+    handleClick(tab, event) {
+    },
+    getBrandCode(val) {
+      this.listQuery.carbrandCode = val
+    },
+    getSetStatusCode(val) {
+      this.listQuery.status = val;
+    },
+    //付费性质
+    getPayTypeCode(val) {
+      this.listQuery.payKind = val;
+    },
+    getPayTypeCode2(val) {
+      this.modelEditData.payKind = val;
+    },
+    getIsEnableCode(val) {
+      this.listQuery.isEnable = val;
+    },
+    getIsEnableCode2(val) {
+      this.modelEditData.isEnable = val;
+    },
+
+    fetchData() {
+      const that = this;
+      this.listLoading = true;
+      getModelList(this.listQuery, 1, 1000).then(response => {
+        var resData = response.data[apiRepairOrderModel.seDbRepairModeQueryFindAll.ServiceCode]
+        if (resData.result === "1") {
+          that.list = resData.rows;
+          that.listLoading = false;
+        } else {
+          this.$message({
+                 message: '查询失败：' + resData.msg,
+                 type: 'warn',
+                 uration: 2000
+             })
+          that.listLoading = false;
+        }
+      });
+
+      //查询后需要去除选中某一行估价单模板标志
+      this.repairModeId = "";
+      this.repairTypeModeId = "";
+      this.typeCarList = null;
+      this.listModelTypeWi = null;
+      this.listModelTypePart = [];
+    },
+    // queryLookupValueList() {
+    //   //调用查询值列表api，本页面样式不一样，不能调用组件
+    //   const that = this;
+    //   queryLookupValue(9999, 1, {
+    //       isEnable: "1",
+    //       lookupTypeCode: "SE0005"
+    //     }).then(response => {
+    //       if (response.result !== '1') return
+    //       var resData = response.data[orgApis.mdsLookupValueQueryByPage.ServiceCode]
+    //       if (resData.result === "1" && resData.rows != null) {
+    //         let tempList = resData.rows
+    //         var tempOptions = []
+    //         tempList.forEach(row => {
+    //           tempOptions.push({
+    //             code: row.lookupValueCode,
+    //             text: row.lookupValueName
+    //           });
+    //         });
+    //         that.businessTypeOptions = tempOptions;
+    //       }
+    //     })
+    //   queryLookupValue(9999, 1, {
+    //       isEnable: "1",
+    //       lookupTypeCode: "DB0064"
+    //     }).then(response => {
+    //       if (response.result !== '1') return
+    //       var resData = response.data[orgApis.mdsLookupValueQueryByPage.ServiceCode]
+    //       if (resData.result === "1" && resData.rows != null) {
+    //         let tempList = resData.rows
+    //         var tempOptions = []
+    //         tempList.forEach(row => {
+    //           tempOptions.push({
+    //             code: row.lookupValueCode,
+    //             text: row.lookupValueName
+    //           })
+    //         })
+    //         that.isEnableList = tempOptions;
+    //       }
+    //     })
+    // },
+    queryBrand() {
+      const that = this;
+      doBrandQuery().then(response => {
+        let tempList =
+          response.data[orgApis.mdmCarBrandQueryByPage.ServiceCode].rows;
+        var tempOptions = [];
+        tempList.forEach(row => {
+          tempOptions.push({
+            code: row.carBrandCode,
+            text: row.carBrandCn
+          });
+        });
+        that.carBrandOptions = tempOptions;
+      });
+    },
+    initFetchData(page) {
+      const that = this
+      let queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+              '($pageIndex: Int, $pageSize: Int, $dataInfoA: '+ orgApis.mdsLookupValueQueryByPage.InputType
+              +', $dataInfoB: ' + orgApis.mdsLookupValueQueryByPage.InputType  + ', $dataInfoC: ' + orgApis.mdsLookupValueQueryByPage.InputType  +')',
+        // 请求API
+        apiUrl: paApis.paDbPartListQueryList.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            // API服务编码&参数
+            apiServiceParam:
+              "(dataInfo: $dataInfoA, pageIndex: $pageIndex, pageSize: $pageSize)",
+            // 表格中台返回网格的字段
+            apiQueryRow: that.lookupVari
+          },{
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            apiServiceParam:
+              "(dataInfo: $dataInfoB, pageIndex: $pageIndex, pageSize: $pageSize)",
+            apiQueryRow: that.lookupVari
+          },{
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            apiServiceParam:
+              "(dataInfo: $dataInfoC, pageIndex: $pageIndex, pageSize: $pageSize)",
+            apiQueryRow: that.lookupVari
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.listQueryPage1.pageSize,
+          pageIndex: that.listQueryPage1.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfoA: {
+            "isEnable": "1",
+            "lookupTypeCode": "SE0005"//业务类别
+          },
+          dataInfoB: {
+            "isEnable": "1",
+            "lookupTypeCode": "DB0064"//是否启用
+          },
+          dataInfoC: {
+            "isEnable": "1",
+            "lookupTypeCode": "SE0022"//付费性质
+          }
+        }
+      }
+      //转换了中台请求格式数据
+      let paramD = that.$getParams(queryObj)
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (response.result === '1'){
+          if (page) {
+            //查询完返回指定的page页数
+            that.listQueryPage1.pageIndex = page
+          }
+         for(let i in response.data){
+            switch(i){
+              case 'A':
+                  var temp_array = [];
+                  response.data.A.rows.forEach(row => {
+                    temp_array.push({
+                      value: row.lookupValueCode,
+                      label: row.lookupValueName,
+                    })
+                  })
+                  that.businessTypeOptions = temp_array
+                break
+              case 'B':
+                  var temp_array = [];
+                  response.data.B.rows.forEach(row => {
+                    temp_array.push({
+                      value: row.lookupValueCode,
+                      label: row.lookupValueName,
+                    })
+                  })
+                that.isEnableList = temp_array
+                break
+              case 'C':
+                  var temp_array = [];
+                  response.data.C.rows.forEach(row => {
+                    temp_array.push({
+                      value: row.lookupValueCode,
+                      label: row.lookupValueName,
+                    })
+                  })
+                
+                that.payKindOptions = temp_array
+                break
+            }
+          }
+          that.listLoading = false
+        }else {
+            this.$message({
+                message: '查询失败：' + response.msg,
+                type: 'warn',
+                uration: 2000
+            })
+        }
+      })
+    }
+  },
+    
+};
+</script>

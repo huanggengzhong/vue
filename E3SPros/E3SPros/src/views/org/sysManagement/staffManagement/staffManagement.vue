@@ -1,0 +1,838 @@
+<template>
+  <div>
+    <div class="app-container app-container-table">
+      <TreeTable
+        ref="multipleTable"
+        :treeObject="treeObject"
+        :dynamicButtons="tableButtons"
+        :dynamicComponents="tableComponents"
+        :dynamicFormFields="formField"
+        :dynamicTableCols="tableCols"
+        :dynamicApiConfig="apiConfig"
+        :dynamicIsShowMoreBtn="isMoreBtn"
+        :dynamicWidth="siderWidth"
+        :dynamicTableOtherHeight="conHeight"
+      />
+      <edit
+        :editData="gridData"
+        :dlrId="dlrId"
+        :dlrCode="dlrCode"
+        :showOrgName="showOrgName"
+        :showOrgRealId="showOrgRealId"
+        :dynamicEditRowData="editRowData"
+        :popupsVisible="editPopupsVisible"
+        :key="editPopupsKey"
+        :popupsState="editPopupsState"
+        @close="close"
+      ></edit>
+      <userAuthorization
+        :key="authKey"
+        :handleVisible="showAuthorz"
+        :handleTitle="handleTitle"
+        :editData="selectDate"
+        @visible="closeAuthorz"
+      ></userAuthorization>
+      <addUserAuthorization
+        :orgId="formField.orgId"
+        :key="modalData.addPermissSettingKey"
+        :handleVisible="modalData.addPermissSettingShow"
+        :handleTitle="modalData.addPermissSettingTitle"
+        :editData="modalData.addPermissSettingData"
+      ></addUserAuthorization>
+      <!-- <personManageg
+        :key="modalData.userModalKey"
+        :editDatad="modalData.userModalData"
+        :memberEditVisible="modalData.userModalShow"
+      ></personManageg>-->
+      <!-- 引入明细 -->
+      <toView
+        :key="showToView"
+        :managementRowData="managementRowData"
+        :handleVisible="toViewd"
+        :roleName="seleUserName"
+        :roleOrgType="roleOrgType"
+        :roleId="showroleId"
+        :toviewroleId="toviewroleId"
+      ></toView>
+    </div>
+  </div>
+</template>
+<script>
+import { orgApis } from "@/api/graphQLApiList/org";
+import TreeTable from "@/components/templates/treeTable";
+import OneTableTemplate from "@/components/templates/oneTable";
+import { oneTableWithViewTemplateMixins } from "@/components/mixins/oneTableWithViewTemplateMixins";
+import Edit from "./edit";
+import userAuthorization from "@/views/org/permissionManage/roleAuthManage/userAuthorization";
+import addUserAuthorization from "@/views/org/permissionManage/roleAuthManage/addUserAuthorization";
+//引入明细
+import toView from "./toView";
+// import personManageg from './personManage'
+export default {
+  mixins: [oneTableWithViewTemplateMixins],
+  name: "roleAuthManage",
+  components: {
+    TreeTable,
+    Edit,
+    userAuthorization,
+    addUserAuthorization,
+    toView
+    // personManageg
+  },
+  mounted() {
+    //调用加载树的方法 params1 父节点ID, params2当前节点id
+    this.$refs.multipleTable.queryOrganization("parentOrgTreeId", "orgTreeId");
+  },
+  data() {
+    return {
+      // 用户id
+      showroleId: "",
+      toviewroleId: "",
+      gridData: {},
+      roleOrgType: "",
+      showOrgName: "",
+      showOrgRealId: "",
+      dlrId: "",
+      dlrCode: "",
+      showOrgRealId: "",
+      roleId: "",
+      managementRowData: "",
+      //隐藏弹出框
+      toViewd: false,
+      showToView: "b",
+      //选中的角色名称
+      seleUserName: "",
+      // tableKeyChange:"c",
+      authKey: "a",
+      showAuthorz: false,
+      selectDate: {},
+      //树对象
+      treeObject: {
+        // 配置树网格查询API配置对象
+        treeApiConfig: orgApis.mdmOrgRelationRealQueryByPage,
+        // treeApiConfig: orgApis.mdmOrgEmployeeQueryFindAll,
+        // 树接口需要返回的字段
+        returnTreeCol: [
+          "orgName",
+          "orgCode",
+          "orgBelongType",
+          "orgRealId",
+          "groupCode",
+          "groupId",
+          "orgTreeId",
+          "linkId",
+          "parentOrgTreeId"
+        ],
+        // 树的查询条件
+        treeQuery: {
+          //  orgTreeId:'-1'
+          isEnable: "1"
+        },
+        //排序的对象 label现在是名字 , children 子节点
+        defaultProps: {
+          children: "children",
+          label: "orgName"
+        }
+      },
+      //设置菜单栏宽度
+      siderWidth: 250,
+      //设置是否显示更多按钮
+      conHeight: 35,
+      isMoreBtn: true,
+      // 网格查询API配置对象
+      apiConfig: orgApis.mdmOrgEmployeeQueryFindAll,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: this.$t("sys.button.query")
+        } /*查询*/,
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.add(),
+          text: this.$t("sys.button.add")
+        } /*新增*/,
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: this.$t("sys.button.reset")
+        } /*重置*/
+        //   {compKey: 'btnKey3', type: '', size: 'small', clickEvent: () => this.showModal('userModal',true) , text: this.$t('org.label.MemberManagement')},/*成员管理*/
+        //   {compKey: 'btnKey4', type: '', size: 'small', clickEvent: () => this.checkAuthorization(), text: this.$t('org.label.ViewPermissions')},/*查看权限*/
+        //   {compKey: 'btnKey5', type: '', size: 'small', clickEvent: () => this.userAuthorizationd(), text:this.$t('org.label.funPreSettings')},/*功能权限设置*/
+      ],
+      // 动态组件-查询条件
+      tableComponents: [
+        {
+          compKey: "compKey2",
+          span: 8,
+          labelName: this.$t("org.label.userName"),
+          /*创建登录名*/ codeField: "userName",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey1",
+          span: 8,
+          labelName: this.$t("org.label.empName"),
+          /*员工姓名*/ codeField: "empName",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey3",
+          span: 8,
+          labelName: this.$t("org.label.orgName"),
+          /*所属组织*/ codeField: "orgName",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true
+        },
+        {
+          compKey: "compKey4",
+          span: 8,
+          labelName: this.$t("org.label.situation"), // 在职状态
+          codeField: "isEnable",
+          component: () => import("./LookupValue/index"),
+          lookuptype: "DB0063",
+          type: "dropdownList",
+          isMust: false
+        }
+      ],
+      // 动态生成网格列
+      tableCols: [
+        {
+          prop: "controlBtn",
+          label: this.$t("sys.content.operate"),
+          /*操作*/ codeField: "controlBtn",
+          width: 120,
+          align: "center",
+          isComponent: true,
+          comps: [
+            {
+              compKey: "propKey0",
+              labelName: this.$t("sys.button.edit"),
+              /*修改*/ codeField: "",
+              clickEvent: this.handleClick,
+              component: () => import("@/components/org/linkButton")
+            },
+            {
+              compKey: "propKey1",
+              //明细
+              labelName: this.$t("sys.button.getDetail"),
+              // /*删除*/ codeField: "delControlBtn",
+              codeField: "",
+              clickEvent: this.showView,
+              component: () => import("@/components/org/linkButton")
+            }
+          ]
+        },
+        // {//修改必须传的数据
+        //   prop: "roleId",
+        //   label: this.$t("org.label.roleName"),
+        //   /*角色ID*/ hidden: true,
+        //   align: "center"
+        // },
+        {
+          //员工编码
+          prop: "empCode",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          prop: "stationId",
+          label: this.$t("org.label.stationName"),
+          /*岗位*/ width: 150,
+          align: "center",
+          hidden: true
+        },
+        {
+          prop: "userName",
+          label: this.$t("org.label.userName"),
+          /*登录账号名*/ width: 150,
+          align: "center"
+        },
+
+        // {
+        //   //登陆账号名
+        //   prop: "userName1",
+        //   /*empCode*/ width: null,
+        //   align: "center",
+        //   hidden: true
+        // },
+        {
+          //手机号码
+          prop: "mobile",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //工作电话
+          prop: "workTel",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //公历日期
+          prop: "birthDate",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //国籍
+          prop: "nationalityCode",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //政治面貌
+          prop: "politicsCode",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //毕业学校
+          prop: "school",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //联系人电话
+          prop: "workTel",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //领驾照时间
+          prop: "driverDate",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //状态
+          prop: "isFrozen",
+          label: this.$t("org.label.userId"),
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //员工性别
+          prop: "genderCode",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        // {
+        //   //登录密码
+        //   prop: "password",
+        //   /*empCode*/ width: null,
+        //   align: "center",
+        //   hidden: true
+        // },
+        {
+          //证件类型
+          prop: "credTypeCode",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //招聘方式
+          prop: "employType",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //Email
+          prop: "email",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //籍贯
+          prop: "nativePlace",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        // {
+        //   //婚姻状况
+        //   prop: "marriageCode",
+        //   /*empCode*/ width: null,
+        //   align: "center",
+        //   hidden: true
+        // },
+        {
+          //专业
+          prop: "degreepro",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //家庭电话
+          prop: "familyPhone",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //从事汽车行业时间
+          prop: "businessDate",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //离职日期
+          prop: "leaveDate",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //冻结状态
+          prop: "isFrozen",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //证件号码
+          prop: "credNo",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //入职日期
+          prop: "employDate",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //紧急联系人
+          prop: "secondMan",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //民族
+          prop: "nationCode",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //学历
+          prop: "degreeCode",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //传真
+          prop: "fax",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //个人通信地址
+          prop: "personAddr",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //邮编
+          prop: "zip",
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          prop: "dlrCode",
+          label: this.$t("org.label.userId"),
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //专营店ID
+          prop: "dlrId",
+          label: this.$t("org.label.userId"),
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          prop: "userId",
+          label: this.$t("org.label.userId"),
+          /*empCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          prop: "deptId",
+          label: this.$t("org.label.deptId"),
+          /*deptId*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          //把这里所有的复制过来，这些数据传到修改那里
+          prop: "empName",
+          label: this.$t("org.label.empName"),
+          /*员工姓名*/ width: null,
+          align: "center"
+        },
+        {
+          prop: "genderName",
+          label: this.$t("org.label.genderName"),
+          /*性别*/ width: 130,
+          align: "center"
+        },
+        // {
+        //   prop: "stationName",
+        //   label: this.$t("org.label.stationName"),
+        //   /*岗位*/ width: 130,
+        //   align: "center"
+        // },
+        {
+          prop: "orgName",
+          label: this.$t("org.label.orgName"),
+          /*所属组织*/ width: null,
+          align: "center"
+          // isDefalus: true
+        },
+        {
+          prop: "userName",
+          label: this.$t("org.label.userName1"),
+          /*登录帐号名*/ width: 130,
+          align: "center",
+          hidden: true
+        },
+        {
+          prop: "isFrozen",
+          label: this.$t("org.label.isFrozen"),
+          /*状态*/ width: null,
+          align: "center",
+          isDefalus: true,
+          hidden: true
+        },
+        {
+          prop: "marriagedCode",
+          label: this.$t("org.label.marriagedCode"),
+          /*marriagedCode*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          prop: "secondManTel",
+          label: this.$t("org.label.secondManTel"),
+          /*secondManTel*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          prop: "empId",
+          label: this.$t("org.label.empId"),
+          /*角色ID*/ width: null,
+          align: "center",
+          hidden: true
+        },
+        {
+          prop: "isEnable",
+          label: this.$t("org.label.isFrozen"),
+          align: "center",
+          isComponent: true,
+          comps: [
+            {
+              compKey: "propKey1",
+              isMul: false,
+              isShowLabel: false,
+              codeField: "isEnable",
+              clickEvent: () => null,
+              component: () => import("@/components/org/isWork")
+            }
+          ]
+        },
+        // {
+        //   prop: "class",
+        //   label: this.$t("org.label.class"),
+        //   /*角色*/ width: null,
+        //   align: "center"
+        // }
+        // {
+        //   prop: "orgId",
+        //   label: this.$t("org.label.orgName"),
+        //   /*所属部门ID*/ hidden: true,
+        //   align: "center"
+        // }
+        {
+          prop: "updateControlId",
+          label: "并发控制",
+          width: null,
+          align: "center",
+          hidden: true
+        }
+      ],
+      //查询条件
+      formField: {
+        empName: "",
+        userName: "",
+        deptId: "",
+        isEnable: "",
+        orgName: ""
+        // orgId: ""
+      },
+      handleTitle: 0,
+      orgClickData: {}
+    };
+  },
+  methods: {
+    //明细方法
+    // showView(index) {
+    //   // debugger
+    //   var curIndex = index;
+    //   const that = this.$refs.multipleTable;
+    //   if (curIndex === undefined || curIndex === null) {
+    //     var currentRow;
+    //     if (that.isMul === true) {
+    //       // 多选
+    //       var selectData = that.selection;
+    //       if (selectData.length > 0) {
+    //         currentRow = selectData[0];
+    //       }
+    //     } else {
+    //       // 单选
+    //       currentRow = that.currentRow;
+    //     }
+    //     if (currentRow) {
+    //       curIndex = currentRow.index;
+    //     }
+    //   }
+
+    //   if (curIndex === undefined || curIndex === null) {
+    //     this.$alert("请选择需要修改的数据", "提示");
+    //     return;
+    //   }
+    //   this.managementRowData = that.list[curIndex];
+    //   this.toViewd = true;
+    //   this.showToView = this.showToView + "1";
+    //   this.seleUserName = index.empId;
+    //   console.log(this.managementRowData);
+    //   this.persionuserId = this.managementRowData.userId;
+    //   console.log(this.persionuserId);
+    // },
+
+    //增加
+    add() {
+      if (JSON.stringify(this.orgClickData) == "{}") {
+        this.$message({
+          message: this.$t("org.message.chooseOrgName") /*请选择组织*/,
+          type: "warning",
+          duration: 2000
+        });
+        return;
+      }
+      this.editRowData = {};
+      this.editRowData.orgName = this.orgClickData.orgName;
+      this.editRowData.orgId = this.orgClickData.orgTreeId;
+      this.showEdit("add");
+    },
+    // 绑定单击树的事件
+    handleNodeClick(data) {
+      //赋值给所属组织
+      this.formField.orgName = data.orgName;
+      this.formField.deptId = data.orgRealId;
+      // this.tableKeyChange=this.tableKeyChange+"1"
+      this.orgClickData = data;
+      // this.formField.orgId = data.orgTreeId;
+
+      // this.$refs.multipleTable.queryTable(1);
+      // 组织类型
+      this.roleOrgType = data.orgBelongType;
+      // 新增/修改需要的值
+      this.dlrId = data.groupId;
+      this.dlrCode = data.groupCode;
+      this.showOrgName = data.orgName;
+      this.showOrgRealId = data.orgTreeId;
+      this.queryTable(1);
+    },
+    // 绑定单击树的事件
+    // handleNodeClick(data, node, component) {
+    //   this.orgClickData = data;
+    //   this.formField.orgName = data.orgName;
+    //   // 组织类型
+    //   this.roleOrgType = data.orgBelongType;
+    //   // 新增/修改需要的值
+    //   this.dlrId = data.groupId;
+    //   this.dlrCode = data.groupCode;
+    //   this.showOrgName = data.orgName;
+    //   this.showOrgRealId = data.orgRealId;
+    //   this.queryTable(1);
+    // },
+    //编辑
+    handleClick(row) {
+      const thats = this.$refs.multipleTable;
+      this.roleOrgType = thats.list[row].orgName;
+      this.edit(row);
+      this.showroleId = thats.list[row].userId;
+      // console.log(that.list[row]);
+      // console.log(that);
+      // console.log(thats.list[row].updateControlId);
+    },
+    //删除
+    del(index) {
+      var curIndex = index;
+      const that = this.$refs.multipleTable;
+      if (curIndex === undefined || curIndex === null) {
+        var currentRow;
+        if (that.isMul === true) {
+          // 多选
+          var selectData = that.selection;
+          if (selectData.length > 0) {
+            currentRow = selectData[0];
+          }
+        } else {
+          // 单选
+          currentRow = that.currentRow;
+        }
+        if (currentRow) {
+          curIndex = currentRow.index;
+        }
+      }
+
+      if (curIndex === undefined || curIndex === null) {
+        this.$alert(
+          this.$t("org.message.selDelData"),
+          /*请选择需要删除的数据*/ "提示"
+        );
+        return;
+      }
+      var editRowData = that.list[curIndex];
+      let role = editRowData.roleId;
+
+      // this.persionuserId = editRowData.userId;
+      // console.log("q" + editRowData);
+
+      let queryObj = {
+        //保存需要传 type="mutation"
+        type: "mutation",
+        // api配置
+        apiConfig: orgApis.sysRoleMutationCommonDel,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: []
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          //  pageSize: 1000,
+          //  pageIndex: 1,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {
+            roleId: role
+          }
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      this.$requestGraphQL(paramD).then(response => {
+        if (
+          response.data[orgApis.sysRoleMutationCommonDel.ServiceCode].result ===
+          "1"
+        ) {
+          //通关如果的状态确认是编辑还是添加
+          this.$message({
+            message: this.$t("sys.tips.esTip14"),
+            /*删除成功*/ type: "success"
+          });
+          this.queryTable(1);
+        }
+      });
+    },
+    reset() {
+      this.formField.empName = "";
+      this.formField.userName = "";
+      this.formField.orgName = "";
+      this.formField.isEnable = "";
+    },
+    checkAuthorization() {
+      const that = this.$refs.multipleTable;
+      let selectData = that.$refs.multipleTable.selection;
+      if (selectData.length != 1) {
+        this.$message({
+          message: this.$t("org.message.selOneData"),
+          /*请选择一条数据*/ type: "warning"
+        });
+        return false;
+      }
+      this.handleTitle = 0;
+      this.showAuthorz = true;
+      this.authKey = this.authKey + 1;
+      this.selectDate = selectData[0];
+    },
+    closeAuthorz() {
+      this.showAuthorz = false;
+    },
+    userAuthorizationd() {
+      const that = this.$refs.multipleTable;
+
+      let selectData = that.$refs.multipleTable.selection;
+      if (selectData.length != 1) {
+        this.$message({
+          message: this.$t("org.message.selOneData"),
+          /*请选择一条数据*/ type: "warning"
+        });
+        return false;
+      }
+      this.handleTitle = 1;
+      this.authKey = that.authKey + 1;
+      this.showAuthorz = true;
+      this.selectDate = selectData[0];
+    },
+    // 查看
+    showView(row) {
+      const that = this.$refs.multipleTable;
+      this.toViewd = true;
+      this.showToView = this.showToView + "1";
+      this.toviewroleId = that.list[row].userId;
+      // console.log(that.list[row]);
+      // console.log(that);
+    }
+  }
+};
+</script>
+<style scoped>
+/deep/aside.el-aside.el-slide {
+  height: calc(90vh - 57px);
+}
+</style>

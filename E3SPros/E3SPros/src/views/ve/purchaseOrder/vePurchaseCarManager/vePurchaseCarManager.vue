@@ -1,0 +1,680 @@
+/**
+* description: 整车 > 经销商采购管理
+* author: liyanm
+* createdDate: 2019-08-01
+*/
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template
+      ref="multipleTable"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsInitTable="false"
+      :dynamicIsColumnDrop="true"
+      :dynamicIsShowMoreBtn="false"
+    />
+    <!-- 增加 -->
+    <editPOT
+      :dynamicEditRowData="editRowData"
+      :popupsVisible="editPopupsVisible"
+      :key="editPopupsKey"
+      :popupsState="editPopupsState"
+      @close="close"
+    ></editPOT>
+    <!-- 资金信息 -->
+    <newMessage
+      :dynamicEditRowData="newmessageRowData"
+      :popupsVisible="newmessagePopupsVisible"
+      :key="newmessagePopupsKey"
+      :popupsState="newmessagePopupsState"
+      @close="newmessageclose"
+    ></newMessage>
+    <!-- 主机厂库存 -->
+    <setting
+      :dynamicEditRowData="settingMothRowData"
+      :popupsVisible="settingMothPopupsVisible"
+      :key="settingMothPopupsKey"
+      :popupsState="settingMothPopupsState"
+      @close="settingMothclose"
+    ></setting>
+    <!-- 车型需求 -->
+    <carConfigNed
+      :dynamicEditRowData="carConfigNedRowData"
+      :popupsVisible="carConfigNedPopupsVisible"
+      :key="carConfigNedPopupsKey"
+      :popupsState="carConfigNedPopupsState"
+      @close="carConfigNedclose"
+    ></carConfigNed>
+    <!-- 车型分配模式 -->
+    <carConfigshear
+      :dynamicEditRowData="carConfigshearRowData"
+      :popupsVisible="carConfigshearPopupsVisible"
+      :key="carConfigshearPopupsKey"
+      :popupsState="carConfigshearPopupsState"
+      @close="carConfigshearclose"
+    ></carConfigshear>
+    <!-- 本月提车进度 -->
+    <monthCar
+      :dynamicEditRowData="monthCarRowData"
+      :popupsVisible="monthCarPopupsVisible"
+      :key="monthCarPopupsKey"
+      :popupsState="monthCarPopupsState"
+      @close="monthCarclose"
+    ></monthCar>
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from "@/components/mixins/oneTableWithViewTemplateMixins";
+import { veApis } from "@/api/graphQLApiList/ve";
+import OneTableTemplate from "@/components/templates/oneTable";
+import editPOT from "./editPOT";
+import newMessage from "./newMessage";
+import setting from "./setting";
+import carConfigNed from "./carConfigNed";
+import carConfigshear from "./carConfigshear";
+import monthCar from "./monthCar";
+import { CacheConfig } from "@/cache/configCache/index";
+
+export default {
+  name: "vePurchaseCarMager",
+  // 组件混入对象：{data[listQuery] methods[queryTable]}
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+    editPOT,
+    newMessage,
+    setting,
+    carConfigNed,
+    carConfigshear,
+    monthCar
+  },
+  // 阻塞路由预加载网格中组件的数据
+  beforeRouteEnter(to, from, next) {
+    CacheConfig.initData(to.path, function() {
+      next();
+    });
+  },
+  data() {
+    return {
+      // 网格查询API配置对象
+      apiConfig: veApis.vePurOrderQuery,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: "查询",
+          name: "search", //按钮图标样式
+          position: "right",
+          fuzzySearch: true
+        },
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.add(),
+          text: "新增",
+          name: "add",
+          position: "left"
+        },
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.delete(),
+          text: "取消",
+          name: "cancel",
+          position: "left"
+        },
+        {
+          compKey: "btnKey4",
+          type: "",
+          size: "small",
+          clickEvent: () => this.save(),
+          text: "确认",
+          name: "confirm",
+          position: "left"
+        },
+        {
+          compKey: "btnKey5",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: "重置",
+          name: "reset",
+          position: "right"
+        },
+        {
+          compKey: "btnKey6",
+          type: "",
+          size: "small",
+          clickEvent: () => this.newmessage(),
+          text: "资金明细",
+          name: "reset",
+          position: "left"
+        },
+        {
+          compKey: "btnKey7",
+          type: "",
+          size: "small",
+          clickEvent: () => this.settingMoth(),
+          text: "主机厂库存",
+          name: "stock",
+          position: "left"
+        },
+        {
+          compKey: "btnKey8",
+          type: "",
+          size: "small",
+          clickEvent: () => this.carConfigNed(),
+          text: "车型需求",
+          name: "reset",
+          position: "left"
+        },
+        {
+          compKey: "btnKey9",
+          type: "",
+          size: "small",
+          clickEvent: () => this.carConfigshear(),
+          text: "车型分配模式",
+          name: "reset",
+          position: "left"
+        },
+        {
+          compKey: "btnKey10",
+          type: "",
+          size: "small",
+          clickEvent: () => this.monthCar(),
+          text: "本月提车进度",
+          name: "reset",
+          position: "left"
+        }
+      ],
+      // 动态组件-查询条件
+      tableComponents:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              {
+                compKey: "compKey1",
+                labelName: "采购单号",
+                codeField: "purOrderCode",
+                component: () => import("@/components/org/commonInput"),
+                type: "inputText",
+                isMust: true,
+                fuzzySearch: true
+              },
+              // 显示组件
+              {
+                compKey: "compKey2",
+                labelName: "品牌",
+                codeField: "carBrandCode",
+                component: () => import("@/components/org/carBrand/carBrand"),
+                type: "dropdownList",
+                isMust: true
+              },
+
+              {
+                compKey: "compKey3",
+                labelName: "采购单类型",
+                codeField: "purchaseOrderTypeId",
+                parentFileds: "carBrandCode-carBrandCode",
+                component: () => import("@/components/ve/PurchaseOrderType"),
+                type: "dropdownList",
+                isMust: true
+              },
+              {
+                compKey: "compKey4",
+                labelName: "资金类型",
+                codeField: "cashTypeId",
+                component: () => import("@/components/ve/PurcashType"),
+                type: "dropdownList",
+                isMust: true
+              }
+            ],
+      // 动态生成网格列
+      tableCols:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableCols &&
+        CacheConfig.cacheData[this.$route.path].tableCols.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableColss
+          : [
+              {
+                prop: "carBrandCn",
+                label: "品牌",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "dlrShortName",
+                label: "经销商",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "purchaseOrderTypeName",
+                label: "采购单类型",
+                width: 180,
+                align: "center"
+              },
+              {
+                prop: "cashtypeid",
+                label: "资金类型",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "purOrderCode",
+                label: "采购单号",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "oldReceiveShId",
+                label: "搬入地",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "sendShName",
+                label: "发车仓库",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "configCode",
+                label: "车型简码",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "carSeriseName",
+                label: "车系",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "configCode",
+                label: "车型编码",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "carConfigName",
+                label: "车型配置",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "carColorName",
+                label: "车身颜色",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "carIncolorName",
+                label: "内饰色",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "purQty",
+                label: "采购数量",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "resulted",
+                label: "采购总价",
+                width: null,
+                align: "center",
+                isComponent: true,
+                contone: "purQty",
+                comps: [
+                  {
+                    compKey: "propKey2",
+                    isMul: false,
+                    isShowLabel: false,
+                    codeField: "resulted",
+                    textField: "resulted",
+                    contWay: "purQty*PurPrice",
+                    clickEvent: () => null,
+                    component: () => import("@/components/competedCode")
+                  }
+                ]
+              },
+              {
+                prop: "carPrice",
+                label: "车型产品价",
+                width: 180,
+                align: "center"
+              },
+              {
+                prop: "countrySubsidy",
+                label: "补贴价",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "disCountSum",
+                label: "折扣价",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "sbusidy",
+                label: "行业价格",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "creator",
+                label: "下单人",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "updateControlId",
+                label: "并发控制",
+                width: 0,
+                align: "center",
+                hidden: true
+              }
+            ],
+      //是否显示table下面的组件
+      isShowComponent: false,
+      //表单查询数据（查询条件）
+      formField: {
+        carBrandCode: "",
+        purOrderCode: "",
+        purchaseOrderTypeId: "",
+        cashTypeId: ""
+      },
+      newmessagePopupsVisible: false, //是否显示历史价格弹窗
+      // 新增、编辑弹窗Key
+      newmessagePopupsKey: "newmessage",
+      // 新增、编辑弹窗状态（add/edit/view）
+      newmessagePopupsState: "",
+      // 新增、编辑行对象
+      newmessageRowData: {},
+      //是否显示主机厂库存弹窗
+      settingMothPopupsVisible: false,
+      // 主机厂库存弹窗Key
+      settingMothPopupsKey: "settingMoth",
+      // 主机厂库存窗状态（add/edit/view）
+      settingMothPopupsState: "",
+      // 主机厂库存行对象
+      settingMothRowData: {},
+      //是否显示车型需求弹窗
+      carConfigNedPopupsVisible: false,
+      // 车型需求弹窗Key
+      carConfigNedPopupsKey: "carConfigNed",
+      // 车型需求弹窗状态（add/edit/view）
+      carConfigNedPopupsState: "",
+      //车型需求行对象
+      carConfigNedRowData: {},
+      //是否显示车型分配模式弹窗
+      carConfigshearPopupsVisible: false,
+      // 车型分配模式弹窗Key
+      carConfigshearPopupsKey: "carConfigshear",
+      // 车型分配模式弹窗状态（add/edit/view）
+      carConfigshearPopupsState: "",
+      //车型分配模式行对象
+      carConfigshearRowData: {},
+      //是否显示本月提车进度弹窗
+      monthCarPopupsVisible: false,
+      // 本月提车进度弹窗Key
+      monthCarPopupsKey: "monthCar",
+      // 本月提车进度弹窗状态（add/edit/view）
+      monthCarPopupsState: "",
+      //本月提车进度行对象
+      monthCarRowData: {},
+      //取消后的新数组
+      newTable: []
+    };
+  },
+  methods: {
+    //取消选中行数据
+    delete() {
+      const parentTable = this.$refs.multipleTable.$children;
+      for (var x in parentTable) {
+        if (parentTable[x].selection !== undefined) {
+          if (parentTable[x].selection.length > 0) {
+            var arrData = parentTable[x].data;
+            for (let i = 0; i < arrData.length; i++) {
+              let val = parentTable[x].selection;
+              for (var j = 0; j < val.length; j++) {
+                if (val[j].index === arrData[i].index) {
+                  // i 为选中的索引
+                  parentTable[x].data.splice(i, 1);
+                  console.log(parentTable[x].data);
+                }
+              }
+            }
+            this.newTable = parentTable[x].data;
+            this.saveTable();
+            this.$refs.multipleTable.$children[x].clearSelection();
+          }
+        }
+      }
+    },
+    //取消后保存
+    saveTable() {
+      const that = this.$refs.multipleTable;
+      const selectData = this.newTable;
+      let saveCount = 0;
+      for (var k in selectData) {
+        let queryObj = {
+          // 保存mutation
+          type: "mutation",
+          // api配置
+          apiConfig: veApis.veCancelOrder,
+          variables: {
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: {
+              carBrandId: selectData[k].carBrandCode,
+              purOrderDId: selectData[k].purOrderDId,
+              updateControlId: selectData[k].updateControlId
+            }
+          }
+        };
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        // 调用中台API方法（可复用）
+        that.$requestGraphQL(paramD).then(response => {
+          if (response.data[queryObj.apiConfig.ServiceCode].result === "1") {
+            saveCount++;
+          } else {
+            saveState = false;
+            msg = response.data[queryObj.apiConfig.ServiceCode].msg;
+            that.$message({
+              message: msg,
+              type: "warning",
+              duration: 2000
+            });
+          }
+          if (saveCount == selectData.length) {
+            that.$message({
+              message: "保存成功",
+              type: "success",
+              duration: 2000
+            });
+            that.queryTable(1);
+          }
+        });
+      }
+    },
+    // 初始化事件
+    newmessage(index) {
+      const that = this.$refs.multipleTable;
+      this.shownewmessageEdit("edit");
+    },
+    // 初始化弹窗
+    shownewmessageEdit(type) {
+      this.newmessagePopupsState = type;
+      this.newmessagePopupsVisible = true;
+      this.newmessagePopupsKey = this.$utils.generateId();
+    },
+    // 关闭初始化弹窗
+    newmessageclose(type) {
+      this.newmessagePopupsVisible = false;
+      this.newmessagePopupsKey = this.$utils.generateId();
+    },
+    // 型需要开关弹窗
+    showsettingMothEdit(type) {
+      this.settingMothPopupsState = type;
+      this.settingMothPopupsVisible = true;
+      this.settingMothPopupsKey = this.$utils.generateId();
+    },
+    // 经销商启用开关事件
+    settingMoth(index) {
+      const that = this.$refs.multipleTable;
+      this.showsettingMothEdit("edit");
+    },
+    // 经销商启用开关弹窗
+    carConfigNedshowsettingMothEdit(type) {
+      this.settingMothPopupsState = type;
+      this.settingMothPopupsVisible = true;
+      this.settingMothPopupsKey = this.$utils.generateId();
+    },
+    // 关闭主机厂库存开关弹窗
+    settingMothclose(type) {
+      this.settingMothPopupsVisible = false;
+      this.settingMothPopupsKey = this.$utils.generateId();
+    },
+    // 车型需要开关事件
+    carConfigNed(index) {
+      const that = this.$refs.multipleTable;
+      this.showcarConfigNedEdit("edit");
+    },
+    // 型需要开关弹窗
+    showcarConfigNedEdit(type) {
+      this.carConfigNedPopupsState = type;
+      this.carConfigNedPopupsVisible = true;
+      this.carConfigNedPopupsKey = this.$utils.generateId();
+    },
+    // 关闭车型需求弹窗
+    carConfigNedclose(type) {
+      this.carConfigNedPopupsVisible = false;
+      this.carConfigNedPopupsKey = this.$utils.generateId();
+    },
+    // 车型分配模式开关事件
+    carConfigshear(index) {
+      const that = this.$refs.multipleTable;
+      this.showcarConfigshearEdit("edit");
+    },
+    // 车型分配模式开关弹窗
+    showcarConfigshearEdit(type) {
+      this.carConfigshearPopupsState = type;
+      this.carConfigshearPopupsVisible = true;
+      this.carConfigshearPopupsKey = this.$utils.generateId();
+    },
+    // 关闭车型分配模式弹窗
+    carConfigshearclose(type) {
+      this.carConfigshearPopupsVisible = false;
+      this.carConfigshearPopupsKey = this.$utils.generateId();
+    },
+    // 本月提车进度开关事件
+    monthCar(index) {
+      const that = this.$refs.multipleTable;
+      this.showmonthCarEdit("edit");
+    },
+    // 本月提车进度开关弹窗
+    showmonthCarEdit(type) {
+      this.monthCarPopupsState = type;
+      this.monthCarPopupsVisible = true;
+      this.monthCarPopupsKey = this.$utils.generateId();
+    },
+    // 关闭本月提车进度度弹窗
+    monthCarclose(type) {
+      this.monthCarPopupsVisible = false;
+      this.monthCarPopupsKey = this.$utils.generateId();
+    },
+    //保存
+    save() {
+      const that = this.$refs.multipleTable;
+      let saveState = true;
+      let saveCount = 0;
+      let msg = "";
+      let selectData = that.$refs.multipleTable.selection;
+      if (selectData.length < 1) {
+        that.$message({
+          message: "请选择需要保存的采购单信息",
+          type: "warning",
+          duration: 2000
+        });
+        return;
+      }
+      for (var k in selectData) {
+        console.log(selectData);
+        let queryObj = {
+          // 保存mutation
+          type: "mutation",
+          // api配置
+          apiConfig: veApis.veDbBaseseriesFreezeBailMutationSave,
+          variables: {
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: {
+              carBrandId: selectData[k].carBrandCode,
+              baseSeriesFreezeBailId: selectData[k].baseSeriesFreezeBailId,
+              dlrId: selectData[k].dlrId,
+              freezeBail: selectData[k].freezeBail,
+              freezeWay: selectData[k].freezeWay,
+              freezeNodeId: selectData[k].freezeNodeId,
+              stockTypeId: selectData[k].stockTypeId,
+              orderTypeId: selectData[k].orderTypeId,
+              purcashTypeId: selectData[k].purcashTypeId,
+              seriesID: selectData[k].seriesID,
+              carBrandCode: selectData[k].carBrandCode,
+              groupCode: selectData[k].groupCode,
+              oemCode: selectData[k].oemCode,
+              updateControlId: selectData[k].updateControlId
+            }
+          }
+        };
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        // 调用中台API方法（可复用）
+        that.$requestGraphQL(paramD).then(response => {
+          if (response.data[queryObj.apiConfig.ServiceCode].result === "1") {
+            saveCount++;
+          } else {
+            saveState = false;
+            msg = response.data[queryObj.apiConfig.ServiceCode].msg;
+            that.$message({
+              message: msg,
+              type: "warning",
+              duration: 2000
+            });
+          }
+          if (saveCount == selectData.length) {
+            that.$message({
+              message: "保存成功",
+              type: "success",
+              duration: 2000
+            });
+            that.queryTable(1);
+          }
+        });
+      }
+    }
+  }
+};
+</script>
+<style scoped>
+@media screen and (max-width: 1264px) {
+}
+/deep/ .el-button,
+.el-input--small .el-input__inner {
+  min-width: 57px;
+}
+</style>
+
+

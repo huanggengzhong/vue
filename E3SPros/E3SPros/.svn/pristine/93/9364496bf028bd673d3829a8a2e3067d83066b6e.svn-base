@@ -1,0 +1,96 @@
+<!--
+* description: 销售顾问弹出框
+* author: zouzx
+* createdDate: 2019-09-17
+-->
+<template>
+  <section class="carTypeConfig">
+    <el-dialog
+      title="销售顾问"
+      :visible.sync="curPopupsVisible"
+      width="1000px"
+      center
+      @close="sendCode"
+      :close-on-click-modal="false"
+      :append-to-body="true"
+    >
+      <one-table-template
+        ref="multipleTable"
+        :dynamicButtons="tableButtons"
+        :dynamicComponents="tableComponents"
+        :dynamicApiConfig="apiConfig"
+        :dynamicTableCols="tableCols"
+        :dynamicFormFields="formField"
+        :dynamicIsShowSelect="false"
+      />
+    </el-dialog>
+  </section>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { valueObjectMixins } from '@/components/mixins/valueObjectMixins';
+import { crmApis } from "@/api/graphQLApiList/crm";
+import OneTableTemplate from "@/components/templates/popupsOneTable";
+export default {
+  // 组件混入对象：{data[listQuery] methods[queryTable]}
+  mixins: [oneTableWithViewTemplateMixins, valueObjectMixins],
+  components: {
+    OneTableTemplate
+  },
+  data() {
+    return {
+      // 网格查询API配置对象
+      apiConfig: crmApis.mdsSysPositionQueryEmpList,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: "查询"
+        },
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.sendCode("userId","empName"),
+          text: "确认"
+        },
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: "重置"
+        }
+      ],
+      // 动态组件-查询条件
+      tableComponents: [
+        // 显示组件
+        {
+          compKey: "compKey1",
+          labelName: "销售顾问",
+          codeField: "empName",
+          component: () => import("@/components/crm/textbox/crmTextInput"),
+          type: "inputText",
+          isMust: true
+        }
+      ],
+      // 动态生成网格列
+      tableCols: [
+        { prop: "empName", label: "销售顾问", width: null, align: "center" },
+        { prop: "dlrCode", label: "网点编码", width: null, align: "center",hidden: true},
+        { prop: "userId", label: "用户ID", width: null, align: "center",hidden: true}
+      ],
+      //表单查询数据（查询条件）
+      formField: {
+        isEnable:"1",
+        positionCode:"VE0001",
+      }
+    };
+  },
+  methods: {
+  }
+};
+</script>

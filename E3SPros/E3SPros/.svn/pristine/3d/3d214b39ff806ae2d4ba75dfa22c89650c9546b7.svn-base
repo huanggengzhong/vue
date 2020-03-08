@@ -1,0 +1,1099 @@
+/*
+ * @Author: zouzx
+ * @Date: 
+ * @Last Modified by: //此处填修改人名字
+ * @Last Modified time: 2019-10-22 20:13:34
+ * @pageName：救援处理
+ */
+
+<template>
+  <el-row>
+    <el-col :span="22">
+      <div class="app-container app-container-table ">
+        <div class="filter-container filter-button">
+          <el-button type="primary" size="small" @click="save">进度反馈</el-button>
+          <el-button size="small" @click="applyYQ">电话督办</el-button>
+          <el-button size="small" @click="applyJA">申请结案</el-button>
+        </div>
+
+        <el-steps :active="active" finish-status="success">
+          <el-step title="建单"></el-step>
+          <el-step title="派单"></el-step>
+          <el-step title="处理"></el-step>
+          <el-step title="回访"></el-step>
+          <el-step title="结案"></el-step>
+        </el-steps>
+
+        <crmGroupSubmit :formSubmitButton="formSubmitButton" />
+        <el-form class="editPer filter-params-crm-scroll crm-s-scroll edit">
+
+          <div class="filter-container-crm filter-title-crm">{{infoComponents[0].title}}</div>
+          <div class="filter-container-crm filter-params-crm">
+            <crmGroupForm :dynamicComponentss="infoComponents[0].tableComponents" :values="formField" />
+          </div>
+
+          <div class="filter-container-crm filter-title-crm">{{infoComponents[1].title}}</div>
+          <div class="filter-container-crm filter-params-crm">
+            <crmGroupForm :dynamicComponentss="infoComponents[1].tableComponents" :values="formField" />
+          </div>
+
+          <div class="filter-container-crm filter-title-crm">{{infoComponents[2].title}}</div>
+          <div class="filter-container-crm filter-params-crm">
+            <crmGroupForm :dynamicComponentss="infoComponents[2].tableComponents" :values="formField" />
+          </div>
+
+          <edit :dynamicEditRowData="editRowData" :popupsVisible="editPopupsVisible" :key="editPopupsKey" :popupsState="editPopupsState" @close="close"></edit>
+        </el-form>
+      </div>
+    </el-col>
+  </el-row>
+
+</template>
+<script>
+import { formMixins } from "@/components/mixins/formMixins";
+import { crmApis } from "@/api/graphQLApiList/crm";
+import { requestGraphQL } from "@/api/commonRequest";
+import crmGroupForm from "@/components/crm/commonComponents/crmGroupForm";
+import crmGroupSubmit from "@/components/crm/commonComponents/crmGroupSubmit";
+import edit from "@/views/crm/cu/CustInfo/keyInfo";
+export default {
+  name: "rescueHand",
+  components: {
+    crmGroupForm,
+    crmGroupSubmit,
+    edit
+  },
+  data() {
+    return {
+      keyInfo: false,
+      ismore: false,
+      ismutiple: false,
+      action: "", //证件上传地址
+      accepttype:
+        ".jpg,.jpeg,.png,.gif,.bmp,.pdf,.JPG,.JPEG,.PBG,.GIF,.BMP,.PDF", //上传文件类型
+      text1: "选择文件",
+      limit: 1,
+      showedit: false,
+      params: {},
+      nagflag: true,
+      posflag: false,
+      flag: true,
+      editPopupsKey: "",
+      editPopupsState: "",
+      editPopupsVisible: false,
+      infoComponents: [
+        {
+          title: "客户车辆信息",
+          tableComponents: [
+            {
+              compKey: "compKey1",
+              labelName: "客户名称",
+              codeField: "custName",
+              isRequire: false,
+              disabled: true,
+              isMust: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            // 非值列表  需处理
+            {
+              compKey: "compKey2",
+              labelName: "性别",
+              codeField: "genderName", //genderCode
+              isMust: true,
+              disabled: true,
+              isMul: false,
+              lookuptype: "DB0022",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            //
+            {
+              compKey: "compKey3",
+              labelName: "电话",
+              codeField: "phone",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            // 下面这个字段没有，拿上面的字段
+            {
+              compKey: "compKey4",
+              labelName: "备用电话",
+              codeField: "phone",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey5",
+              labelName: "客户名称",
+              codeField: "useCustName",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            // 非值列表  需处理
+            {
+              compKey: "compKey6",
+              labelName: "性别",
+              codeField: "useGenderName", //genderCode
+              isMul: false,
+              isMust: true,
+              disabled: true,
+              lookuptype: "DB0022",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            {
+              compKey: "compKey7",
+              labelName: "用车人电话",
+              codeField: "usePhone",
+              isRequire: false,
+              disabled: true,
+              isMust: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey8",
+              labelName: "备用电话",
+              codeField: "useBackupTel",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey9",
+              labelName: "车系",
+              codeField: "seCarSeriesName",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey10",
+              labelName: "车牌号",
+              codeField: "carLicenseNo",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey11",
+              labelName: "VIN码",
+              codeField: "vin",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey12",
+              labelName: "发动机号",
+              codeField: "engineNo",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey13",
+              labelName: "车辆品牌",
+              codeField: "carBrandName",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey14",
+              labelName: "车型",
+              codeField: "seCarTypeName",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            }
+          ]
+        },
+        {
+          title: "单据信息",
+          tableComponents: [
+            {
+              compKey: "compKey15",
+              labelName: "服务单号",
+              codeField: "serverOrder",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            // 弹窗
+            {
+              compKey: "compKey16",
+              labelName: "救援类型",
+              codeField: "createdDate",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            // 费值列表
+            {
+              compKey: "compKey17",
+              labelName: "救援地点",
+              codeField: "",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              span: 16,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey18",
+              labelName: "所在地标志物",
+              codeField: "",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            // 弹窗需修改
+            {
+              compKey: "compKey19",
+              labelName: "责任网点",
+              codeField: "nextDealEmpName",
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey20",
+              labelName: "故障描述",
+              codeField: "distRemark",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              span: 12,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey21",
+              labelName: "客户要求",
+              codeField: "remark",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              span: 12,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey22",
+              labelName: "坐席回答",
+              codeField: "distRemark",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              span: 12,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey23",
+              labelName: "派工说明",
+              codeField: "remark",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              span: 12,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey24",
+              labelName: "备注",
+              codeField: "remark",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              span: 12,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            }
+          ]
+        },
+        {
+          title: "处理信息",
+          tableComponents: [
+            {
+              compKey: "compKey25",
+              labelName: "责任网点",
+              codeField: "nextDealEmpName",
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            // 弹窗 需处理
+            {
+              compKey: "compKey26",
+              labelName: "救援车型",
+              codeField: "nextDealEmpName",
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey27",
+              labelName: "救援次数",
+              codeField: "nextDealEmpName",
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey28",
+              labelName: "处理时间",
+              codeField: "faultDate",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/Time/crmdatePicker")
+            },
+            {
+              compKey: "compKey29",
+              labelName: "出车时间",
+              codeField: "faultDate",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/Time/crmdatePicker")
+            },
+            {
+              compKey: "compKey30",
+              labelName: "到达时间",
+              codeField: "faultDate",
+              isRequire: false,
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/Time/crmdatePicker")
+            },
+            {
+              compKey: "compKey31",
+              labelName: "救援地点总里程",
+              codeField: "nextDealEmpName",
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey32",
+              labelName: "故障车辆里程",
+              codeField: "nextDealEmpName",
+              isMust: true,
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            //这个值列表编码OK
+            {
+              compKey: "compKey33",
+              labelName: "故障原因",
+              codeField: "genderName", //genderCode
+              isMust: true,
+              disabled: true,
+              isMul: false,
+              lookuptype: "LX077",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            // 这个值列表OK
+            {
+              compKey: "compKey34",
+              labelName: "解决方式",
+              codeField: "genderName", //genderCode
+              isMust: true,
+              disabled: true,
+              isMul: false,
+              lookuptype: "LX005",
+              component: () =>
+                import("@/components/crm/lookupValue/lookupvalue")
+            },
+            {
+              compKey: "compKey35",
+              labelName: "出车费",
+              codeField: "focuseNameList",
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey36",
+              labelName: "吊车费用",
+              codeField: "focuseNameList",
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey37",
+              labelName: "其他费用",
+              codeField: "focuseNameList",
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey38",
+              labelName: "合计费用",
+              codeField: "focuseNameList",
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            },
+            {
+              compKey: "compKey39",
+              labelName: "处理内容",
+              codeField: "focuseNameList",
+              disabled: true,
+              component: () => import("@/components/crm/textbox/crmTextInput")
+            }
+          ]
+        }
+      ],
+
+      isdisplay: {
+        ismuti: false
+      },
+      credit: false,
+      // 保存API配置对象
+      apiConfig: crmApis.createdOneIdMutationSaveCust, //客户信息-修改客户信息
+      formSubmitButton: [
+        {
+          compKey: "buttonKey1",
+          text: "修改关键信息",
+          size: "small",
+          type: "",
+          clickEvent: () => this.editInfo(),
+          isShow: true
+        },
+        {
+          compKey: "buttonKey2",
+          text: "保存",
+          size: "small",
+          type: "",
+          clickEvent: () => this.save(),
+          isShow: true
+        }
+      ],
+
+      formField: {
+        addQty: "",
+        backupTel: "",
+        baseSeriesCode: "",
+        baseSeriesName: "",
+        bigClassCode: "",
+        carBrandCn: "",
+        carBrandCode: "",
+        carLicense: "",
+        caseTime: "",
+        closeResult: "",
+        complainDesc: "",
+        contactTel: "",
+        createdDate: "",
+        crruNode: "",
+        crruNodeName: "",
+        custAge: "",
+        custName: "",
+        custNo: "",
+        custRequirement: "",
+        custTag: "",
+        dealDlrCode: "",
+        dealDlrName: "",
+        distRemark: "",
+        dutyDlrCode: "",
+        dutyDlrName: "",
+        dutyObj: "",
+        empName: "",
+        engineNo: "",
+        faultDate: "",
+        faultMileage: "",
+        gender: "",
+        genderName: "",
+        invoiceDate: "",
+        isAsseName: "",
+        lastUpdatedDate: "",
+        mileage: "",
+        nextDealEmpName: "",
+        nextDealOrgName: "",
+        nextDealPhone: "",
+        remark: "",
+        requOrgCode: "",
+        requOrgName: "",
+        reviewScore: "",
+        serverAnswer: "",
+        serverClassCode: "",
+        serverFullClassName: "",
+        serverLevel: "",
+        serverId: "",
+        serverLevelName: "",
+        serverOrder: "",
+        serverSourceCode: "",
+        serverSourceName: "",
+        serverTitle: "",
+        serverUrgency: "",
+        serverUrgencyName: "",
+        status: "",
+        statusName: "",
+        useBackupTel: "",
+        useCustAge: "",
+        useCustName: "",
+        useGenderCode: "",
+        useGenderName: "",
+        usePhone: "",
+        vCarseriesDesc: "",
+        vCartypeDesc: "",
+        vin: ""
+      }
+    };
+  },
+  created() {
+    //this.initData();
+  },
+  mounted: function() {
+    this.$nextTick(function() {
+      this.initData(this.$route.params.serverOrder);
+    });
+    this.$nextTick(() => {
+      this.initdata();
+    });
+  },
+  methods: {
+    manage() {
+      this.credit = true;
+    },
+
+    // 关键信息修改
+    editInfo(type) {
+      debugger;
+      this.editPopupsState = type;
+      this.editPopupsVisible = true;
+      this.editPopupsKey = this.$utils.generateId();
+    },
+    initdata() {
+      debugger;
+      if (this.$route.params.status == "edit") {
+        let formvalue = this.$route.params;
+        for (let key in this.formField) {
+          if (formvalue.hasOwnProperty(key)) {
+            this.formField[key] = formvalue[key];
+          }
+        }
+      } else if (this.$route.params.status == "add") {
+        this.reset();
+      }
+    },
+    edit(inde, row) {
+      this.showedit = true;
+    },
+    //保存
+    save() {
+      // validpopup  弹窗  validpage 页面
+      this.$utils.validataMoth(this, "validpopup");
+      if (this.valid) {
+        this.saveForm();
+      }
+    },
+    saveForm() {
+      //保存表单
+      let that = this;
+      this.formField.custClassCode = "0";
+      this.formField.custFullName = this.formField.custName;
+      debugger;
+      this.formField.custNo = this.$route.params.custNo;
+      this.formField.dlrCustNo = this.$route.params.dlrCustNo;
+      let queryObj = {
+        // api配置
+        type: "mutation",
+        apiConfig: crmApis.createdOneIdMutationSaveCust, //客户信息-修改
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.tabledata.pagesize,
+          pageIndex: that.tabledata.pageindex,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {
+            custModifyScence: "203", //场景编码--修改客户信息
+            custInfo: this.formField
+          }
+        }
+      };
+
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result == "1"
+          // &&response.data[queryObj.apiConfig.ServiceCode].rows != ""
+        ) {
+          that.$crmcf.showMessages(that, "success", "保存成功！");
+          that.$crmcf.crmcloseView(that);
+        } else {
+          that.$crmcf.showMessages(
+            that,
+            "error",
+            response.data[queryObj.apiConfig.ServiceCode].msg
+          );
+        }
+      });
+    },
+    // 联动
+    prochange(val) {
+      let that = this;
+      that.City.pcode = val;
+      if (that.$refs.city == undefined) {
+      } else {
+        that.$refs.city.getData();
+      }
+    },
+    citychange(val) {
+      let that = this;
+      that.District.pcode = val;
+      if (that.$refs.district == undefined) {
+      } else {
+        that.$refs.district.getData();
+      }
+    },
+
+    getarr(val) {
+      let redata = {};
+      redata = val;
+      this.xzUserId = redata[0].userId;
+    },
+    setBtnDp(crnode) {
+      if (crnode == "2") {
+        this.crruNode = "TS_DLRCL";
+        this.dlrcl = true;
+        this.dlrkf = true;
+        this.clObj = "DLR";
+      }
+      if (crnode == "23") {
+        this.crruNode = "TS_PVCL";
+        this.pvcl = true;
+        this.pvkf = true;
+        this.clObj = "PV";
+      }
+      if (crnode == "25") {
+        this.crruNode = "TS_ZJCL";
+        this.dlrkf = true;
+        this.pvkf = true;
+        this.clObj = "ZJ";
+      }
+      //clObj
+    },
+    initData(fwdh) {
+      let that = this;
+      if (fwdh == undefined) {
+        return;
+      }
+      let queryObj = {
+        // api配置
+        apiConfig: crmApis.csBuComplaintOrderQueryFindAll,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: [
+              "addQty",
+              "backupTel",
+              "baseSeriesCode",
+              "baseSeriesName",
+              "bigClassCode",
+              "carBrandCn",
+              "carBrandCode",
+              "carLicense",
+              "caseTime",
+              "closeResult",
+              "complainDesc",
+              "contactTel",
+              "createdDate",
+              "crruNode",
+              "crruNodeName",
+              "custAge",
+              "custName",
+              "custNo",
+              "custRequirement",
+              "custTag",
+              "dealDlrCode",
+              "dealDlrName",
+              "distRemark",
+              "dutyDlrCode",
+              "dutyDlrName",
+              "dutyObj",
+              "empName",
+              "engineNo",
+              "faultDate",
+              "faultMileage",
+              "gender",
+              "genderName",
+              "invoiceDate",
+              "isAsseName",
+              "lastUpdatedDate",
+              "linkBillCode",
+              "mileage",
+              "nextDealEmpName",
+              "nextDealOrgName",
+              "nextDealPhone",
+              "remark",
+              "requOrgCode",
+              "requOrgName",
+              "reviewScore",
+              "serverAnswer",
+              "serverClassCode",
+              "serverFullClassName",
+              "serverId",
+              "serverLevel",
+              "serverLevelName",
+              "serverOrder",
+              "serverSourceCode",
+              "serverSourceName",
+              "serverTitle",
+              "serverUrgency",
+              "serverUrgencyName",
+              "status",
+              "statusName",
+              "useBackupTel",
+              "useCustAge",
+              "useCustName",
+              "useGenderCode",
+              "useGenderName",
+              "usePhone",
+              "vCarseriesDesc",
+              "vCartypeDesc",
+              "vin"
+            ]
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: 10,
+          pageIndex: 1,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {
+            oemCode: this.$store.getters.orgInfo.OEM_CODE,
+            groupCode: this.$store.getters.orgInfo.GROUP_CODE,
+            serverOrder: fwdh
+          }
+        }
+      };
+      //转换了中台请求格式数据
+
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result == "1"
+          //&&response.data[queryObj.apiConfig.ServiceCode].rows != ""
+        ) {
+          let results = response.data[queryObj.apiConfig.ServiceCode].rows[0];
+          that.TSserverType = "2";
+          that.TSserverId = results["serverId"];
+          that.TSserverOrder = results["serverOrder"];
+          that.crruNode = results["crruNode"];
+          that.setBtnDp(results["status"]);
+          that.carBrandCode = results["carBrandCode"];
+          that.bigClassCode = results["bigClassCode"];
+          for (let key in that.form) {
+            if ("input" in that.form[key]) {
+              //
+              if (results.hasOwnProperty(key)) {
+                that.form[key].input = results[key];
+                that.$refs[key].getData();
+              }
+            } else {
+              if (results.hasOwnProperty(key)) {
+                that.form[key].value = results[key];
+                that.$refs[key].getData();
+              }
+            }
+          }
+
+          //   that.tabledatasCL.queryObj.params.serverOrder = fwdh;
+          //   setTimeout(function () {
+          //     if (that.$refs.tableCL!=undefined){
+          //       that.$refs.tableCL.getData();
+          //     }
+          //   }, 100)
+        } else {
+          that.$crmcf.showMessages(
+            that,
+            "error",
+            response.data[queryObj.apiConfig.ServiceCode].msg
+          );
+        }
+      });
+      that.$refs.Exinfo.initCL();
+      that.$refs.Exinfo.initcustinfo();
+    },
+    applyJA: function() {
+      this.getNextInfo("TS_DLRSQJA");
+    },
+    getNextInfo(val) {
+      let that = this;
+      that.isJaFlag = "";
+      var saveObj = {};
+      that.$set(saveObj, "oemCode", this.$store.getters.orgInfo.OEM_CODE);
+      that.$set(saveObj, "groupCode", this.$store.getters.orgInfo.GROUP_CODE);
+      that.$set(saveObj, "serverType", "2");
+      that.$set(saveObj, "carBrandCode", that.carBrandCode);
+      that.$set(saveObj, "serverClassCode", that.bigClassCode);
+      that.$set(saveObj, "nodeCode", val);
+      let queryObj = {
+        // api配置
+        type: "query",
+        apiConfig: crmApis.getNextDutyPerson,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: [
+              "dutyEmpId",
+              "dutyEmpName",
+              "dutyOrgId",
+              "dutyOrgName",
+              "dutyUserId",
+              "dutyUserMobile",
+              "dutyUserName"
+            ]
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: 100,
+          pageIndex: 1,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: saveObj
+        }
+      };
+
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result == "1"
+          //&&response.data[queryObj.apiConfig.ServiceCode].rows != ""
+        ) {
+          let results = response.data[queryObj.apiConfig.ServiceCode].rows[0];
+          if (results == undefined) {
+            var html = `<div>找不到下一步处理人</div>`;
+            if (html != "") {
+              this.$notify.error({
+                title: "校验项",
+                dangerouslyUseHTMLString: true,
+                message: html
+              });
+              return;
+            }
+          } else {
+            //给下一责任组件赋值
+            that.nextDealUserId = results["dutyUserId"];
+            that.nextDealUserName = results["dutyUserName"];
+            that.nextDealEmpId = results["dutyEmpId"];
+            that.nextDealEmpName = results["dutyEmpName"];
+            that.nextDealOrgId = results["dutyOrgId"];
+            that.nextDealOrgName = results["dutyOrgName"];
+            this.save(val);
+          }
+        } else {
+          this.$message({
+            message: response.data[queryObj.apiConfig.ServiceCode].msg,
+            type: "error",
+            duration: 1000
+          });
+        }
+      });
+    },
+    save(val) {
+      let that = this;
+      //校验
+      var html = "";
+      if (
+        that.$refs.DealWithContent.input == "" ||
+        that.$refs.DealWithContent.input == null
+      ) {
+        html = html + `<div>处理内容不能为空</div>`;
+      }
+      if (html != "") {
+        this.$notify.error({
+          title: "校验项",
+          dangerouslyUseHTMLString: true,
+          message: html
+        });
+        return;
+      }
+      //赋值
+      var saveObj = {};
+      that.$set(saveObj, "oemCode", this.$store.getters.orgInfo.OEM_CODE);
+      that.$set(saveObj, "groupCode", this.$store.getters.orgInfo.GROUP_CODE);
+      that.$set(saveObj, "serverType", "2");
+      that.$set(saveObj, "custName", that.$refs.custName.input);
+      that.$set(saveObj, "contactTel", that.$refs.contactTel.input);
+      that.$set(saveObj, "serverId", that.TSserverId);
+      that.$set(saveObj, "serverOrder", that.TSserverOrder);
+      that.$set(
+        saveObj,
+        "crruNode",
+        val.toString() == "[object MouseEvent]" ? that.crruNode : val
+      );
+      if (that.clObj == "PV") {
+        that.$set(saveObj, "dealTitle", "网点处理");
+      } else if (that.clObj == "DLR") {
+        that.$set(saveObj, "dealTitle", "厂家处理");
+      } else if (that.clObj == "ZJ") {
+        that.$set(saveObj, "dealTitle", "专家处理");
+      }
+      that.$set(saveObj, "dealContent", that.$refs.DealWithContent.input);
+      that.$set(saveObj, "nextDealUserId", that.nextDealUserId);
+      that.$set(saveObj, "nextDealUserName", that.nextDealUserName);
+      that.$set(saveObj, "nextDealEmpId", that.nextDealEmpId);
+      that.$set(saveObj, "nextDealEmpName", that.nextDealEmpName);
+      that.$set(saveObj, "nextDealOrgId", that.nextDealOrgId);
+      that.$set(saveObj, "nextDealOrgName", that.nextDealOrgName);
+
+      let queryObj = {
+        // api配置
+        type: "mutation",
+        apiConfig: crmApis.csBuComplaintOrderMutationDealTS,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: []
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: saveObj
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result === "1"
+          //&&response.data[queryObj.apiConfig.ServiceCode].rows!=""
+        ) {
+          this.dialogVisible = false;
+          that.$crmcf.showMessages(that, "success", "操作成功");
+          that.$crmcf.crmcloseView(that, "crmMyToBe");
+        } else {
+          that.$crmcf.showMessages(
+            that,
+            "error",
+            response.data[queryObj.apiConfig.ServiceCode].msg
+          );
+        }
+      });
+    },
+    submitUpload() {
+      this.$refs.upload.submit();
+    },
+    applyYQ() {
+      let that = this;
+      that.dialogYQSQ = true;
+      that.yqsqOrder = that.$refs.serverOrder.input;
+      that.tabledatasJL.queryObj.params.serverOrder =
+        that.$refs.serverOrder.input;
+      setTimeout(function() {
+        if (that.$refs.tableJL != undefined) {
+          that.$refs.tableJL.getData();
+        }
+      }, 100);
+    },
+    applyOP: function() {
+      let that = this;
+      //校验
+      var html = "";
+      if (that.delayreason == "") {
+        html = html + `<div>请填写申请延期原因</div>`;
+      }
+      if (html != "") {
+        this.$notify.error({
+          title: "校验项",
+          dangerouslyUseHTMLString: true,
+          message: html
+        });
+        return;
+      }
+      //赋值
+      var saveObj = {};
+      that.$set(saveObj, "oemCode", this.$store.getters.orgInfo.OEM_CODE);
+      that.$set(saveObj, "groupCode", this.$store.getters.orgInfo.GROUP_CODE);
+      // that.$set(saveObj, "serverType", "2");
+      that.$set(saveObj, "serverId", that.TSserverId);
+      that.$set(saveObj, "serverOrder", that.TSserverOrder);
+      that.$set(saveObj, "delayReson", that.delayreason);
+
+      let queryObj = {
+        // api配置
+        type: "mutation",
+        apiConfig: crmApis.csBuComplaintDelaySave,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: []
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: saveObj
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result === "1"
+          //&&response.data[queryObj.apiConfig.ServiceCode].rows!=""
+        ) {
+          this.dialogYQSQ = false;
+          that.$crmcf.showMessages(that, "success", "延期申请成功");
+        } else {
+          that.$crmcf.showMessages(
+            that,
+            "error",
+            response.data[queryObj.apiConfig.ServiceCode].msg
+          );
+        }
+      });
+    },
+    //电话
+    callscreen() {
+      this.callflag = true;
+    },
+    usercall() {
+      let that = this;
+      that.callflag = true;
+    },
+    //短信
+    msgmod() {
+      this.Msgmodflag = true;
+    },
+    backupMsg() {
+      this.Msgmodflag = true;
+    },
+    getMsg(rowData) {
+      this.modc.input = rowData.templateName;
+      this.$refs.ModelContentText.getData();
+    }
+  }
+};
+</script>
+<style scoped>
+.choosefile {
+  float: left;
+  text-align: left;
+}
+</style>

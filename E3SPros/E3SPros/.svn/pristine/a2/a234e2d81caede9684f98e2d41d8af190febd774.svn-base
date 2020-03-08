@@ -1,0 +1,1225 @@
+<template>
+  <div>
+    <el-row>
+      <el-col :span="7">
+        <el-col style="background:white">
+          <div class="filter-container filter-params">
+            <el-form :model="timeListQuery" ref="ruleForm" class="demo-ruleForm">
+              <el-row :gutter="24">
+                <el-col :span="24">
+                  <label>选择日期</label>
+                  <el-date-picker
+                    v-model="repairDate"
+                    type="daterange"
+                    range-separator="至"
+                    start-placeholder="开始日期"
+                    end-placeholder="结束日期"
+                    unlink-panels
+                    value-format="yyyy-MM-dd"
+                    format="yyyy-MM-dd"
+                    @change="getRepairTime"
+                  ></el-date-picker>
+                </el-col>
+
+                <!-- <el-col :span="24">
+                  <el-form-item label="开始日期" prop="beginDate">
+                    <el-date-picker
+                      type="date"
+                      :picker-options="pickerStartDate"
+                      placeholder="选择日期"
+                      v-model="timeListQuery.beginDate"
+                      value-format="yyyy-MM-dd"
+                      format="yyyy-MM-dd"
+                    ></el-date-picker>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="24">
+                  <el-form-item label="结束日期" prop="endDate">
+                    <el-date-picker
+                      type="date"
+                      :picker-options="pickerCloseDate"
+                      placeholder="选择日期"
+                      v-model="timeListQuery.endDate"
+                      value-format="yyyy-MM-dd"
+                      format="yyyy-MM-dd"
+                    ></el-date-picker>
+                  </el-form-item>
+                </el-col>-->
+              </el-row>
+              <el-row :gutter="24">
+                <el-form-item>
+                  <div class="filter-container filter-button">
+                    <el-button type="primary" @click="TimeQuery('ruleForm')">查询</el-button>
+                    <el-button @click="showaddDialog()">新增</el-button>
+
+                    <el-button @click="showDialog()">修改</el-button>
+                  </div>
+                </el-form-item>
+              </el-row>
+            </el-form>
+            <el-dialog
+              title="级别时间段"
+              :visible.sync="addDialog"
+              customClass="customWidth"
+              width="25%"
+              :close-on-click-modal="false"
+              :append-to-body="true"
+              center
+            >
+              <div class="filter-container filter-params">
+                <!-- <el-row>
+                       <el-col :span="24">
+                        <label>选择日期</label>
+                                <el-date-picker
+                                  v-model="timeListModel.repairDate"
+                                  type="daterange"
+                                  range-separator="至"
+                                  start-placeholder="开始日期"
+                                  end-placeholder="结束日期">
+                            </el-date-picker>
+                       </el-col>
+                </el-row>-->
+
+                <el-row>
+                  <el-col :span="24">
+                    <label>开始时间</label>
+                    <el-date-picker
+                      type="date"
+                      :picker-options="pickerStartDate1"
+                      placeholder="选择日期"
+                      v-model="timeListModel.beginDate"
+                      style="width: 65%;"
+                      :disabled="timeListModel.beginDate != ''"
+                      value-format="yyyy-MM-dd"
+                      format="yyyy-MM-dd"
+                    ></el-date-picker>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="24">
+                    <label>结束时间</label>
+                    <el-date-picker
+                      type="date"
+                      :picker-options="pickerCloseDate1"
+                      placeholder="选择日期"
+                      v-model="timeListModel.endDate"
+                      style="width: 65%;"
+                      value-format="yyyy-MM-dd"
+                      format="yyyy-MM-dd"
+                    ></el-date-picker>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="24">
+                    <el-button type="primary" @click="TimeQueryadd()">确定</el-button>
+                    <el-button @click="addDialog = false">取消</el-button>
+                  </el-col>
+                </el-row>
+              </div>
+            </el-dialog>
+          </div>
+        </el-col>
+
+        <el-col>
+          <div class="filter-container filter-title">查询结果</div>
+          <el-table
+            v-loading="timeListLoading"
+            :data="timelist"
+            element-loading-text="Loading"
+            border
+            fit
+            stripe
+            :header-cell-style="tableHeaderRowClassName"
+            highlight-current-row
+            :default-sort="{prop: 'date', order: 'descending'}"
+            @row-click="rowClicked"
+          >
+            <el-table-column align="center" prop="date" label="序号" width="60">
+              <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+            </el-table-column>
+
+            <el-table-column label="开始日期" prop="date" sortable align="center">
+              <template slot-scope="scope">{{ scope.row.beginDate}}</template>
+            </el-table-column>
+
+            <el-table-column label="结束日期" prop="date" sortable align="center">
+              <template slot-scope="scope">{{ scope.row.endDate}}</template>
+            </el-table-column>
+          </el-table>
+        </el-col>
+      </el-col>
+
+      <el-col :span="17" style="padding-left: 5px;">
+        <el-tabs v-model="activeName" @tab-click="handleClick" style="background:white">
+          <el-tab-pane label="经销商级别" name="first">
+            <el-col style="background:white" text align="right">
+              <div class="filter-container filter-button" ref="searcheHeight">
+                <el-button type="primary" size="small" @click="LevleQuery()">查询</el-button>
+                <el-button @click="showAdd()">新增</el-button>
+                <el-button @click="showLevleSave()">保存</el-button>
+                <el-button @click="reset()">重置</el-button>
+              </div>
+            </el-col>
+
+            <el-col>
+              <div class="filter-container filter-params" ref="conHeight">
+                <el-row :gutter="24">
+                  <el-col :span="20">
+                    <template>
+                      <LookupValue
+                        :span="10"
+                        :isMul="false"
+                        :isshow="true"
+                        :code="listQuery.dataInfo.dlrLevelCode"
+                        :lookuptype="dlrLeveltype"
+                        :options="dlrLevelOptions"
+                        labelName="经销商级别"
+                        @changeCode="getDlrLevelValue"
+                      />
+                    </template>
+
+                    <el-col :span="10">
+                      <label>经销商</label>
+                      <el-input
+                        v-model="listQuery.dlrShortName"
+                        placeholder="请选择"
+                        size="small"
+                        suffix-icon="el-icon-search"
+                        @focus="dosseCommonQueryChooseDlr()"
+                      />
+                    </el-col>
+
+                    <seCommonQueryChooseDlr
+                      ref="seCommonQueryChooseDlr"
+                      :isMul="true"
+                      :seComQueChoDlrVisible="seComQueChoDlrVisible"
+                      @sentCode="getComQueCho"
+                      @close="closeComQueCho"
+                    />
+                  </el-col>
+                  <el-col :span="4">
+                    <el-button @click="changeToggleParam" class="moreParam">更多</el-button>
+                  </el-col>
+                  <el-col :span="20" v-show="toggleParam" class="toggleParam" style="z-index:2000">
+                    <el-row>
+                      <el-col :span="10">
+                        <label>选择日期</label>
+                        <el-date-picker
+                          v-model="repairDateD"
+                          type="daterange"
+                          range-separator="至"
+                          start-placeholder="开始日期"
+                          end-placeholder="结束日期"
+                          :unlink-panels="false"
+                          value-format="yyyy-MM-dd"
+                          format="yyyy-MM-dd"
+                          disabled
+                          @change="getTimeD"
+                        ></el-date-picker>
+                      </el-col>
+                      <!-- <el-col :span="10">
+                        <label>开始日期</label>
+                        <el-date-picker
+                          type="date"
+                          v-model="listQuery.dataInfo.beginDate"
+                          placeholder
+                          size="small"
+                          disabled
+                        />
+                      </el-col>
+                      <el-col :span="10">
+                        <label>结束日期</label>
+                        <el-date-picker
+                          type="date"
+                          v-model="listQuery.dataInfo.disableDate"
+                          placeholder
+                          size="small"
+                          disabled
+                        />
+                      </el-col>-->
+
+                      <carBrand
+                        :isMul="false"
+                        :span="10"
+                        :code="listQuery.dataInfo.carBrandCode"
+                        labelName="车辆品牌"
+                        :key="carBrandKey"
+                        ref="select_carBrandCode"
+                        @changeCode="getCarBrand"
+                      ></carBrand>
+                    </el-row>
+                  </el-col>
+                </el-row>
+              </div>
+            </el-col>
+
+            <el-col>
+              <div class="filter-container filter-title" ref="userHeight1">查询结果</div>
+              <el-table
+                v-loading="listLoading"
+                :data="list"
+                element-loading-text="Loading"
+                border
+                fit
+                stripe
+                :height="tabHeight"
+                :header-cell-style="tableHeaderRowClassName"
+                highlight-current-row
+                @change="getcode"
+              >
+                <el-table-column align="center" label="序号" width="60">
+                  <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+                </el-table-column>
+
+                <el-table-column align="center" label="组织品牌" width="110">
+                  <template slot-scope="scope">{{ scope.row.orgBrandName}}</template>
+                </el-table-column>
+
+                <el-table-column align="center" label="经销商编码" width="90">
+                  <template slot-scope="scope">{{ scope.row.dlrCode}}</template>
+                </el-table-column>
+
+                <el-table-column align="center" label="经销商简称" width="180">
+                  <template slot-scope="scope">{{ scope.row.dlrShortName}}</template>
+                </el-table-column>
+
+                <el-table-column align="center" width="150" label="车辆品牌+">
+                  <template slot-scope="scope">
+                    <carBrand
+                      :isMul="false"
+                      :span="24"
+                      :key="scope.row.carBrandCode"
+                      :isShowLabel="false"
+                      :comType="scope.$index+''"
+                      :code="scope.row.carBrandCode"
+                      codeField="carBrandCode"
+                      @changeCode="getCarBrand"
+                    ></carBrand>
+                  </template>
+                </el-table-column>
+
+                <el-table-column align="center" label="级别+" width="90">
+                  <template slot-scope="{row}">
+                    <el-select v-model="row.dlrLevelCode" size="small" placeholder="请选择">
+                      <el-option
+                        v-for="item in dlrLevelOptions"
+                        :key="item.code"
+                        :label="item.text"
+                        :value="item.code"
+                      ></el-option>
+                    </el-select>
+                  </template>
+                </el-table-column>
+
+                <el-table-column align="center" label="开始日期" width="120">
+                  <template slot-scope="scope">{{ scope.row.beginDate}}</template>
+                </el-table-column>
+
+                <el-table-column align="center" label="结束日期" width="120">
+                  <template slot-scope="scope">{{ scope.row.disableDate}}</template>
+                </el-table-column>
+              </el-table>
+              <el-pagination
+                background
+                ref="paginationHeight"
+                layout="prev, pager, next, sizes, ->, total"
+                prev-text="上一页"
+                next-text="下一页"
+                :page-sizes="[10, 20, 30]"
+                :page-size="10"
+                :total="list?list.length:0"
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+              />
+            </el-col>
+          </el-tab-pane>
+
+          <el-tab-pane label="经销商级别导入" name="second">
+            <el-col>
+              <el-row :gutter="24">
+                <el-col :span="14" class="left">
+                  Excel文件
+                  <el-input
+                    v-model="firstFile.name"
+                    placeholder="请浏览"
+                    size="small"
+                    class="leftContent"
+                    disabled
+                  />
+                </el-col>
+                <el-col :span="10" class="rightContent">
+                  <el-upload
+                    class="upload-demo"
+                    ref="upload"
+                    action
+                    :http-request="handleChange"
+                    :data="uploadData"
+                    :headers="uploadHeaders"
+                    name="excelFile"
+                    :file-list="fileList"
+                    :on-error="uploadFalse"
+                    :auto-upload="true"
+                    :before-upload="beforeAvatarUpload"
+                    :before-remove="beforeRemove"
+                    :on-exceed="handleExceed"
+                    :on-change="handFileListChange"
+                    :limit="1"
+                    :show-file-list="false"
+                    list-type="text"
+                  >
+                    <el-button type="primary" size="small" slot="trigger">浏览</el-button>
+
+                    <el-button @click="LevleImportSave()">保存</el-button>
+                    <a class="linkFont" href="www.baidu.com">模板下载</a>
+                  </el-upload>
+                </el-col>
+              </el-row>
+            </el-col>
+            <el-col>
+              <div class="filter-container filter-title">导入数据预览</div>
+              <el-table
+                v-loading="listLoading"
+                :data="implist"
+                element-loading-text="Loading"
+                border
+                fit
+                stripe
+                :height="tableHeight2"
+                :header-cell-style="tableHeaderRowClassName"
+                highlight-current-row
+              >
+                <el-table-column align="center" label="序号" width="60">
+                  <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+                </el-table-column>
+
+                <el-table-column align="center" label="组织品牌">
+                  <template slot-scope="scope">{{ scope.row.orgCarbrandName}}</template>
+                </el-table-column>
+
+                <el-table-column align="center" label="经销商编码">
+                  <template slot-scope="scope">{{ scope.row.dlrCode}}</template>
+                </el-table-column>
+
+                <el-table-column align="center" label="经销商简称">
+                  <template slot-scope="scope">{{ scope.row.dlrShortName}}</template>
+                </el-table-column>
+
+                <el-table-column align="center" label="车辆品牌+" width="140">
+                  <template slot-scope="{row}">
+                    <carBrand
+                      :isMul="false"
+                      :span="24"
+                      :key="row.carBrandCode"
+                      :isShowLabel="false"
+                      :code="row.carBrandCode"
+                      changeCode1="getimCarBrand"
+                    ></carBrand>
+                  </template>
+                </el-table-column>
+
+                <el-table-column align="center" label="级别+">
+                  <template slot-scope="{row}">
+                    <el-select v-model="row.dlrLevelCode" size="small" placeholder="请选择">
+                      <el-option
+                        v-for="item in dlrLevelOptions"
+                        :key="item.code"
+                        :label="item.text"
+                        :value="item.code"
+                      ></el-option>
+                    </el-select>
+                  </template>
+                </el-table-column>
+
+                <el-table-column align="center" label="开始日期">
+                  <template slot-scope="scope">{{ scope.row.beginDate}}</template>
+                </el-table-column>
+
+                <el-table-column align="center" label="结束日期">
+                  <template slot-scope="scope">{{ scope.row.endDate}}</template>
+                </el-table-column>
+              </el-table>
+              <el-pagination
+                background
+                ref="paginationHeight"
+                layout="prev, pager, next, sizes, ->, total"
+                prev-text="上一页"
+                next-text="下一页"
+                :page-sizes="[10, 20, 30]"
+                :page-size="10"
+                :total="implist?implist.length:0"
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+              />
+            </el-col>
+          </el-tab-pane>
+        </el-tabs>
+      </el-col>
+    </el-row>
+  </div>
+</template>
+
+<script>
+// import orgDlr from "@/components/org/orgDlr";
+import seCommonQueryChooseDlr from "@/components/se/seCommonQueryChooseDlr";
+import LookupValue from "@/components/org/LookupValue";
+import lableName from "@/components/lableName";
+import carBrand from "@/components/org/carBrand/carBrand";
+import { doQueryMdsLookupValueByPage } from "@/api/se/process/workorder/repairWorkOrderEdit";
+
+import {
+  doTimeQuery,
+  doTimeSave,
+  doLevleQuery,
+  doLevleSave,
+  doLevleImp
+} from "@/api/se/basedata/repair/SeDbNetLevle";
+import { seApis } from "@/api/graphQLApiList/se";
+import { orgApis } from "@/api/graphQLApiList/org";
+import { the_Height } from "@/views/se/makeHeight";
+import { SeDbNetLevleMixin1 } from "./mixins/SeDbNetLevleMixin1";
+import config from "@/utils/config";
+
+export default {
+  mixins: [the_Height, SeDbNetLevleMixin1],
+  components: {
+    // orgDlr,
+    carBrand,
+    seCommonQueryChooseDlr,
+    LookupValue,
+    lableName
+  },
+  data() {
+    return {
+      toggleParam: false,
+      tableHeight2: "",
+      pic: true,
+      fileList: [],
+      firstFile: {},
+      uploadData: {},
+      tableHeight: 310, // 网格高度
+      tabHeight: "",
+      tableMarginHeight: 15,
+      activeName: "first",
+      listLoading: false,
+      timeListLoading: false,
+      netLevlecarBrand: "",
+      list: null,
+      implist: null,
+      timelist: null,
+      isMul: false,
+      isEnable: "",
+      seComQueChoDlrVisible: false,
+      addDialog: false,
+      string: "",
+      carBrandKey: "b",
+      carBrandCode: "",
+      imcarBrand: "",
+      carBrand: "",
+      repairDate: [],
+      repairDateD: [],
+      dlrLeveltype: "SE0001",
+      tableHeaderRowClassName({ row, rowIndex }) {
+        if (rowIndex === 0) {
+          return "background-color:rgb(239, 239, 239);height:32px;";
+        }
+      },
+      curRow: {},
+      timeListQuery: {
+        beginDate: "",
+        endDate: ""
+      },
+      timeListModel: {
+        beginDate: "",
+        endDate: ""
+      },
+      dlrLevelOptions: [],
+      pickerStartDate: this.getPickerStartDate(),
+      pickerCloseDate: this.getPickerCloseDate(),
+      pickerStartDate1: {
+        disabledDate: time => {
+          if (this.$utils.isEmpty(this.timeListModel.endDate)) return false;
+          return (
+            time.getTime() >
+            new Date(this.timeListModel.endDate).getTime() - 1000 * 60 * 60 * 8
+          ); //8小时时区差
+        }
+      },
+      pickerCloseDate1: {
+        disabledDate: time => {
+          if (this.$utils.isEmpty(this.timeListModel.beginDate)) return false;
+          return (
+            time.getTime() <
+            new Date(this.timeListModel.beginDate).getTime() -
+              1000 * 60 * 60 * 8
+          ); //8小时时区差
+        }
+      }
+    };
+  },
+  beforeCreate() {},
+  created() {
+    var now = new Date();
+    /* this.timeListQuery.beginDate = this.$utils.parseTime(now, "{y}-{m}-{d}");
+    now.setFullYear(now.getFullYear() + 2);
+    this.timeListQuery.endDate = this.$utils.parseTime(now, "{y}-{m}-{d}");*/
+    let beginDate = this.$utils.parseTime(now, "{y}-{m}-{d}");
+    now.setFullYear(now.getFullYear() + 2);
+    let endDate = this.$utils.parseTime(now, "{y}-{m}-{d}");
+    this.repairDate = [];
+    this.repairDate.push(beginDate);
+    this.repairDate.push(endDate);
+    this.queryLookupValue();
+  },
+  mounted() {
+    window.addEventListener("resize", () => {
+      this.setTableHeight2(true);
+    });
+    this.$nextTick(() => {
+      this.setTableHeight2();
+    });
+  },
+  watch: {},
+  methods: {
+    getPickerStartDate() {
+      const self = this;
+      return {
+        disabledDate(time) {
+          if (
+            self.timeListQuery.endDate == null ||
+            self.timeListQuery.endDate == ""
+          )
+            return false;
+          return (
+            time.getTime() >
+            new Date(self.timeListQuery.endDate).getTime() - 1000 * 60 * 60 * 8
+          ); //8小时时区差
+        }
+      };
+    },
+    getPickerCloseDate() {
+      const self = this;
+      return {
+        disabledDate(time) {
+          if (
+            self.timeListQuery.beginDate == null ||
+            self.timeListQuery.beginDate == ""
+          )
+            return false;
+          return (
+            time.getTime() <
+            new Date(self.timeListQuery.beginDate).getTime() -
+              1000 * 60 * 60 * 8
+          ); //8小时时区差
+        }
+      };
+    },
+    setTableHeight(isResize) {
+      this.$nextTick(() => {
+        // 调用AppMain中的方法设置网格高度（自适应）
+        var appMainHeight = this.$utils.getAppMainHeight(
+          this.$route.path,
+          this
+        );
+        if (appMainHeight > 0) {
+          var curTableHeight = appMainHeight;
+          // 减去查询按钮区域高度
+          if (this.$refs.uHeight1) {
+            curTableHeight -= this.$refs.uHeight1.offsetHeight;
+          }
+          // 减去分页区域高度
+          if (this.$refs.paginationHeight) {
+            if (this.$refs.paginationHeight.offsetHeight) {
+              curTableHeight -= this.$refs.paginationHeight.offsetHeight;
+            } else {
+              curTableHeight -= this.$refs.paginationHeight.$el.offsetHeight;
+            }
+          }
+          // 减去margin-top/bottom值
+          if (!this.$utils.isIE() || isResize) {
+            this.tableHeight2 = curTableHeight - this.tableMarginHeight - 140;
+          } else {
+            // IE浏览器需要减去额外高度
+            this.tableHeight2 = curTableHeight - this.tableMarginHeight - 30;
+          }
+        }
+      });
+    },
+
+    setTableHeight2(isResize) {
+      this.$nextTick(() => {
+        // 调用AppMain中的方法设置网格高度（自适应）
+        var appMainHeight = this.$utils.getAppMainHeight(
+          this.$route.path,
+          this
+        );
+        if (appMainHeight > 0) {
+          var curTableHeight = appMainHeight;
+          // 减去查询按钮区域高度
+          if (this.$refs.uHeight1) {
+            curTableHeight -= this.$refs.uHeight1.offsetHeight;
+          }
+          // 减去分页区域高度
+          if (this.$refs.paginationHeight) {
+            if (this.$refs.paginationHeight.offsetHeight) {
+              curTableHeight -= this.$refs.paginationHeight.offsetHeight;
+            } else {
+              curTableHeight -= this.$refs.paginationHeight.$el.offsetHeight;
+            }
+          }
+          // 减去margin-top/bottom值
+          if (!this.$utils.isIE() || isResize) {
+            this.tabHeight = curTableHeight - this.tableMarginHeight - 267;
+          } else {
+            // IE浏览器需要减去额外高度
+            this.tabHeight = curTableHeight - this.tableMarginHeight - 30;
+          }
+        }
+      });
+    },
+
+    getcode(row, cloumn) {
+      console.log(cloumn);
+    },
+    getRepairTime(val) {
+      this.timeListQuery.beginDate = val[0];
+      this.timeListQuery.endDate = val[1];
+    },
+    getTimeD(val) {
+      this.listQuery.dataInfo.beginDate = val[0];
+      this.listQuery.dataInfo.disableDate = val[1];
+    },
+    getMaxTime() {
+      /* if (this.timelist != null && this.timelist.length > 0) {
+        var maxDate = new Date(this.timelist[0].endDate);
+        for (var i = 1; i < this.timelist.length; i++) {
+          var tempDate = new Date(this.timelist[i].endDate);
+          if (tempDate > maxDate) maxDate = tempDate;
+        }
+        maxDate.setDate(maxDate.getDate() + 1);
+        this.timeListModel.beginDate = this.$utils.parseTime(
+          maxDate,
+          "{y}-{m}-{d}"
+        );
+      } else this.timeListModel.beginDate = ""; */
+      let timeListAllQuery = {
+        beginDate: "",
+        endDate: ""
+      };
+      doTimeQuery(-1, 1, timeListAllQuery).then(response => {
+        let resData =
+          response.data[seApis.seDbNetLevleTimeQueryFindAll.ServiceCode];
+        if (resData.result == "1") {
+          let allTime = resData.rows;
+          if (allTime != null && allTime.length > 0) {
+            let maxDate = new Date(allTime[0].endDate);
+            for (let i = 1; i < allTime.length; i++) {
+              let tempDate = new Date(allTime[i].endDate);
+              if (tempDate > maxDate) maxDate = tempDate;
+            }
+            maxDate.setDate(maxDate.getDate() + 1);
+            this.timeListModel.beginDate = this.$utils.parseTime(
+              maxDate,
+              "{y}-{m}-{d}"
+            );
+          } else {
+            this.timeListModel.beginDate = "";
+          }
+        } else {
+          this.timeListModel.beginDate = "";
+        }
+        this.timeListLoading = false;
+      });
+    },
+    TimeQuery() {
+      // this.$refs[formName].validate(valid => {
+      if (this.repairDate.length != 0) {
+        this.timeListQuery.beginDate = this.repairDate[0];
+        this.timeListQuery.endDate = this.repairDate[1];
+      }
+      if (
+        !this.$utils.isEmpty(this.timeListQuery.beginDate) &&
+        !this.$utils.isEmpty(this.timeListQuery.endDate)
+      ) {
+        // 校验通过
+        if (this.timeListQuery.beginDate.length < 19)
+          this.timeListQuery.beginDate =
+            this.timeListQuery.beginDate + " 00:00:00";
+        if (this.timeListQuery.endDate.length < 19)
+          this.timeListQuery.endDate = this.timeListQuery.endDate + " 00:00:00";
+        this.timeListLoading = true;
+        doTimeQuery(-1, 1, this.timeListQuery).then(response => {
+          var resData =
+            response.data[seApis.seDbNetLevleTimeQueryFindAll.ServiceCode];
+          if (resData.result == "1") {
+            this.timelist = resData.rows;
+            this.timelist.forEach(row => {
+              row.beginDate = row.beginDate.substr(0, 10);
+              row.endDate = row.endDate.substr(0, 10);
+            });
+          } else {
+            this.$message({
+              type: "error",
+              message: `查询出错:${resData.msg}`
+            });
+          }
+
+          this.timeListLoading = false;
+        });
+      } else {
+        // 校验不通过
+        this.$message({
+          type: "warning",
+          message: `请选择开始时间、结束时间`
+        });
+        return false;
+      }
+      // })
+    },
+
+    showaddDialog() {
+      // 新增按键弹框方法
+      this.getMaxTime();
+      this.timeListModel.endDate = "";
+      this.timeListModel.netLevleTimeId = undefined; //去除修改时间所需字段
+      this.timeListModel.updateControlId = undefined; //去除修改时间所需字段
+      this.addDialog = true;
+    },
+
+    showDialog() {
+      // 修改按键弹框方法
+      if (this.curRow.beginDate == null) {
+        this.$alert("请选中一行", "提示", {
+          confirmButtonText: "确定",
+          type: "warning"
+        });
+        return;
+      } else {
+        this.timeListModel.beginDate = this.curRow.beginDate;
+        this.timeListModel.endDate = this.curRow.endDate;
+        this.timeListModel.netLevleTimeId = this.curRow.netLevleTimeId;
+        this.timeListModel.updateControlId = this.curRow.updateControlId;
+        this.addDialog = true;
+      }
+    },
+
+    TimeQueryadd() {
+      // 时间新增修改方法
+      if (this.$utils.isEmpty(this.timeListModel.beginDate)) {
+        this.$alert("请填写开始日期", "提示", {
+          type: "warning"
+        });
+        return;
+      } else if (this.$utils.isEmpty(this.timeListModel.endDate)) {
+        this.$alert("请填写结束日期", "提示", {
+          type: "warning"
+        });
+        return;
+      } else {
+        if (this.timeListModel.beginDate.length < 19)
+          this.timeListModel.beginDate += " 00:00:00";
+        if (this.timeListModel.endDate.length < 19)
+          this.timeListModel.endDate += " 00:00:00";
+        const that = this;
+        doTimeSave(this.timeListModel).then(response => {
+          if (response.result == "0") {
+            that.$message({
+              type: "error",
+              message: `保存失败` 
+            });
+            if (response.errors && response.errors.length > 0)
+              console.log(response.errors.join(","));
+            return;
+          }
+          var resData =
+            response.data[seApis.SeDbNetLevleTimeMutationSave.ServiceCode];
+          if (resData.result === "0") {
+            that.$message({
+              type: "error",
+              message: `只能修改最新时间段信息`
+            });
+            return;
+          }
+          that.timelist = resData.rows;
+          that.curRow = {
+            beginDate: null,
+            endDate: null
+          };
+          that.timeListModel.endDate = null;
+          that.listQuery.beginDate = null; // 清空右边区域数据
+          that.listQuery.endDate = null;
+          that.TimeQuery();
+          that.addDialog = false;
+        });
+      }
+    },
+
+    LevleQuery() {
+      // 经销商级别查询
+      if (this.repairDateD.length != 0) {
+        this.listQuery.dataInfo.beginDate = this.repairDateD[0];
+        this.listQuery.dataInfo.disableDate = this.repairDateD[1];
+      }
+      if (this.curRow.beginDate == null) {
+        this.$alert("请选中一条时间", "提示", {
+          confirmButtonText: "确定",
+          type: "warning"
+        });
+        return;
+      } else {
+        this.ListLoading = true;
+        if (this.listQuery.dataInfo.beginDate.length < 19)
+          this.listQuery.dataInfo.beginDate += " 00:00:00";
+        if (this.listQuery.dataInfo.disableDate.length < 19)
+          this.listQuery.dataInfo.disableDate += " 00:00:00";
+        doLevleQuery(
+          this.listQuery.pageSize,
+          this.listQuery.pageIndex,
+          this.listQuery.dataInfo
+        ).then(response => {
+          if (response.result == "0") {
+            this.ListLoading = false;
+            this.$message({
+              type: "error",
+              message: "查询失败，" + response.msg
+            });
+            return;
+          }
+          var resData =
+            response.data[seApis.seDbNetLevleQueryFindAll.ServiceCode];
+          if (resData.result == "0") {
+            this.ListLoading = false;
+            this.$message({
+              type: "error",
+              message: "查询失败，" + resData.msg
+            });
+            return;
+          }
+          var orgBrandCode = this.$store.getters.orgInfo.BRAND_CODE;
+          var brandOptions = this.$refs.select_carBrandCode.optionDatas;
+          var codeField = this.$refs.select_carBrandCode.codeField;
+          var textField = this.$refs.select_carBrandCode.textField;
+          var orgBrandName = this.$utils.getOneValFromList(
+            brandOptions,
+            orgBrandCode,
+            codeField,
+            textField
+          );
+          resData.rows.forEach(row => {
+            row.orgBrandName = orgBrandName;
+            if (row.beginDate.length > 10)
+              row.beginDate = row.beginDate.substr(0, 10);
+            if (row.disableDate.length > 10)
+              row.disableDate = row.disableDate.substr(0, 10);
+          });
+          this.list = resData.rows;
+          this.ListLoading = false;
+        });
+      }
+    },
+    showAdd() {
+      if (this.curRow.beginDate == null) {
+        this.$alert("请选中一条时间", "提示", {
+          confirmButtonText: "确定",
+          type: "warning"
+        });
+        return;
+      } else {
+        this.showDealerType = "1";
+        this.seComQueChoDlrVisible = true;
+        this.$refs.seCommonQueryChooseDlr.resetList();
+      }
+    },
+    showLevleSave() {
+      // 提示经销商级别保存
+      if (this.list == null || this.list == "") {
+        this.$alert("无数据", "提示", {
+          confirmButtonText: "确定",
+          type: "warning"
+        });
+        return;
+      } else {
+        this.$confirm("是否保存修改数据?", "提示", {
+          confirmButtonText: "确定",
+          cancelButtonText: "取消",
+          type: "warning"
+        })
+          .then(() => {
+            var saveList = [];
+            this.list.forEach(row => {
+              saveList.push({
+                oemCode: this.$store.getters.orgInfo.OEM_CODE,
+                groupCode: this.$store.getters.orgInfo.GROUP_CODE,
+                oemId: this.$store.getters.orgInfo.OEM_ID,
+                groupId: this.$store.getters.orgInfo.GROUP_ID,
+                dlrId: row.dlrId,
+                dlrCode: row.dlrCode,
+                dlrLevelId: row.dlrLevelId,
+                disableDate: row.disableDate + " 00:00:00",
+                beginDate: row.beginDate + " 00:00:00",
+                carBrandCode: row.carBrandCode,
+                dlrLevelCode: row.dlrLevelCode,
+                netLevleTimeId: row.netLevleTimeId,
+                //netLevleTimeRangeId
+                updateControlId: row.updateControlId
+              });
+            });
+            this.LevleSave(saveList);
+          })
+          .catch(() => {});
+      }
+    },
+
+    LevleSave(saveList) {
+      // 经销商级别保存
+      this.ListLoading = true;
+      const that = this;
+      var allCount = saveList.length;
+      var saveCount = 0;
+      var successCount = 0;
+      var failCount = 0;
+      saveList.forEach(row => {
+        doLevleSave(row).then(response => {
+          if (
+            response.result === "1" &&
+            response.data[seApis.SeDbNetLevleMutationSave.ServiceCode]
+              .result === "1"
+          ) {
+            successCount++;
+          } else {
+            failCount++;
+          }
+          saveCount++;
+          if (saveCount == allCount) {
+            that.ListLoading = false;
+            if (successCount == 0) {
+              that.$message({
+                type: "error",
+                message: "保存失败"
+              });
+            } else if (failCount == 0) {
+              that.$message({
+                type: "success",
+                message: "保存成功!"
+              });
+              that.LevleQuery();
+            } else {
+              that.$message({
+                type: "info",
+                message: `保存成功${successCount}行,失败${failCount}行`
+              });
+              that.LevleQuery();
+            }
+          }
+        });
+      });
+    },
+    uploadUrl: function() {
+      return (
+        seApis.resolve.APIUrl + config.cH + "v=" + seApis.resolve.ServiceCode
+      );
+    },
+
+    LevleImportSave() {
+      // 经销商级别导入保存方法
+      if (this.implist == null || this.implist.length === 0) {
+        this.$alert("无数据", "提示", {
+          confirmButtonText: "确定",
+          type: "warning"
+        });
+        return;
+      } else {
+        this.ListLoading = true;
+        console.log("导入保存");
+        var saveList = [];
+        this.implist.forEach(row => {
+          var newRow = {
+            oemCode: this.$store.getters.orgInfo.OEM_CODE,
+            groupCode: this.$store.getters.orgInfo.GROUP_CODE,
+            oemId: this.$store.getters.orgInfo.OEM_ID,
+            groupId: this.$store.getters.orgInfo.GROUP_ID,
+            dlrCode: row.dlrCode,
+            dlrLevelCode: row.dlrLevelCode,
+            carBrandCode: row.carBrandCode,
+            beginDate: row.beginDate,
+            disableDate: row.endDate
+          };
+          if (newRow.beginDate.length < 19) newRow.beginDate += " 00:00:00";
+          if (newRow.disableDate.length < 19) newRow.disableDate += " 00:00:00";
+          saveList.push(newRow);
+        });
+        doLevleImp(saveList).then(response => {
+          this.ListLoading = false;
+          if (response.result === "0") {
+            this.$alert("导入保存失败", "提示", {
+              confirmButtonText: "确定",
+              type: "error"
+            });
+            console.log(response.errors.join(","));
+            return;
+          }
+          this.$alert("文件保存成功", "提示", {
+            confirmButtonText: "确定",
+            type: "success"
+          });
+          this.firstFile.name = [];
+          this.$refs.upload.clearFiles();
+        });
+      }
+    },
+
+    rowClicked(row) {
+      this.curRow = row;
+      // this.listQuery.dataInfo.beginDate = this.curRow.beginDate;
+      // this.listQuery.dataInfo.disableDate = this.curRow.endDate;
+      this.repairDateD = [];
+      this.repairDateD.push(this.curRow.beginDate);
+      this.repairDateD.push(this.curRow.endDate);
+      this.LevleQuery();
+    },
+    dosseCommonQueryChooseDlr() {
+      // 打开弹窗事件，清空弹窗列表
+      this.showDealerType = "0";
+      this.seComQueChoDlrVisible = true;
+      this.$refs.seCommonQueryChooseDlr.resetList();
+    },
+    closeComQueCho(val) {
+      // 点击弹框右上角关闭弹窗，不传递数据
+      this.seComQueChoDlrVisible = val;
+    },
+    getComQueCho(val) {
+      if (this.showDealerType == "0") {
+        for (let index in val) {
+          let dlrShortName = [];
+          if (index < val.length - 1) {
+            dlrShortName += val[index].dlrShortName + ",";
+          } else {
+            dlrShortName += val[index].dlrShortName;
+          }
+          this.listQuery.dlrShortName = dlrShortName;
+        }
+      }
+      if (this.showDealerType == "1") {
+        for (let index in val) {
+          debugger;
+          val[index].beginDate = this.curRow.beginDate;
+          val[index].disableDate = this.curRow.endDate;
+          val[index].orgBrandName = val[index].carBrandCn;
+          val[index].carBrandCn = undefined;
+          val[index].netLevleTimeId=this.curRow.netLevleTimeId;
+          val[index].dlrLevelId='';
+          val[index].dlrLevelCode='A';
+          this.list.push(val[index]);
+        }
+      }
+      this.seComQueChoDlrVisible = false;
+    },
+    changeToggleParam() {
+      //更多折叠方法
+      this.toggleParam = !this.toggleParam;
+      if (this.toggleParam) {
+        this.moreBtnIcon = "el-icon-minus";
+      } else {
+        this.moreBtnIcon = "el-icon-plus";
+      }
+    },
+    handleClick(tab) {
+      if (tab.name == "first") {
+        this.setTableHeight2(1);
+      } else if (tab.name == "second") {
+        this.setTableHeight(1);
+      }
+    },
+    handleSizeChange(val) {
+      this.listQuery.pageSize = val;
+      this.fetchData();
+    },
+    handleCurrentChange(val) {
+      this.listQuery.pageIndex = val;
+      this.fetchData();
+    },
+    getCarBrand(code, text, codeField, comType) {
+      if (comType == "") {
+        // 查询条件品牌控件
+        this.listQuery.dataInfo.carBrandCode = code;
+        this.carBrand = code;
+      } else {
+        // 网格品牌控件
+        var index = Number(comType);
+        this.list[index].carBrandCode = code;
+      }
+    },
+    getimCarBrand(val) {
+      // this.implist.imcarBrand = val
+    },
+    getdlrLevelCode(val) {
+      this.listQuery.dataInfo.dlrLevelCode = val;
+    },
+    queryLookupValue() {
+      const that = this;
+      doQueryMdsLookupValueByPage(9999, 1, {
+        isEnable: "1",
+        lookupTypeCode: this.dlrLeveltype
+      }) //SE0038替换成需要的值类型编码
+        .then(response => {
+          var retData =
+            response.data[orgApis.mdsLookupValueQueryByPage.ServiceCode];
+          if (retData.result === "1" && retData.rows !== null) {
+            const tempList = retData.rows;
+            var tempOptions = [];
+            tempList.forEach(row => {
+              tempOptions.push({
+                code: row.lookupValueCode,
+                text: row.lookupValueName
+              });
+            });
+            that.dlrLevelOptions = tempOptions; //下拉列表数据赋值
+          }
+        });
+    },
+    getDlrLevelValue(val) {
+      this.listQuery.dataInfo.dlrLevelCode = val;
+    },
+    reset() {
+      this.listQuery.dataInfo.dlrLevelCode = null;
+      this.listQuery.dataInfo.carBrandCode = null;
+      this.listQuery.dlrShortName = null;
+    }
+  }
+};
+</script>
+<style lang="scss" scoped>
+.linkFont {
+  color: blue;
+  font-size: 5px;
+  text-decoration: underline;
+}
+.left {
+  text-align: right;
+}
+.leftContent {
+  width: 350px;
+}
+.customWidth {
+  width: 500px !important;
+}
+.rightContent {
+  padding-right: 20px !important;
+  text-align: right;
+}
+/deep/ .multipleTable .editInput .cell {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.filter-params .el-col {
+  min-width: 120px;
+}
+</style>
+<style scoped>
+/* ul.el-upload-list {
+  display: none !important;
+}
+ul.el-upload-list.el-upload-list--text {
+  display: none !important;
+} */
+</style>

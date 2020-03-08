@@ -1,0 +1,923 @@
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button"  ref="searcheHeight">
+      <el-button type="text" size="small" @click="downloadExcel()">定期保养模板文件下载</el-button>
+      <el-button type="primary" size="small" @click="queryParameters()">查询</el-button>
+      <el-button size="small" @click="newParameters('maintainParamChangesdata')">新增参数</el-button>
+      <el-button size="small" @click="parametersChange('maintainParamChangesdata')">修改</el-button>
+      <el-upload 
+       class="upload-demo" 
+       ref="upload"
+       style="margin-left: 10px;margin-right: 10px;"
+       :file-list="fileList"
+       name="excelFile"
+       action=""
+       :headers="uploadHeaders"
+       :http-request="handleChange"
+       :on-preview="handlePreview"
+       :on-remove="handleRemove"
+       :on-error="uploadFalse"
+       :on-success="uploadSuccess"
+       :auto-upload="true"
+       :before-upload="beforeAvatarUpload"
+       :before-remove="beforeRemove"
+       :on-exceed="handleExceed"
+       :on-change="handFileListChange"
+       :limit="1"
+       :show-file-list="false"
+       list-type="text">
+        <el-button size="small">导入</el-button>
+      </el-upload>
+      <el-button size="small" @click="parametersData()">删除</el-button>
+      <el-button size="small" @click="reset()">重置</el-button>
+    </div>
+
+    <div class="filter-container filter-params" ref="conHeight">
+      <el-row :gutter="20">
+          <carBrand
+          :span="6"
+          :isMul="false"
+          :code="maintenanceParameters.carBrandCode"
+          @changeCode="changeCarBrand"
+          />
+         <el-col :span="6">
+          <label>车型</label>
+          <el-input v-model="maintenanceParameters.carTypeCode" suffix-icon="el-icon-search" @focus="opencarTypeModal" clearable>
+          </el-input>
+         </el-col>
+        <CarTypeModal :isMul="false" ref="CarTypeModal" @changeCode="getCarTypeModal" />
+        <el-col :span="6">
+              <label>是否启用</label>
+              <el-select v-model="maintenanceParameters.isEnable" placeholder="请选择" @change="changeIsEnable" clearable>
+                <el-option label="是" value="1"></el-option>
+                <el-option label="否" value="0"></el-option>
+              </el-select>
+            </el-col>
+      </el-row>
+    </div>
+
+    <div class="filter-container filter-title" ref="resultTitleHeight">查询结果</div>
+    <el-table
+      v-loading="listLoading"
+      :data="list"
+      element-loading-text="Loading"
+      border
+      fit
+      stripe
+      highlight-current-row
+      style="width:100%;height:350px"
+      ref="multipleTable"
+      :height="tableHeight"
+     >
+      <el-table-column align="center" label="序号" width="60" style="padding-top: 3px;" fixed>
+        <template slot-scope="scope">{{ scope.$index + 1 }}</template>
+      </el-table-column>
+      <el-table-column type="selection" width="55" label="选择+" />
+      <el-table-column label="车辆品牌编码" width="150" prop="carBrandCode" align="center" v-if="false">
+        <template slot-scope="scope">{{ scope.row.carBrandCode }}</template>
+      </el-table-column>
+      <el-table-column label="车辆品牌" width="150" prop="carBrandCn" align="center">
+        <template slot-scope="scope">{{ scope.row.carBrandCn }}</template>
+      </el-table-column>
+      <!--后台没有carTypeCn这个字段-->
+      <!--<el-table-column label="车型" width="150">
+        <template slot-scope="scope">{{ scope.row.carTypeCn }}</template>
+      </el-table-column>-->
+      <el-table-column label="车型" width="150" prop="carTypeCode" align="center">
+        <template slot-scope="scope">{{ scope.row.carTypeCode }}</template>
+      </el-table-column>
+      <el-table-column label="保养类别"  prop="maintainType" align="center"> 
+        <template slot-scope="scope">{{ scope.row.maintainType }}</template>
+      </el-table-column>
+      <el-table-column label="保养类别编码" v-if="false">
+        <template slot-scope="scope">{{ scope.row.maintainCode }}</template>
+      </el-table-column>
+      <el-table-column label="下次保养类型"  prop="nextMaintainType" align="center">
+        <template slot-scope="scope">{{ scope.row.nextMaintainType }}</template>
+      </el-table-column>
+      <el-table-column label="最小里程" prop="minMile" align="center">
+        <template slot-scope="scope">{{ scope.row.minMile }}</template>
+      </el-table-column>
+      <el-table-column label="最大里程"  prop="maxMile" align="center">
+        <template slot-scope="scope">{{ scope.row.maxMile }}</template>
+      </el-table-column>
+      <el-table-column label="最小时间"  prop="minTime" align="center">
+        <template slot-scope="scope">{{ scope.row.minTime }}</template>
+      </el-table-column>
+      <el-table-column label="最大时间"  prop="maxTime" align="center">
+        <template slot-scope="scope">{{ scope.row.maxTime }}</template>
+      </el-table-column>
+      <el-table-column label="保养参数ID" v-if="false">
+        <template slot-scope="scope">{{ scope.row.maintainConfigId }}</template>
+      </el-table-column>
+      <el-table-column label="车系编码" v-if="false">
+        <template slot-scope="scope">{{ scope.row.carSeriesCode }}</template>
+      </el-table-column>
+      <el-table-column label="车系名称" v-if="false">
+        <template slot-scope="scope">{{ scope.row.carSeriesCn }}</template>
+      </el-table-column>
+      <el-table-column label="经销商编码" v-if="false">
+        <template slot-scope="scope">{{ scope.row.dlrCode }}</template>
+      </el-table-column>
+      <el-table-column label="经销商Id" v-if="false">
+        <template slot-scope="scope">{{ scope.row.dlrId }}</template>
+      </el-table-column>
+      <el-table-column label="创建人" v-if="false">
+        <template slot-scope="scope">{{ scope.row.creator }}</template>
+      </el-table-column>
+      <el-table-column label="创建人" v-if="false">
+        <template slot-scope="scope">{{ scope.row.createdName }}</template>
+      </el-table-column>
+      <el-table-column label="修改人" v-if="false">
+        <template slot-scope="scope">{{ scope.row.modifier }}</template>
+      </el-table-column>
+      <el-table-column label="修改人" v-if="false">
+        <template slot-scope="scope">{{ scope.row.modifyName }}</template>
+      </el-table-column>
+      <el-table-column label="最后更新日期" v-if="false">
+        <template slot-scope="scope">{{ scope.row.lastUpdatedDate }}</template>
+      </el-table-column>
+      <el-table-column label="创建时间" v-if="false">
+        <template slot-scope="scope">{{ scope.row.createdDate }}</template>
+      </el-table-column>
+      <el-table-column label="并发标志" v-if="false">
+        <template slot-scope="scope">{{ scope.row.updateControlId }}</template>
+      </el-table-column>
+      <el-table-column label="可用标识" v-if="false">
+        <template slot-scope="scope">{{ scope.row.isEnable }}</template>
+      </el-table-column>
+      <el-table-column label="厂商标识" v-if="false">
+        <template slot-scope="scope">{{ scope.row.oemCode }}</template>
+      </el-table-column>
+      <el-table-column label="集团标识" v-if="false">
+        <template slot-scope="scope">{{ scope.row.groupCode }}</template>
+      </el-table-column>
+      <el-table-column label="厂商标识ID" v-if="false">
+        <template slot-scope="scope">{{ scope.row.oemId }}</template>
+      </el-table-column>
+      <el-table-column label="集团标识ID" v-if="false">
+        <template slot-scope="scope">{{ scope.row.groupId }}</template>
+      </el-table-column>
+      <el-table-column label="备注" v-if="false">
+        <template slot-scope="scope">{{ scope.row.remark }}</template>
+      </el-table-column>
+    </el-table>
+    <el-pagination
+     ref="paginationHeight"
+      background
+      layout="prev, pager, next, sizes, ->, total"
+      prev-text="上一页"
+      next-text="下一页"
+      :page-sizes="[10, 20, 30]"
+      :page-size="10"
+      :total="pageTotal"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+    />
+
+    <!--模板对应保养参数弹出框 新增/修改-->
+    <el-dialog 
+    :visible.sync="dialogParamVisible"
+    center 
+    width="900px" 
+    :append-to-body="true"
+    :title="showTitle"
+    :close-on-click-modal="false"
+    @close="getClose"
+    >
+      <div class="filter-container filter-params">
+        <el-form
+          :model="maintainParamChangesdata"
+          :rules="rules"
+          ref="maintainParamChangesdata"
+          class="demo-maintainParamChangesdata"
+        >
+          <el-row :gutter="10">
+            <!--<carBrand
+              @changeCode="getmaintainBrandCode"
+              :isMul="false"
+              :code="maintainParamChangesdata.carBrandCode"
+              :span="8"
+              curLabelName="品牌"
+              size="small"
+            />-->
+            <el-col :span="8">
+              <el-form-item prop="carBrandCode">
+                <lableName curLabelName="品牌" :isShowLabel="true" :isRequire="true"></lableName>
+                <el-select v-model="maintainParamChangesdata.carBrandCode" size="small" placeholder="请选择" clearable>
+                  <el-option
+                  v-for="item in carBrandOptions"
+                  :key="item.code"
+                  :label="item.text"
+                  :value="item.code"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <!--保养类别-->
+            <!--<LookupValue
+              :span="8"
+              :isMul="false"
+              :isshow="true"
+              :code="maintainParamChangesdata.maintainCode"
+              :lookuptype="repairTypeCode"
+              :labelName="repairStatusLable"
+              @changeCode="showunit"
+            />-->
+            <el-col :span="8">
+              <el-form-item prop="maintainCode">
+                <lableName curLabelName="保养类别" :isShowLabel="true" :isRequire="true"></lableName>
+                <el-select v-model="maintainParamChangesdata.maintainCode" size="small" placeholder="请选择" clearable>
+                  <el-option
+                  v-for="item in maintainOptions"
+                  :key="item.lookupTypeCode"
+                  :label="item.lookupValueName"
+                  :value="item.lookupTypeCode"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item prop="carTypeCode">
+                <lableName curLabelName="车型" :isShowLabel="true" :isRequire="true"></lableName>
+                <el-input v-model="maintainParamChangesdata.carTypeCode" placeholder="请选择" size="small" @focus="openCarTypeModal1"></el-input>
+                <CarTypeModal :isMul="false" ref="CarTypeModal1" @changeCode="getCarTypeModal1" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item prop="minMile">
+                <lableName curLabelName="最小里程(km)" :isShowLabel="true" :isRequire="true"></lableName>
+                <el-input v-model="maintainParamChangesdata.minMile" placeholder="请输入" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item prop="maxMile">
+                <lableName curLabelName="最大里程(km)" :isShowLabel="true" :isRequire="true"></lableName>
+                <el-input v-model="maintainParamChangesdata.maxMile" placeholder="请输入" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item prop="minTime">
+                <lableName curLabelName="最小时间(天)" :isShowLabel="true" :isRequire="true"></lableName>
+                <el-input v-model="maintainParamChangesdata.minTime" placeholder="请输入" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item prop="maxTime">
+                <lableName curLabelName="最大时间(天)" :isShowLabel="true" :isRequire="true"></lableName>
+                <el-input v-model="maintainParamChangesdata.maxTime" placeholder="请输入" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+            <!--下次保养类别-->
+            <!--<LookupValue
+              :span="8"
+              :isMul="false"
+              :isshow="true"
+              :code="maintainParamChangesdata.nextMaintainType"
+              :lookuptype="nextMaintainTypeCode"
+              :labelName="nextMaintainType"
+              @changeCode="shownextMaintainType"
+            />-->
+            <el-col :span="8">
+              <el-form-item prop="nextMaintainType">
+                <lableName curLabelName="下次保养类别" :isShowLabel="true" :isRequire="true"></lableName>
+                <el-select v-model="maintainParamChangesdata.nextMaintainType" size="small" placeholder="请选择" clearable>
+                  <el-option
+                  v-for="item in nextMaintainOptions"
+                  :key="item.lookupTypeCode"
+                  :label="item.lookupValueName"
+                  :value="item.lookupTypeCode"
+                  ></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item class="dialog-footer">
+            <el-button type="primary" @click="mainteSave('maintainParamChangesdata')">保存</el-button>
+            <el-button @click="getClose">取 消</el-button>
+          </el-form-item>
+        </el-form>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+<script>
+import { getList } from "@/api/table";
+import { the_Height} from "@/views/se/makeHeight";
+import {
+  seDbMaintainConfigQueryFindAll,
+  seDbMaintainConfigMutationRemove,
+  seDbMaintainConfigMutationSave
+} from "@/api/se/basedata/repair/seDbMaintainConfigQuery";
+import carBrand from "@/components/org/carBrand/carBrand";
+import LookupValue from "@/components/org/LookupValue";
+import lableName from "@/components/lableName/index";
+import { seApis } from "@/api/graphQLApiList/se";
+import { orgApis } from "@/api/graphQLApiList/org";
+import { paApis } from "@/api/graphQLApiList/pa";
+import CarTypeModal from '@/components/se/CarTypeModal/CarTypeModal';
+import { type } from "os";
+import { requestGraphQL } from '@/api/commonRequest'
+import config from '@/utils/config'
+import { doBrandQuery } from "@/api/se/basedata/repair/repairOrderModel";
+export default {
+  components: {
+    carBrand,
+    LookupValue,
+    lableName,
+    CarTypeModal,
+    config
+  },
+  mixins:[the_Height],
+  data() {
+    return {
+      uploadHeaders: {
+        Authorization: this.$store.getters.token
+      },
+      pageTotal: 0,
+      tableHeight: 310,
+      tableMarginHeight:15,
+      list: null,
+      listLoading: false,
+      dialogCostVisible: false,
+      dialogParamVisible: false,
+      //品牌编码下拉框
+      carBrandOptions: [],
+      //保养类别下拉框
+      maintainOptions: [],
+      //下次保养类别下拉框
+      nextMaintainOptions: [],
+      CarTypeModal: [],
+      uploadData: {},
+      isMul: false, //下拉框是否多选
+      isshow: true, //是否显示值列表名称
+      repairStatusLable: "保养类别",
+      repairTypeCode: "SE0053", //维修估价单状态值编码
+      nextMaintainType:"下次保养类别",
+      nextMaintainTypeCode:"SE0053",
+      fileList: [],
+      showTitle: '新增参数',
+      messageTips: 0,
+      listQuery: {
+        pageIndex: 1,
+        pageSize: 10,
+        pageIndex1: 1,
+        pageSize1: 10,
+        limit: 20,
+        brandCode: undefined,
+        carTypeCode: undefined,
+        type: undefined,
+        status: ""
+      },
+      //保养查询的参数
+      maintenanceParameters: {
+        carBrandCode: "",
+        carTypeCode: ""
+      },
+      //保养费用弹框参数校验
+      rules: {
+        carBrandCode: [
+          {required: true, message: "请输入品牌", trigger: "change"}
+        ],
+        maintainCode: [
+          {required: true, message: "请设保养类别", trigger: "change"}
+        ],
+        carTypeCode: [
+          {required: true, message: "请选择车型", trigger: "change"}
+        ],
+        minMile: [
+          {required: true, message: "请设最小里程", trigger: "change"}
+        ],
+        minTime: [
+          {required: true, message: "请设最小时间", trigger: "change"}
+        ],
+        maxTime: [
+          { required: true, message: "请设最大时间", trigger: "change" }
+        ],
+        maxMile: [
+          { required: true, message: "请设最大里程", trigger: "change" }
+        ],
+        nextMaintainType: [
+          { required: true, message: "请设最大保修类别", trigger: "change" }
+        ]
+      },
+      //保养参数设置保存 参数
+      maintainParamChangesdata: {
+        maintainConfigId:"",
+        carBrandCode: "",
+        carSeriesCode: "",
+        carTypeCode: "",
+        //carTypeCn: "",
+        maintainCode: "",
+        nextMaintainType: "",
+        minMile: "",
+        maxMile: "",
+        minTime: "",
+        maxTime: "",
+        isEnable: "",
+        creator: "",
+        modifier: "",
+        mycatOpTime: "",
+        lastUpdatedDate: "",
+        createdDate: "",
+        updateControlId: "",
+        oemCode: "",
+        groupCode: "",
+        oemId: "",
+        groupId: "",
+        dlrId: this.$store.getters.orgInfo.DLR_ID,
+        dlrCode: this.$store.getters.orgInfo.DLR_CODE,
+      },
+      lookupVari: [
+        'oemCode',
+        'groupCode',
+        'lookupTypeCode',
+        'lookupValueCode',
+        'lookupValueName'
+      ]
+    };
+  },
+  created() {
+
+  },
+  methods: {
+    //关闭弹窗并清除弹框样式
+    getClose() {
+      this.dialogParamVisible = false;
+      this.$refs.maintainParamChangesdata.clearValidate();
+    },
+    handleSizeChange(val) {
+      this.listQuery.pageSize = val
+      this.queryParameters();
+    },
+    handleCurrentChange(val) {
+      this.listQuery.pageIndex = val
+      this.queryParameters();
+    }, 
+    uploadUrl() {
+      return seApis.resolve.APIUrl + config.cH + 'v=' + seApis.resolve.ServiceCode;
+    }, 
+    //处理文件选择器改变事件
+    handleChange(param) {
+      var url = this.uploadUrl()  // API根据不同功能url不同，请配置到对应模块配置
+      var that = this
+      this.$requestImport(url, param, function(response) {
+        that.uploadSuccess(response)
+      })
+    },
+     uploadSuccess(response) {
+       if(response.data.result === '1' 
+       && response.data.rows != null 
+       && response.data.rows.length > 0) {
+         var tempList = response.data.rows;
+         var implistTemp = [];
+         //导入Excel模块列头、数据是否必填
+         var excelCols = [
+            {name:'车辆品牌',required:true},
+            {name:'车型',required:true},
+            {name:'保养类别',required:true},
+            {name:'下次保养类型',required:true},
+            {name:'最小里程',required:true},
+            {name:'最大里程',required:true},
+            {name:'最小时间',required:true},
+            {name:'最大时间',required:true}
+          ]
+          var isErrorTemplate = false // 模版错误
+          var firstRow = tempList[0]
+          for (let i = 0; i < excelCols.length; i++) {
+            if (firstRow.hasOwnProperty(excelCols[i].name) == false) {
+              isErrorTemplate = true
+             } else {
+              isErrorTemplate = false
+            }  
+          }
+          if (isErrorTemplate) {
+          this.$alert('Excel模版错误', '提示', {
+            confirmButtonText: '确定',
+            type: 'warning'
+          })
+          this.$refs.upload.clearFiles()
+          this.list = []
+          return
+        }
+        var dataNullErrorMsg = ''
+        for(var i = 0; i < tempList.length; i++) { // 检查数据是否为空
+          if(!this.$utils.isEmpty(dataNullErrorMsg)) break
+          var row = tempList[i]
+          for(var j = 0; j < excelCols.length; j++) {
+            var col = excelCols[j];
+            if(col.required == true && this.$utils.isEmpty(row[col.name])) {
+              dataNullErrorMsg = `Excel第${i+2}行“${col.name}”不能为空`
+              break
+            }
+          }
+        }
+        if (!this.$utils.isEmpty(dataNullErrorMsg)) {
+          this.$alert(dataNullErrorMsg, '提示', {
+            confirmButtonText: '确定',
+            type: 'warning'
+          })
+          this.$refs.upload.clearFiles()
+          this.list = []
+          return
+        }
+
+        for (var j = 0; j < tempList.length; j++) {
+          var newRow = {
+            carBrandCode: tempList[j].车辆品牌,
+            carTypeCode: tempList[j].车型,
+            maintainType: tempList[j].保养类别,
+            nextMaintainType: tempList[j].下次保养类型,
+            minMile: tempList[j].最小里程,
+            maxMile: tempList[j].最大里程,
+            minTime: tempList[j].最小时间,
+            maxTime: tempList[j].最大时间
+          }
+          implistTemp.push(newRow)
+        }
+        this.list = implistTemp
+        this.$alert('文件导入成功', '提示', {
+             confirmButtonText: '确定',
+             type:'success',
+           });
+           
+        } else {
+           this.$alert('文件导入失败', '提示', {
+             confirmButtonText: '确定',
+             type:'warning',
+            });
+        }
+        this.$refs.upload.clearFiles();
+      },
+    handlePreview(file) {
+      if(file.response.status) {
+       this.$alert('此文件导入成功', '提示', {
+          confirmButtonText: '确定',
+          type:'success',
+        });
+      } else {
+        this.$alert('此文件导入失败', '提示', {
+         confirmButtonText: '确定',
+        type:'warning',
+        });
+      }   
+    },
+
+    handleRemove(file, fileList) {},
+    uploadFalse(response, file, fileList) {
+      this.$alert('文件上传失败', '提示', {
+        confirmButtonText: '确定',
+        type:'warning',
+      });
+    },
+      //上传前对文件进行判断
+      beforeAvatarUpload(file) {
+          const extension = file.name.split(".")[1] === "xls";
+          const extension2 = file.name.split(".")[1] === "xlsx";
+          if(!extension && !extension2){
+             this.$alert('上传文件只能为Excel文件', '提示', {
+               confirmButtonText: '确定',
+               type:'warning',
+             });
+          }
+          return extension || extension2;
+      },
+
+   beforeRemove(file, fileList) {
+        this.$alert(`选择文件类型或大小不符，已移除 ${ file.name }，请重新选择`,'提示',{
+          confirmButtonText:'确定',
+          type:'warning'
+        });
+      },
+
+   handleExceed(files, fileList) {
+        this.$message.warning(`当前限制选择 1 个文件，本次选择了 ${files.length} 个文件，共选择了 ${files.length + fileList.length} 个文件`);
+      },
+
+   handFileListChange(file, fileList) {},
+   
+    //参数查询
+    queryParameters() {
+      this.listLoading = true;
+      seDbMaintainConfigQueryFindAll(
+        this.listQuery.pageSize,
+        this.listQuery.pageIndex,
+        this.maintenanceParameters
+      ).then(response => {
+        this.list = response.data.seDbMaintainConfigQueryFindAll.rows;
+        this.pageTotal = response.data.seDbMaintainConfigQueryFindAll.records;
+        this.listLoading = false;
+      });
+    },
+    //新增参数
+    newParameters(formName) {
+      this.dialogParamVisible = true;
+      this.queryBrand();
+      this.initFetchData();
+       if(this.$refs[formName]!==undefined) {
+         this.$refs[formName].resetFields();
+       }
+      this.maintainParamChangesdata.maintainConfigId ="";
+      this.maintainParamChangesdata.carBrandCode = "";
+      //this.maintainParamChangesdata.carBrandCn = "";
+      this.maintainParamChangesdata.carSeriesCode = "COMMON";//现在新增默认传COMMON
+      this.maintainParamChangesdata.carTypeCode = "";
+      //this.maintainParamChangesdata.carTypeCn = "";
+      //this.maintainParamChangesdata.maintainType = "";
+      this.maintainParamChangesdata.maintainCode = "";
+      this.maintainParamChangesdata.nextMaintainType = "";
+      this.maintainParamChangesdata.maxMile= "";
+      this.maintainParamChangesdata.maxTime= "";
+      this.maintainParamChangesdata.minTime= "";
+      this.maintainParamChangesdata.minMile= "";
+      this.maintainParamChangesdata.isEnable = "1";
+      this.maintainParamChangesdata.updateControlId = "";
+      this.maintainParamChangesdata.creator = "";
+      this.maintainParamChangesdata.modifier = "";
+      this.maintainParamChangesdata.mycatOpTime = "";
+      this.maintainParamChangesdata.lastUpdatedDate = "";
+      this.maintainParamChangesdata.createdDate = "";
+      this.maintainParamChangesdata.oemCode = "";
+      this.maintainParamChangesdata.groupCode = "";
+      this.maintainParamChangesdata.oemId = "";
+      this.maintainParamChangesdata.groupId = "";
+      this.maintainParamChangesdata.dlrId = this.$store.getters.orgInfo.DLR_ID;
+      this.maintainParamChangesdata.dlrCode = this.$store.getters.orgInfo.DLR_CODE;
+      this.showTitle = '新增参数';
+      this.messageTips = 0;
+    },
+    //参数修改
+    parametersChange(formName) {
+      if (this.$refs.multipleTable.selection.length == 0) {
+        this.$alert("请选择数据行", "提示", {
+          confirmButtonText: "确定",
+          type: "warning"
+        });
+        return;
+      }
+      if (this.$refs.multipleTable.selection.length != 1) {
+        this.$alert("请选择一条记录修改", "提示", {
+          confirmButtonText: "确定",
+          type: "warning"
+        });
+        return;
+      }
+      //调用赋值方法 给弹框赋值
+      this.dialogParamVisible = true;
+      if(this.$refs[formName]!==undefined){
+         this.$refs[formName].resetFields();
+        }
+      this.showTitle = '修改';
+      this.messageTips = 1;
+      this.assignment();
+    },
+    //保养参数修改的赋值方法
+    assignment() {
+      var rowss = this.$refs.multipleTable.selection;
+      //赋值给修改保养参数的数组
+      this.maintainParamChangesdata.maintainConfigId = rowss[0].maintainConfigId;
+      this.maintainParamChangesdata.carBrandCode = rowss[0].carBrandCode;
+      //this.maintainParamChangesdata.carBrandCn = rowss[0].carBrandCn;
+      this.maintainParamChangesdata.carTypeCode = rowss[0].carTypeCode;
+      //this.maintainParamChangesdata.carTypeCn = rowss[0].carTypeCn;
+      this.maintainParamChangesdata.carSeriesCode = rowss[0].carSeriesCode;
+      this.maintainParamChangesdata.maintainCode = rowss[0].maintainCode;
+      //this.maintainParamChangesdata.maintainType = rowss[0].maintainType;
+      this.maintainParamChangesdata.nextMaintainType = rowss[0].nextMaintainType;
+      this.maintainParamChangesdata.maxMile = rowss[0].maxMile;
+      this.maintainParamChangesdata.maxTime = rowss[0].maxTime;
+      this.maintainParamChangesdata.minTime = rowss[0].minTime;
+      this.maintainParamChangesdata.minMile = rowss[0].minMile;
+      this.maintainParamChangesdata.remark = rowss[0].remark;
+      this.maintainParamChangesdata.dlrCode = rowss[0].dlrCode;
+      this.maintainParamChangesdata.dlrId = rowss[0].dlrId;
+      this.maintainParamChangesdata.oemId = rowss[0].oemId;
+      this.maintainParamChangesdata.groupId = rowss[0].groupId;
+      this.maintainParamChangesdata.oemCode = rowss[0].oemCode;
+      this.maintainParamChangesdata.groupCode = rowss[0].groupCode;
+      this.maintainParamChangesdata.isEnable = rowss[0].isEnable;
+      this.maintainParamChangesdata.updateControlId = rowss[0].updateControlId;
+    },
+    //参数修改弹框保存
+    mainteSave(formName) {
+      //debugger
+      this.$refs[formName].validate(valid => {
+        if (valid) {
+          if(this.maintainParamChangesdata.minMile==''){
+            this.maintainParamChangesdata.minMile = 0;
+          }else{
+             this.maintainParamChangesdata.minMile = parseInt(this.maintainParamChangesdata.minMile);
+          }
+          this.maintainParamChangesdata.maxMile = parseInt(this.maintainParamChangesdata.maxMile);
+           if(this.maintainParamChangesdata.minTime==''){
+             this.maintainParamChangesdata.minTime = 0;
+           }
+           else{this.maintainParamChangesdata.minTime = parseInt(this.maintainParamChangesdata.minTime);
+           }
+          this.maintainParamChangesdata.maxTime = parseInt(this.maintainParamChangesdata.maxTime);
+          if(this.maintainParamChangesdata.mycatOpTime==''){
+             this.maintainParamChangesdata.mycatOpTime = 0;
+          }
+          let maintSaveData = {
+            maintainConfigId: this.maintainParamChangesdata.maintainConfigId,
+            carBrandCode: this.maintainParamChangesdata.carBrandCode,
+            carTypeCode: this.maintainParamChangesdata.carTypeCode,
+            carSeriesCode: this.maintainParamChangesdata.carSeriesCode,
+            maintainCode: this.maintainParamChangesdata.maintainCode,
+            //maintainType: this.maintainParamChangesdata.maintainType,
+            maintainCode: this.maintainParamChangesdata.maintainCode,
+            nextMaintainType: this.maintainParamChangesdata.nextMaintainType,
+            minMile: Number(this.maintainParamChangesdata.minMile),
+            maxMile: Number(this.maintainParamChangesdata.maxMile),
+            minTime: Number(this.maintainParamChangesdata.minTime),
+            maxTime: Number(this.maintainParamChangesdata.maxTime), 
+            //mycatOpTime: Number(this.maintainParamChangesdata.mycatOpTime),
+            isEnable: this.maintainParamChangesdata.isEnable,
+            creator: this.maintainParamChangesdata.creator,
+            modifier: this.maintainParamChangesdata.modifier,
+            lastUpdatedDate: this.maintainParamChangesdata.lastUpdatedDate,
+            createdDate: this.maintainParamChangesdata.createdDate,
+            updateControlId: this.maintainParamChangesdata.updateControlId,
+            oemCode: this.maintainParamChangesdata.oemCode,
+            groupCode: this.maintainParamChangesdata.groupCode,
+            oemId: this.maintainParamChangesdata.oemId,
+            groupId: this.maintainParamChangesdata.groupId,
+            dlrId: this.maintainParamChangesdata.dlrId,
+            dlrCode: this.maintainParamChangesdata.dlrCode
+          }
+          seDbMaintainConfigMutationSave(maintSaveData).then(response => {
+              if (response.data[seApis.seDbMaintainConfigMutationSave.ServiceCode].result === '1') {
+                if (this.messageTips == 0) {
+                  this.$message({
+                    type: "success", 
+                    message: "新增成功"
+                  });
+                }
+                if (this.messageTips == 1) {
+                  this.$message({
+                    type: "success", 
+                    message: "修改成功"
+                  });
+                }
+                this.getClose();
+                this.$refs.multipleTable.clearSelection();
+                this.queryParameters();
+              } else {
+                this.$message({
+                  type: "error", 
+                  message: response.data[seApis.seDbMaintainConfigMutationSave.ServiceCode].msg
+                });
+              }
+            }
+          );
+        }
+      });
+    },
+    //参数删除
+    parametersData() {
+      if (this.$refs.multipleTable.selection.length == 0) {
+        this.$alert("请选择数据行", "提示", {
+          confirmButtonText: "确定",
+          type: "warning"
+        });
+        return;
+      }
+      if (this.$refs.multipleTable.selection.length > 1) {
+        this.$alert("一次只能删除一条数据", "提示", {
+          confirmButtonText: "确定",
+          type: "warning"
+        });
+        return;
+      }
+      if(this.$refs.multipleTable.selection.length == 1) {
+          this.assignment();
+          let deleteData = {
+            maintainConfigId: this.maintainParamChangesdata.maintainConfigId,
+            isEnable: "0",//删除为0
+            updateControlId: this.maintainParamChangesdata.updateControlId
+          };
+          seDbMaintainConfigMutationRemove(deleteData).then(response => {
+            if (response.data[seApis.seDbMaintainConfigMutationRemove.ServiceCode].result === '1') {
+              this.$alert("删除成功", "提示", {
+                confirmButtonText: "确定",
+                type: "success"
+              });
+            this.queryParameters();
+          } else {
+            this.$message({
+              type: "error", 
+              message: response.data[seApis.seDbMaintainConfigMutationRemove.ServiceCode].msg
+            });
+          }
+        }
+      );
+    }
+    },
+   
+    //查询参数重置
+    reset() {
+      this.maintenanceParameters.carBrandCode = "";
+      this.maintenanceParameters.carTypeCode = "";
+    },
+    changeCarBrand(val) {
+      this.maintenanceParameters.carBrandCode = val;
+      //this.maintenanceParameters.carTypeCode = "";
+      //this.$refs.CarTypeModal.getBrandData(val);
+    },
+    getCostBrandCode(val) {
+      this.costChangeParam.carBrandCode = val;
+    },
+    getmaintainBrandCode(val, text) {
+      this.maintainParamChangesdata.carBrandCode = val;
+      //this.maintainParamChangesdata.carBrandCn = text;
+      //this.maintainParamChangesdata.carTypeCode = "";
+    },
+    //保养参数弹框-获取保养类型下拉框的值
+    showunit(val, text) {
+      this.maintainParamChangesdata.maintainCode = val;
+      //this.maintainParamChangesdata.maintainType = text;
+    },
+    shownextMaintainType(val, text) {
+      this.maintainParamChangesdata.nextMaintainType = val;
+    },
+    getCarTypeModal(val) {
+      this.maintenanceParameters.carTypeCode = val[0].carTypeCode;
+    },
+    getCarTypeModal1(val) {
+      this.maintainParamChangesdata.carTypeCode = val[0].carTypeCode;
+    },
+    opencarTypeModal() {
+      this.$refs.CarTypeModal.open();
+    },
+    openCarTypeModal1() {
+      this.$refs.CarTypeModal1.open();
+      this.$refs.CarTypeModal1.getBrandData(this.maintainParamChangesdata.carBrandCode);
+    },
+    downloadExcel() {
+    },
+    //初始化弹框品牌下拉框
+    queryBrand() {
+      const that = this;
+      doBrandQuery().then(response => {
+        let tempList = response.data[orgApis.mdmCarBrandQueryByPage.ServiceCode].rows;
+        var tempOptions = [];
+        tempList.forEach(row => {
+          tempOptions.push({
+            code: row.carBrandCode,
+            text: row.carBrandCn
+          });
+        });
+        that.carBrandOptions = tempOptions;
+      });
+    },
+    //初始化弹框值列表
+    initFetchData(page) {
+      const that = this
+      let queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfoA: ' +
+          orgApis.mdsLookupValueQueryByPage.InputType +
+          ')',
+        // 请求API
+        apiUrl: paApis.paDbPartListQueryList.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: orgApis.mdsLookupValueQueryByPage.ServiceCode,
+            // API服务编码&参数
+            apiServiceParam:
+              '(dataInfo: $dataInfoA, pageIndex: $pageIndex, pageSize: $pageSize)',
+            // 表格中台返回网格的字段
+            apiQueryRow: that.lookupVari
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: -1,
+          pageIndex: -1,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfoA: {
+            isEnable: '1',
+            lookupTypeCode: 'SE0053'
+          }
+        }
+      }
+      //转换了中台请求格式数据
+      let paramD = that.$getParams(queryObj)
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (response.result === '1') {
+          this.maintainOptions = response.data.mdsLookupValueQueryByPage.rows;
+          this.nextMaintainOptions = response.data.mdsLookupValueQueryByPage.rows;
+        }
+      })
+    },
+  }
+};
+</script>
+
+
+

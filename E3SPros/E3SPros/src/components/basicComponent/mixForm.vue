@@ -1,0 +1,295 @@
+<!--
+* description: 模板-表单
+* author: zhongchh
+* createdDate: 2019-10-06
+* logs:
+-->
+<template>
+  <section class="filter-params-e3s">
+    <el-form :model="fieldsData" ref="ruleForm" class="demo-ruleForm" :inline-message="true">
+      <el-row>
+        <el-col :span="24">
+          <div v-for="(item, index) in fields" :key="`${index}`">
+            <!-- 下拉框-->
+            <el-col v-if="item.type === 'dropdownList'" :span="item.span || 6">
+              <el-form-item :label="item.label" :prop="item.codeField" :rules="item.rules">
+                <el-select v-if="item.type === 'dropdownList'" :disabled="item.disabled||false" v-model="fieldsData[item.codeField]" @focus="doChildEvent(item.event)" :multiple="item.multiple || false" placeholder="请选择" clearable collapse-tags size="small">
+                  <el-option v-for="(obj, i) in item.options" :key="`${item.codeField}_${i}`" :label="obj.label" :value="obj.value"></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <!-- 文本输入框-->
+            <el-col v-else-if="item.type === 'inputTxt'" :span="item.span || 6">
+              <el-form-item :label="item.label" :prop="item.codeField" :rules="item.rules">
+                <el-input v-model="fieldsData[item.codeField]" @focus="doChildEvent(item.event)" :readonly="item.readonly || false" :suffix-icon="item.suffixIcon || 'suffixIcon'" placeholder="请输入" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+            <!-- 文本area输入框-->
+            <el-col v-else-if="item.type === 'inputTxtArea'" :span="item.span || 6">
+              <el-form-item :label="item.label" :prop="item.codeField" :rules="item.rules">
+                <el-input type="textarea" v-model="fieldsData[item.codeField]" :readonly="item.readonly || false" placeholder="请输入" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+            <!-- 数字输入框-->
+            <el-col v-else-if="item.type === 'inputNumber'" :span="item.span || 6">
+              <el-form-item :label="item.label" :prop="item.codeField" :rules="item.rules">
+                <!-- <el-input-number
+                  v-model="fieldsData[item.codeField]"
+                  @change="doChildEvent(item.event)"
+                  :readonly="item.readonly || false"
+                  :min="item.min || 1"
+                  :max="item.max"
+                  controls-position="right"
+                ></el-input-number> -->
+
+                <el-input type="number" v-model="fieldsData[item.codeField]" @focus="doChildEvent(item.event)" :readonly="item.readonly || false" placeholder="请输入" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+            <!-- 时间输入框-->
+            <el-col v-else-if="item.type === 'inputDate'" :span="item.span || 6">
+              <el-form-item :label="item.label" :prop="item.codeField" :rules="item.rules">
+                <el-date-picker id="minFormDatepick" value-format="yyyy-MM-dd HH:mm:ss" v-model="fieldsData[item.codeField]" :type="item.dateType" :readonly="item.readonly || false" placeholder="选择日期"></el-date-picker>
+              </el-form-item>
+            </el-col>
+            <!-- 多选输入框-->
+            <el-form-item v-else-if="item.type === 'checkbox'" :prop="item.codeField" :rules="item.rules" :class="item.class">
+              <el-checkbox v-model="fieldsData[item.codeField]">{{item.label}}</el-checkbox>
+            </el-form-item>
+            <!-- 外部自定义组件-->
+            <component v-else-if="item.isComponent" :is="item.component" :params="item.params" :isShow="item.isShow || true" :codeField="item.codeField" :code="fieldsData[item.codeField]" @sendCode="item.sendCode" @changeCode="item.changeCode" @focusCode="item.focusCode" :isMul="item.isMul" :isRequire="item.isRequire" :span="item.span || 6" :labelName="item.label" :options="item.options" :lookuptype="item.lookuptype" :inputType="item.inputType" :popupsKey="item.compKey" :dateOptionsType="item.dateOptionsType" :format="item.format" :dateType="item.dateType" :valueObject="item.curValueObject" :clearable="item.clearable" :filterable="item.filterable" :parentFileds="item.parentFileds || ''" :returnCodeField="item.returnCodeField" :returnTextField="item.returnTextField" :validrule="item.validrule" :queryParams="item.queryParams"></component>
+          </div>
+        </el-col>
+        <el-col v-if="isSearch" :span="24" v-show="toggleParam">
+          <div v-for="(item, index) in fieldsMore" :key="`${index}`">
+            <el-col v-if="item.type === 'dropdownList'" :span="item.span || 6">
+              <el-form-item :label="item.label" :prop="item.codeField" :rules="item.rules">
+                <el-select v-if="item.type === 'dropdownList'" v-model="fieldsData[item.codeField]" @focus="doChildEvent(item.event)" :multiple="item.multiple || false" placeholder="请选择" clearable collapse-tags size="small">
+                  <el-option v-for="(obj, i) in item.options" :key="`${item.codeField}_${i}`" :label="obj.label" :value="obj.value"></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col v-else-if="item.type === 'inputTxt'" :span="item.span || 6">
+              <el-form-item :label="item.label" :prop="item.codeField" :rules="item.rules">
+                <el-input v-model="fieldsData[item.codeField]" @focus="doChildEvent(item.event)" :readonly="item.readonly || false" :suffix-icon="item.suffixIcon || 'suffixIcon'" placeholder="请输入" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col v-else-if="item.type === 'inputTxtArea'" :span="item.span || 6">
+              <el-form-item :label="item.label" :prop="item.codeField" :rules="item.rules">
+                <el-input type="textarea" v-model="fieldsData[item.codeField]" :readonly="item.readonly || false" placeholder="请输入" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col v-else-if="item.type === 'inputNumber'" :span="item.span || 6">
+              <el-form-item :label="item.label" :prop="item.codeField" :rules="item.rules">
+                <!-- <el-input-number
+                  v-model="fieldsData[item.codeField]"
+                  @change="doChildEvent(item.event)"
+                  :readonly="item.readonly || false"
+                  :min="item.min || 1"
+                  :max="item.max || null"
+                  controls-position="right"
+                  size="medium"
+                ></el-input-number> -->
+
+                <el-input type="number" v-model="fieldsData[item.codeField]" @focus="doChildEvent(item.event)" :readonly="item.readonly || false" placeholder="请输入" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+            <el-col v-else-if="item.type === 'inputDate'" :span="item.span || 6">
+              <el-form-item :label="item.label" :prop="item.codeField" :rules="item.rules">
+                <el-date-picker v-model="fieldsData[item.codeField]" :type="item.dateType" :readonly="item.readonly || false" placeholder="选择日期"></el-date-picker>
+              </el-form-item>
+            </el-col>
+            <el-form-item v-else-if="item.type === 'checkbox'" :prop="item.codeField" :rules="item.rules">
+              <el-checkbox :class="item.class" v-model="fieldsData[item.codeField]" size="small">{{item.label}}</el-checkbox>
+            </el-form-item>
+            <component v-else-if="item.isComponent" :is="item.component" :params="item.params" :isShow="item.isShow || true" :codeField="item.codeField" :code="fieldsData[item.codeField]" @sendCode="item.sendCode" @changeCode="item.changeCode" @focusCode="item.focusCode" :isMul="item.isMul" :isRequire="item.isRequire" :span="item.span || 6" :labelName="item.label" :options="item.options" :lookuptype="item.lookuptype" :inputType="item.inputType" :popupsKey="item.compKey" :dateOptionsType="item.dateOptionsType" :format="item.format" :dateType="item.dateType" :valueObject="item.curValueObject" :clearable="item.clearable" :filterable="item.filterable" :parentFileds="item.parentFileds || ''" :returnCodeField="item.returnCodeField" :returnTextField="item.returnTextField" :validrule="item.validrule" :queryParams="item.queryParams"></component>
+          </div>
+        </el-col>
+      </el-row>
+    </el-form>
+  </section>
+</template>
+<script>
+import { requestGraphQL } from "@/api/commonRequest";
+import mixButton from "@/components/basicComponent/mixButton";
+export default {
+  components: {
+    mixButton
+  },
+  props: {
+    // 创建表单的参数
+    dynamicFormFields: { type: Array, default: () => [] },
+    // 创建表单的参数
+    dynamicFieldsData: { type: Object, default: () => { } },
+    // 是否是查询条件
+    isSearch: { type: Boolean, default: false },
+    //查询参数配置
+    queryParams: { type: Object, default: () => { } }
+  },
+  data() {
+    return {
+      //表单值
+      fieldsData: this.dynamicFieldsData,
+      // 表单列
+      fields: this.dynamicFormFields,
+      // 更多列
+      fieldsMore: [],
+      //更多图标
+      moreBtnIcon: "el-icon-plus",
+      //隐藏更多
+      toggleParam: false,
+      //重置的默认数据
+      resetData: this.copyfieldsData(this.dynamicFieldsData)
+    };
+  },
+  created() {
+    this.copyFormFields(this.dynamicFormFields);
+  },
+  methods: {
+    queryList() {
+      const that = this;
+      that.listLoading = true;
+      const queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: "query",
+        typeParam:
+          "($pageIndex: Int, $pageSize: Int, $dataInfo: " +
+          that.queryParams.InputType +
+          ")",
+        // 请求API
+        apiUrl: that.queryParams.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: that.queryParams.ServiceCode,
+            apiServiceParam:
+              "(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)",
+            // 表格中台返回网格的字段
+            apiQueryRow: that.queryParams.apiQueryRow
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.pageSize,
+          pageIndex: that.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: that.queryParams.dataInfo
+        }
+      };
+      var paramD = that.$getParams(queryObj);
+      requestGraphQL(paramD).then(response => {
+        if (response.result === "1") {
+          that.fieldsData = response.data[that.queryParams.ServiceCode].rows;
+        } else {
+          that.$message({
+            message: "查询失败：" + response.msg,
+            type: "warn",
+            uration: 2000
+          });
+        }
+        that.listLoading = false;
+      });
+    },
+    // 复制表单参数，fieldsData缺值赋空
+    copyFormFields() {
+      const that = this;
+      let fields = this.fields;
+      let arr = fields.filter(o => o.hidden !== true);
+      if (this.isSearch) {
+        let s = arr.slice(0, 4);
+        let e = arr.slice(4);
+        //fields
+        s.map(function (item, i) {
+          //设置表单数据为空
+          !that.fieldsData[item.codeField]
+            ? that.$set(that.fieldsData, item.codeField, "")
+            : false;
+          //无事件设置
+          !item.event ? (item.event = () => 0) : false;
+          //下拉框数据为空
+          item.type === "dropdownList" && !item.options ? [] : false;
+          !item.rules ? (item.rules = null) : false;
+        });
+        //fieldsMore
+        e.map(function (item, i) {
+          //设置表单数据为空
+          !that.fieldsData[item.codeField]
+            ? that.$set(that.fieldsData, item.codeField, "")
+            : false;
+          //无事件设置
+          !item.event ? (item.event = () => 0) : false;
+          //下拉框数据为空
+          item.type === "dropdownList" && !item.options ? [] : false;
+          !item.rules ? (item.rules = null) : false;
+        });
+        this.fields = s;
+        this.fieldsMore = e;
+        // this.$set(this.fieldsMore, e)
+      } else {
+        arr.map(function (item, i) {
+          //设置表单数据为空
+          !that.fieldsData[item.codeField]
+            ? that.$set(that.fieldsData, item.codeField, "")
+            : false;
+          //无事件设置
+          !item.event ? (item.event = () => 0) : false;
+          //下拉框数据为空
+          item.type === "dropdownList" && !item.options ? [] : false;
+          !item.rules ? (item.rules = null) : false;
+        });
+        this.fields = arr;
+      }
+    },
+    //复制表单数据
+    copyfieldsData() {
+      const that = this;
+      // Object.keys(that.dynamicFieldsData).forEach(function(key){
+      //   let val = that.dynamicFieldsData[key] || ''
+      //   that.$set(that.fieldsData, key, val)
+      // })
+      let fieldsData = Object.assign({}, this.dynamicFieldsData);
+      return fieldsData;
+    },
+    //手动设置某个属性值
+    reloadFormFields(codeField, attr, data) {
+      this.fields.map((item, i) => {
+        if (item.codeField === codeField) {
+          item[attr] = data;
+          return false;
+        }
+      });
+      this.fieldsMore.map((item, i) => {
+        if (item.codeField === codeField) {
+          item[attr] = data;
+          return false;
+        }
+      });
+    },
+    //更多收缩方法
+    changeToggleParam() {
+      this.toggleParam = !this.toggleParam;
+      if (this.toggleParam) {
+        this.moreBtnIcon = "el-icon-minus";
+      } else {
+        this.moreBtnIcon = "el-icon-plus";
+      }
+    },
+    //重置表单数据
+    resetFormdata() {
+      for (let i in this.fieldsData) {
+        typeof this.fieldsData[i] === "boolean"
+          ? this.fieldsData[i] = false
+          : this.fieldsData[i] = ""
+      }
+      // this.fieldsData = this.resetData;
+    },
+    doChildEvent(event, args) {
+      if (typeof event === 'function') {
+        event({ ...args })
+      } else {
+        event ? this.$parent[event]({ ...args }) : false
+      }
+    }
+  }
+};
+</script>

@@ -1,0 +1,493 @@
+<!--
+* description: 模板-网格
+* author: zhongchh
+* createdDate: 2019-10-06
+* logs:
+-->
+<template>
+  <section class="filter-params-e3s">
+    <div v-if="!isDialog"
+      class="filter-container filter-title"
+      ref="resultTitleHeight"
+    >{{$t('sys.content.gridTitle')}}</div>
+    <!-- 网格 -->
+    <el-table
+      v-loading="listLoading"
+      :data="tableData"
+      element-loading-text="加载中"
+      fit
+      border
+      stripe
+      :height="tableHeight"
+      header-cell-class-name="header-cell"
+      :row-class-name="tableRowClassName"
+      highlight-current-row
+      ref="multipleTable"
+      @row-click="handleTableRowChange"
+      @selection-change="handleSelectionChange"> 
+      <!-- 选择 或 序号 -->
+        <el-table-column
+          :type="multipleSelect"
+          label="序号"
+          :fixed="!isRowDrop"
+          width="55"
+          filed="chose"
+          current-row-key="choose"
+          align="center"
+        />
+        <!-- 序号 -->
+        <el-table-column
+          v-if="multipleSelect === 'selection'"
+          :fixed="!isRowDrop"
+          label="序号"
+          width="60"
+          type='index'
+          align="center"
+        />
+      <!-- 动态列 -->
+      <el-table-column
+        v-for="(cols, index) in tableCols.filter(o => !o.hidden)"
+        :fixed="(cols.fixed || false) && !isRowDrop"
+        :label="cols.label"
+        :key="`col_${index}`"
+        :prop="cols.codeField"
+        :width="cols.width || null"
+        :hidden="cols.hidden"
+        :align=" 'center'|| cols.align"
+        :sortable="cols.sortable || sortable">
+        <template slot="header" v-if="cols.isEdit">
+          <span>{{cols.label}}<i class="el-icon-edit" style="padding: 0 5px"></i></span>
+        </template>
+        <template slot-scope="{row}" >
+          <!-- 内容值-->
+          <span v-if="!cols.comps">{{ row[cols.codeField] }}</span>
+          <span v-else v-for="(col, i) in cols.comps" :key="`tableCols_${index}${i}`">
+            <!-- dynamicTableCols参数
+              * isComponent 是否是外部组件
+              * comp 外部组件或非
+              -->
+              <!-- 参数
+              * component 引入的组件
+              * params 引入组件需要的参数的集合
+              * sendCode 引入组件需要的方法
+              * changeCode 引入组件需要的方法
+              * code 默认值
+              * 向前兼容
+              -->
+            <component 
+              v-if="col.isComponent && col"
+              :is="col.component"
+              :events="col.events"
+              :params="col.params"
+              @changeCode="col.changeCode"
+              @sendCode="col.sendCode"
+              @focusCode="col.focusCode"
+              @clickEvent="()=>{ col.clickEvent || 0}"
+              :row="currentRow"
+              :codeField="col.codeField"
+              :textField="col.textField"
+              :popupsKey="col.compKey" 
+              :isShow="row[col.compareField]===col.compareValue"
+              :code="row[col.codeField]"
+              :text="row[col.textField]"
+              :comType="row.index+''"
+              :isMul="col.isMul"
+              :isShowLabel="row.renders[i].isRenderLabel"
+              :labelName="col.labelName"
+              :lookuptype="col.lookuptype"
+              :format="col.format"
+              :dateType="col.dateType"
+              :dateOptionsType="col.dateOptionsType"
+              :contWay="[row,col.contWay]"
+              :clearable="col.clearable"
+              :filterable="col.filterable"
+              :curTableRow="col.rowFileds?row:null"
+              :rowFileds="col.rowFileds"
+              :queryParams="col.queryParams"
+              :span="col.span || 24"
+              :width="col.width"
+            ></component>
+            <!-- 下拉框-->
+            <el-select v-else-if="col.type === 'dropdownList' && (!col.name || (row.renders[col.name] && !row.renders[col.name].disabled))" v-model="row[cols.codeField]" 
+              @change="doChildEvent(col.event, {row})" class="u-mixInput" clearable collapse-tags size="small">
+              <el-option v-for="(item, i) in col.data" 
+              :key="`${cols.codeField}_${i}`" 
+              :label="item.label" :value="item.value"></el-option>
+            </el-select>
+            <!-- 文本输入框-->
+            <el-input v-else-if="col.type === 'inputTxt' && (!col.name || (row.renders[col.name] && !row.renders[col.name].readonly))" :width="cols.width" v-model="row[cols.codeField]" 
+              @focus="doChildEvent(col.focus, {row})" 
+              @blur="doChildEvent(col.blur, {row})" 
+              @change="doChildEvent(col.change, {row: row, codeField: cols.codeField})"  
+              :readonly="col.readonly || false" class="u-mixInput" placeholder="请输入" size="small"></el-input>
+            <!-- 文本输入框-->
+            <el-input v-else-if="col.type === 'inputTxtArea'  && (!col.name || (row.renders[col.name] && !row.renders[col.name].readonly))" type="textarea" v-model="row[cols.codeField]" 
+              :readonly="col.readonly || false" placeholder="请输入" size="small"></el-input>  
+            <!-- 数字输入框-->
+            <el-input v-else-if="col.type === 'txtNum' && (!col.name || (row.renders[col.name] && !row.renders[col.name].readonly))" type="number" v-model="row[cols.codeField]" 
+              @focus="doChildEvent(col.focus, {row})" 
+              @blur="doChildEvent(col.focus, {row})" 
+              @change="doChildEvent(col.change, {row: row, codeField: cols.codeField})" 
+              :step="col.step || 1" 
+              :max="col.max" 
+              :min="col.min"
+              :readonly="col.readonly|| false" placeholder="请输入" size="small"></el-input>
+            <!-- 数字输入框（无按钮）-->
+            <el-input-number v-else-if="col.type === 'btnNum' && (!col.name || (row.renders[col.name] && !row.renders[col.name].readonly))" v-model="row[cols.codeField]" 
+              @focus="doChildEvent(col.focus, {row})" 
+              @blur="doChildEvent(col.blur, {row})" 
+              @change="doChildEvent(col.change, {row: row, codeField: row[cols.codeField]})" 
+              :precision="col.precision || 0"
+              :step="col.step || 1" 
+              :controls="false"
+              :readonly="col.readonly|| false" placeholder="请输入" size="small"></el-input-number>
+            <!-- 时间输入框-->
+            <el-date-picker v-else-if="col.type === 'inputDate' && (!col.name || (row.renders[col.name] && !row.renders[col.name].readonly))" v-model="row[cols.codeField]" 
+            :type="col.dateType"
+            :readonly="col.readonly|| false" class="u-mixInput" placeholder="选择日期"></el-date-picker>
+            <!-- a-->
+            <a v-else-if="col.type === 'link' && (!col.name || (row.renders[col.name] && !row.renders[col.name].readonly))" @click="doChildEvent(col.event, {row})">{{ row[cols.codeField] }}</a>
+            <!-- 按钮-->
+            <el-button v-else-if="col.type === 'button' && (!col.name || (row.renders[col.name] && !row.renders[col.name].readonly))" size:small @click="doChildEvent(col.event, {row})">{{ col.labelName }}</el-button>
+            <!-- 复选框-->
+            <el-checkbox v-else-if="col.type === 'checkBox' && (!col.name || (row.renders[col.name] && !row.renders[col.name].readonly))" :checked="row[cols.codeField] ==='1'? row.checked = true : row.checked = false" v-model="row.checked" @change="changeCheckBox(row,cols)" />
+            <!-- 是否-->
+            <span v-else-if="!col.isComponent && col.prop === 'isEnable'">{{(row[cols.prop] === '1') ? '是' : '否' }}</span>
+            <span v-else-if="col.name && row.renders[col.name] && (row.renders[col.name].disabled || row.renders[col.name].readonly)">{{ row[cols.codeField] }}</span>
+          </span>
+        </template>
+      </el-table-column>
+    </el-table>
+    <el-pagination v-if="isPaging"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentPageChange"
+      :page-sizes="[10, 20, 30]"
+      :page-size="pageSize"
+      :prev-text="$t('sys.content.prevPage')"
+      :next-text="$t('sys.content.nextPage')"
+      layout="prev, pager, next, sizes, ->, total"
+      ref="paginationHeight"
+      :total="pageTotal"
+      :current-page.sync="pageIndex"
+      style="margin-bottom:10px"
+      background>
+    </el-pagination>
+    <div v-if="rowBtns.length !== 0" v-show="showOpt" class="pop" :style="popClass" v-clickoutside="handleClose">
+      <el-button  v-for="(item, i) in rowBtns" :key="`rowBtns_${i}`" :type="item.type" size="small" @click="doChildEvent(item.event, {row})" :class="item.class">{{item.label}}</el-button>
+    </div>
+  </section>
+</template>
+<script>
+import { requestGraphQL } from '@/api/commonRequest'
+import { the_Height } from "@/components/se/seMixins/makeHeightForTemplate"
+const clickoutside = {
+ // 初始化指令
+  bind(el, binding, vnode) {
+    function documentHandler(e) {
+      // 这里判断点击的元素是否是本身，是本身，则返回
+      if (el.contains(e.target) || el.parentElement.contains(e.target)) {
+        return false;
+      }
+      // 判断指令中是否绑定了函数
+      if (binding.expression) {
+      // 如果绑定了函数 则调用那个函数，此处binding.value就是handleClose方法
+        binding.value(e);
+      }
+    }
+    // 给当前元素绑定个私有变量，方便在unbind中可以解除事件监听
+  el.vueClickOutside = documentHandler;
+  document.addEventListener('click', documentHandler);
+  },
+  update() {},
+  unbind(el, binding) {
+    // 解除事件监听
+    document.removeEventListener('click', el.vueClickOutside);
+    delete el.vueClickOutside;
+  }
+};
+export default {
+  // mixins: [the_Height],
+  directives: {clickoutside},
+  props: {
+    //是否多选
+    multipleSelect: { type: String, default: 'index' },
+    //传入网格数据
+    listData: { type: Array, default: () => [] },
+    // 动态网格列
+    dynamicTableCols: { type: Array, default: () => [] },
+    //是否分页
+    isPaging: { type: Boolean, default: false },
+    //是否弹窗
+    isDialog: { type: Boolean, default: false },
+    //网格数据查询参数
+    queryParams: { type: Object, default: () => {} },
+    //行点击事件
+    rowClick: { type: Function, default: () => 0 },
+    //网格高度
+    onetableHeight : { type: Number, default: 350},
+    //动态行操作
+    rowBtns: { type: Array, default: () => [] }
+  },
+  data(){ 
+    return {
+      //页码
+      pageIndex: 1,
+      //数据规格
+      pageSize: 10,
+      //总页数
+      pageTotal: 0,
+      // 网格动态生成列
+      tableCols: this.dynamicTableCols,
+      // 网格拖动列
+      dropTableCol: this.dynamicTableCols,
+      // 网格高度
+      tableHeight: this.onetableHeight,
+      //网格数据
+      tableData: this.listData,
+      //选中行
+      currentRow: [],
+      //选中行下标
+      rowIndex:-1,
+      //是否固定
+      isRowDrop: true,
+      //loading
+      listLoading: false,
+      //是否排序
+      sortable: false,
+      //行操作
+      showOpt: false,
+      popClass: ''
+  }},
+  created(){
+  },
+  methods: {
+    queryList(page, dataType, excelName, excelSheetName,tableColumns){
+      const that = this
+      that.listLoading = true
+      const queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfo: ' + that.queryParams.InputType + ')',
+        // 请求API
+        apiUrl: that.queryParams.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: that.queryParams.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+            // 表格中台返回网格的字段
+            apiQueryRow: that.queryParams.apiQueryRow
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.pageSize,
+          pageIndex: that.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: that.queryParams.dataInfo
+        }
+      }
+      var paramD = that.$getParams(queryObj)
+      requestGraphQL(paramD).then(response => {
+        if (dataType == 'excel') {
+            //导出excel查询
+            var nowDate = new Date()
+            this.$utils.downloadFile(response,
+              `${excelName}${nowDate.getFullYear()} - ${nowDate.getMonth() + 1} - ${nowDate.getDate()} ${nowDate.getHours()}：${nowDate.getMinutes()}：${nowDate.getSeconds()}.xlsx`)
+          return false
+        }
+        let res = response[that.queryParams.ServiceCode] || response.data[that.queryParams.ServiceCode]
+        if (res.result === '1'){
+            that.tableData = res.rows
+            that.pageTotal = res.records
+        }else {
+            that.$message({
+                message: '查询失败：' + response.msg,
+                type: 'warn',
+                uration: 2000
+            })
+        }
+        that.listLoading = false
+      })
+    },
+    handleSizeChange(page){
+      this.pageSize = page
+      this.queryList()
+    },
+    handleCurrentPageChange(page){
+      this.pageIndex = page
+      this.queryList()
+    },
+    handleTableRowChange(row,index){
+      this.currentRow = [row]
+      this.rowIndex = index
+      //回调传入行点击事件
+      this.$emit('rowClick', this.currentRow)
+
+      if(this.rowBtns.length !== 0){
+        let x = arguments[2].currentTarget.offsetLeft + 100
+        let flag = Number((arguments[2].currentTarget.offsetTop + arguments[2].currentTarget.offsetHeight).toFixed(2)) >= arguments[2].currentTarget.offsetParent.clientHeight ? true : false
+        let y =  Number((arguments[2].currentTarget.offsetTop + 30).toFixed(2))
+        flag ? y = Number(( y -  arguments[2].currentTarget.scrollHeight).toFixed(2)) : false
+        this.popClass = 'left:'+x+'px;top:'+y+'px'
+        this.showOpt = true
+      }
+    },
+    handleClose(e) {
+      this.showOpt = false;
+    },
+    handleSelectionChange(rows){
+      this.currentRow = rows
+    },
+    // 复制网格字段
+    copyTableCols(tableCols) {
+      let colsObj = tableCols.filter(o => o.hidden !== true)
+      colsObj.map(function (item, i) {
+        item.prop = null
+        if(item.comps){
+          !item.comps.event ? item.comps.event = () => 0 : false
+          !item.comps.data ? [] : false
+        }
+      })
+      return colsObj
+    },
+    //手动设置某个属性值
+    reloadFormFields(fieldName, attr, data){
+      this[data].map((item, i)=>{
+        if(item.fieldName === fieldName){
+          item[attr] = data
+          return false
+        }
+      })
+    },
+    //手动增加某个data
+    updateCols(flag, value){
+      let f = Number(flag)
+      this.$set(this.tableCols, f, value)
+      this.$set(this.dropTableCol, f, value)
+    },
+    //手动增加删除
+    deleteCols(flag, value){
+      let f = Number(flag)
+      this.$delete(this.tableCols, f)
+      this.$delete(this.dropTableCol, f)
+    },
+    //渲染自定义表头
+    renderHeader(h, _ref) {
+      //获取index
+      let index = this.multipleSelect === 'selection' ? (_ref.$index - 2) : (_ref.$index - 1)
+      //返回编辑标志
+      let html = _ref._self.dropTableCol[index].isEdit ? (
+          <span>{_ref.column.label}<i class="el-icon-edit" style="padding: 0 5px "></i></span>
+      ) : (<span>{_ref.column.label}</span>) 
+      return html
+    },
+    //导出
+    exportTableData(dataType, excelName, excelSheetName, tableColumns){
+      const that = this
+      const queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfo: ' + that.queryParams.InputType + ')',
+        // 请求API
+        apiUrl: that.queryParams.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: that.queryParams.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+            // 表格中台返回网格的字段
+            apiQueryRow: that.queryParams.apiQueryRow
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: -1,
+          pageIndex: that.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: that.queryParams.dataInfo
+        }
+      }
+      //转换了中台请求格式数据
+      let paramD = that.$getParams(queryObj)
+      if (dataType === 'excel') {
+        // 网格列对象转为excel列对象
+        tableColumns = tableColumns || this.$refs.multipleTable.columns
+        var cols = tableColumns.filter(o => o.hidden !== true)
+        var excelCols = {}
+        for (var i = 0; i < cols.length; i++) {
+          if (cols[i].property)
+            excelCols[cols[i].property] = cols[i].label
+        }
+        // 数据类型
+        paramD.dataType = 'excel'
+        // excel文件名称
+        paramD.excelName = excelName
+        // 根据请求API描述excel数据对象
+        paramD.excels = [
+          {
+            // excel sheet名称
+            title: excelSheetName,
+            // 对应API服务编码
+            actionName: that.queryParams.ServiceCode,
+            // excel列
+            columns: excelCols
+          }
+        ]
+      }
+      requestGraphQL(paramD).then(response => {
+        if (dataType == 'excel') {
+            //导出excel查询
+            var nowDate = new Date()
+            let name = `${excelName}${nowDate.getFullYear()}-${nowDate.getMonth() + 1}-${nowDate.getDate()} ${nowDate.getHours()}:${nowDate.getMinutes()}:${nowDate.getSeconds()}.xlsx`
+            this.$utils.downloadFile(response, name)
+          return false
+        }
+      })
+    },
+    //checkBox勾选转化方法，拓展事件event 
+    changeCheckBox(row,dropTableCol){
+      if(row.checked){
+          row[dropTableCol.codeField] = '1'
+      }else{
+          row[dropTableCol.codeField] = '0'
+      }
+      if(dropTableCol.comps.event(row)){
+        dropTableCol.comps.event()
+     }
+    },
+    doChildEvent(event, {row, codeField}){
+      if(typeof event === 'function'){
+        event(row, codeField)
+      }else{
+        event ? this.$parent[event](row, codeField) : false
+      }
+    },
+    tableRowClassName({row , rowIndex}){
+       row.index = rowIndex
+    }
+  }
+};
+</script>
+<style>
+  .u-mixInput{
+    width: 100%
+  }
+  .filter-params-e3s{
+    position: relative;
+  }
+  .pop{
+    position: absolute;
+    padding: 5px 15px;
+    line-height: 35px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 1px 1px 2px 2px #c3c3c3;
+  }
+</style>

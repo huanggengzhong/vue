@@ -1,0 +1,290 @@
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button">
+      <el-button type="primary" size="small" @click="fetchData()">查询</el-button>
+      <el-button size="small" @click="getExcel()">导出</el-button>
+      <el-button size="small" @click="reset()">重置</el-button>
+    </div>
+    <div class="filter-container filter-params">
+      <el-row :gutter="26">
+        <el-col :span="22">
+          <el-form :model="ruleForm" :rules="rules" ref="ruleForm" class="demo-ruleForm">
+            <el-col :span="6">
+              <el-form-item label="备件号" prop="partNo">
+                <el-input v-model="ruleForm.partNo" suffix-icon="el-icon-search" size="small" @focus="paChooseVisibleModel"></el-input>
+              </el-form-item>
+            </el-col>
+            <paChoose :dialogFormVisible="paChooseVisible" @changeCode="getPaChooseVisible"></paChoose>
+            <LookupValue :span="6" :isMul="false" :isShowLabel="true" :code="listQuery.orderTypeOperation" :lookuptype="listQuery.lookuptypeOperation" :labelName="labelNameOperation" @changeCode="getLookupValueOperation" />
+            <el-col :span="6">
+              <el-form-item label="日历年月" prop="dateTime">
+                <el-date-picker value-format="yyyy-MM-dd HH:mm:ss" v-model="ruleForm.dateTime" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期">
+                </el-date-picker>
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="操作人" prop="operator">
+                <el-input v-model="ruleForm.operator" size="small"></el-input>
+              </el-form-item>
+            </el-col>
+          </el-form>
+        </el-col>
+      </el-row>
+    </div>
+    <div class="filter-container filter-title">查询结果</div>
+    <el-table :data="list" ref="multipleTable" style="width: 100%" v-loading="listLoading" element-loading-text="Loading" border fit stripe highlight-current-row>
+      <el-table-column label="序号" width="60" type="index" align="center">
+      </el-table-column>
+      <el-table-column label="备件品牌" align="center" prop="partBrandName">
+        <template slot-scope="scope">{{scope.row.partBrandName}}</template>
+      </el-table-column>
+      <el-table-column label="操作类型" width="150" align="center" prop="operTypeName">
+        <template slot-scope="scope">{{scope.row.operTypeName}}</template>
+      </el-table-column>
+      <el-table-column label="备件号" width="150" align="center" prop="partNo">
+        <template slot-scope="scope">{{scope.row.partNo}}</template>
+      </el-table-column>
+      <el-table-column label="操作人" width="150" align="center" prop="operator">
+        <template slot-scope="scope">{{scope.row.operator}}</template>
+      </el-table-column>
+      <el-table-column label="操作时间" width="150" align="center" prop="oprerTime">
+        <template slot-scope="scope">{{scope.row.oprerTime}}</template>
+      </el-table-column>
+      <el-table-column label="原值" width="150" align="center" prop="oldName">
+        <template slot-scope="scope">{{scope.row.oldName}}</template>
+      </el-table-column>
+      <el-table-column label="新值" width="150" align="center" prop="newName">
+        <template slot-scope="scope">{{scope.row.newName}}</template>
+      </el-table-column>
+      <el-table-column label="当前值" width="150" align="center" prop="currentValueName">
+        <template slot-scope="scope">{{scope.row.currentValueName}}</template>
+      </el-table-column>
+      <el-table-column label="修改原因" width="150" align="center" prop="operateReason">
+        <template slot-scope="scope">{{scope.row.operateReason}}</template>
+      </el-table-column>
+    </el-table>
+    <el-pagination background layout="prev, pager, next, sizes, ->, total" prev-text="上一页" next-text="下一页" :page-sizes="[10, 20, 30]" :page-size="10" :total="list?pageTotal:0" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+  </div>
+</template>
+<script>
+import { paApis } from '@/api/graphQLApiList/pa'
+import { requestGraphQL } from '@/api/commonRequest'
+import paChoose from '@/components/pa/paChoose'
+import LookupValue from '@/components/org/LookupValue'
+
+export default {
+  name: 'testTbale',
+  components: { paChoose, LookupValue },
+  filters: {
+    statusFilter(status) {
+      const statusMap = {
+        published: 'success',
+        draft: 'gray',
+        deleted: 'danger'
+      }
+      return statusMap[status]
+    }
+  },
+  data() {
+    return {
+      code: '1',
+      list: null,
+      listLoading: false,
+      paChooseVisible: false,
+      labelNameOperation: '操作类型',
+      ruleForm: {
+        partNo: '',
+        operTypeName: '',
+        dateTime: '',
+        operator: ''
+      },
+      rules: {},
+      listQuery: {
+        pageIndex: 1,
+        pageSize: 10,
+        limit: 20,
+        lookuptypeOperation: 'PA0110',
+        orderTypeOperation: ''
+      },
+
+      tableHeaderRowClassName({ row, rowIndex }) {
+        if (rowIndex === 0) {
+          return 'background-color:rgb(239, 239, 239);height:32px;'
+        }
+      }
+    }
+  },
+  methods: {
+    //点击备件编码弹窗
+    paChooseVisibleModel() {
+      this.paChooseVisible = true
+    },
+    //传值给备件选择公共弹窗
+    getPaChooseVisible(val) {
+      if (val == undefined) {
+        this.paChooseVisible = false
+      } else {
+        this.paChooseVisible = false
+        this.ruleForm.partNo = val.name
+      }
+    },
+    fetchData(
+      page,
+      dataType = '',
+      excelName = '',
+      excelSheetName = '',
+      tableColumns = null
+    ) {
+      let obj = {}
+      obj.oemCode = this.ruleForm.oemCode
+      obj.groupCode = this.ruleForm.groupCode
+      obj.partNo = this.ruleForm.partNo
+      obj.operType = this.listQuery.orderTypeOperation
+      obj.oprerTimeS = this.ruleForm.dateTime[0]
+      obj.oprerTimeT = this.ruleForm.dateTime[1]
+      obj.operator = this.ruleForm.operator
+      this.listLoading = true
+      const that = this
+      const queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+          paApis.paDbPartLogQueryList.InputType +
+          ')',
+        // 请求API
+        apiUrl: paApis.paDbPartLogQueryList.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: paApis.paDbPartLogQueryList.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+            // 表格中台返回网格的字段
+            apiQueryRow: [
+              'currentValueName',
+              'logId',
+              'newName',
+              'newValue',
+              'oldName',
+              'oldValue',
+              'operType',
+              'operTypeName',
+              'operateReason',
+              'operator',
+              'oprerTime',
+              'partBrandCode',
+              'partBrandName',
+              'partId',
+              'partNo'
+            ]
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.listQuery.pageSize,
+          pageIndex: page || that.listQuery.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: obj
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj)
+      if (dataType === 'excel') {
+        queryObj.variables.pageSize = 99999
+        if (tableColumns == null) tableColumns = []
+        var tmpCols = tableColumns // .filter(o => o.hidden !== true)
+        // 网格列对象转为excel列对象
+        var excelCols = {}
+        for (var i = 0; i < tmpCols.length; i++) {
+          if (tmpCols[i].property != null)
+            excelCols[tmpCols[i].property] = tmpCols[i].label
+        }
+        // 数据类型
+        paramD.dataType = 'excel'
+        // excel文件名称
+        paramD.excelName = excelName
+        // 根据请求API描述excel数据对象
+        paramD.excels = [
+          {
+            // excel sheet名称
+            title: excelSheetName,
+            // 对应API服务编码
+            actionName: queryObj.apiServices[0].apiServiceCode,
+            // excel列
+            columns: excelCols
+          }
+        ]
+      }
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (dataType == 'excel') {
+          //导出excel查询
+          var nowDate = new Date()
+          debugger
+          this.$utils.downloadFile(
+            response,
+            `备件状态开关日志列表导出${nowDate.getFullYear()}-${nowDate.getMonth() +
+              1}-${nowDate.getDate()}  ${nowDate.getHours()}：${nowDate.getMinutes()}：${nowDate.getSeconds()}.xlsx`
+          )
+          this.listLoading = false
+        } else if (
+          response.data[paApis.paDbPartLogQueryList.ServiceCode].result === '1'
+        ) {
+          if (page) {
+            //查询完返回指定的page页数
+            that.listQuery.pageIndex = page
+          }
+          that.pageTotal =
+            response.data[paApis.paDbPartLogQueryList.ServiceCode].records
+          that.list =
+            response.data[paApis.paDbPartLogQueryList.ServiceCode].rows
+          that.listLoading = false
+        } else {
+          this.$message({
+            message:
+              '查询失败：' +
+              response.data[paApis.paDbPartLogQueryList.ServiceCode].msg,
+            type: 'warn',
+            uration: 2000
+          })
+        }
+      })
+    },
+    //导出
+    getExcel() {
+      debugger
+      var tableColumns = null ? null : this.$refs.multipleTable.columns
+      this.fetchData(
+        1,
+        'excel',
+        '备件状态开关日志列表导出',
+        '备件状态开关日志列表',
+        tableColumns
+      )
+    },
+    //重置
+    reset() {
+      this.listQuery.orderTypeOperation = ''
+      this.ruleForm = {
+        partNo: '',
+        operTypeName: '',
+        dateTime: '',
+        operator: ''
+      }
+    },
+    handleSizeChange(val) {
+      this.listQuery.pageSize = val
+      this.fetchData()
+    },
+    handleCurrentChange(val) {
+      this.listQuery.pageIndex = val
+      this.fetchData()
+    },
+    getLookupValueOperation(val) {
+      this.listQuery.orderTypeOperation = val
+    }
+  }
+}
+</script>

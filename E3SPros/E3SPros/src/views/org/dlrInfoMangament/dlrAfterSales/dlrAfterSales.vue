@@ -1,0 +1,350 @@
+
+
+<template>
+  <div class="app-container app-container-table orgManage">
+    <div class="filter-container filter-button">
+      <el-button type="primary" size="small" @click="queryTable(true)">查询</el-button>
+      <el-button size="small" @click="editOrgManage">修改</el-button>
+      <el-button size="small" @click="resetOrgManage">重置</el-button>
+    </div>
+
+    <div class="filter-container filter-title">查询条件</div>
+    <div class="filter-container filter-params">
+      <el-row :gutter="26">
+          <el-row :span="24">
+          <el-col :span="6">
+            <label>集团编码</label>
+            <el-input
+              v-model="listQuery.orgCode"
+              suffix-icon="el-icon-search"
+              placeholder="请选择"
+              size="small"
+            />
+          </el-col>
+          <el-col :span="6">
+            <label>集团名称</label>
+            <el-input
+              v-model="listQuery.orgName"
+              suffix-icon="el-icon-search"
+              placeholder="请选择"
+              size="small"
+            />
+          </el-col>
+          </el-row>
+      </el-row>
+    </div>
+
+    <div class="filter-container filter-title">查询结果</div>
+    <el-table
+      border
+      stripe
+      v-loading="listLoading"
+      :header-cell-style="tableHeaderRowClassName"
+      :data="list"
+      @selection-change="getCarSeriesCode"
+      :highlight-current-row="!isMul"
+      @current-change="getCarSeriesCode"
+>
+      <el-table-column
+       label="序号"
+       width="60"
+       type="index"
+      >
+      </el-table-column>
+
+       <el-table-column
+        width="60"
+        type="selection"
+        v-if="isMul"
+        >
+        </el-table-column>
+      <el-table-column
+       prop="orgId"
+       label="集团ID"
+       v-if="hideCol"
+      >
+      </el-table-column>
+      <el-table-column
+       prop="orgCode"
+       label="集团编码"
+       hidden
+      >
+      </el-table-column>
+
+      <el-table-column
+       prop="orgName"
+       label="集团名称"
+      >
+      </el-table-column>
+     <el-table-column
+       prop="isEnable"
+       label="是否可用"
+      >
+      </el-table-column>
+
+      <el-table-column
+       prop="updateControlId"
+       label="updateControlId"
+       v-if="hideCol"
+      >
+       </el-table-column>
+    </el-table>
+    <el-pagination
+      background
+      layout="prev, pager, next, sizes, ->, total"
+      prev-text="上一页"
+      next-text="下一页"
+      :page-sizes="[10, 20, 30]"
+      :page-size="10"
+      :total="list?list.length:0"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+    />
+
+
+    <el-dialog 
+        title="集团信息修改" 
+        :visible.sync="orgManageVisible"
+        width="900px"
+        height="200px"
+        center
+        @close="sendCode"
+        class="orgManageDialog"
+        >
+            <div class="filter-container filter-params">
+                <el-row :gutter="26">
+                      <el-col :span="8">
+                        <label>集团编码</label>
+                        <el-input
+                            v-model="editQuery.orgCode"
+                            suffix-icon="el-icon-search"
+                            placeholder="请输入"
+                            size="small"
+                        />
+                      </el-col>
+                      <el-col :span="8">
+                        <label>集团名称</label>
+                        <el-input
+                            v-model="editQuery.orgName"
+                            suffix-icon="el-icon-search"
+                            placeholder="请输入"
+                            size="small"
+                        />
+                      </el-col>
+                      <el-col :span="8">
+                        <label>管理员账号</label>
+                        <el-input
+                            v-model="editQuery.userName"
+                            suffix-icon="el-icon-search"
+                            placeholder="请输入"
+                            size="small"
+                        />
+                      </el-col>
+                      <el-col :span="8">
+                        <label>管理员密码</label>
+                        <el-input
+                            v-model="editQuery.password"
+                            suffix-icon="el-icon-search"
+                            placeholder="请输入"
+                            size="small"
+                        />
+                      </el-col>
+                      <el-col :span="8">
+                        <label>管理员角色</label>
+                        <el-input
+                            v-model="editQuery.roleId"
+                            suffix-icon="el-icon-search"
+                            placeholder="请输入"
+                            size="small"
+                        />
+                      </el-col>
+                      <isEnable :span="isEnableSpan" :code="editQuery.isEnable"></isEnable>
+                    <div class="filter-container filter-button orgManageBtn">
+                        <el-button type="primary" size="small" @click="saveOrgManage()">保存</el-button>
+                        <el-button size="small" @click="reset()">重置</el-button>
+                    </div>
+                </el-row>
+            </div>
+        </el-dialog>
+  </div>
+
+</template>
+<script>
+import { getOrgManageList } from '@/api/ve/organization'
+import { saveOrgManage } from '@/api/ve/organization'
+import isEnable from '@/components/org/isEnable/isEnable'
+import { orgApis } from '@/api/graphQLApiList/org'
+import { requestGraphQL } from '@/api/commonRequest'
+export default {
+  name:"dlrAfterSale",
+  components: {
+    isEnable
+  },
+  filters: {
+    statusFilter(status) {
+      const statusMap = {
+        published: 'success',
+        draft: 'gray',
+        deleted: 'danger'
+      }
+      return statusMap[status]
+    }
+  },
+  data() {
+    return {
+      hideCol: false,
+      isEnableSpan: 8,
+      orgManageVisible: false,
+      isMul: false,
+      list: null,
+      listLoading: false,
+      listQuery: {
+        pageIndex: 1,
+        pageSize: 10,
+        limit: 20,
+        orgId: undefined,
+        orgCode: undefined,
+        orgName: undefined,
+        isEnable: 1,
+        updateControlId:undefined
+      },
+      editQuery: {
+        orgCode: undefined,
+        orgName: undefined,
+        userName: undefined,
+        password: undefined,
+        isEnable: 1,
+        roleId:undefined
+      },
+      tableHeaderRowClassName({ row, rowIndex }) {
+        if (rowIndex === 0) {
+          return 'background-color:rgb(239, 239, 239);height:32px;'
+        }
+      }
+    }
+  },
+  created() {
+    this.queryTable(true)
+  },
+  mounted() {
+    // 调用AppMain中的方法设置网格高度（自适应）
+    if (this.$parent && this.$parent.setTableHeight) this.$parent.setTableHeight()
+  },
+  methods: {
+    queryTable(page){
+        const that = this
+        let queryObj = {
+          // api配置
+          apiConfig: orgApis.mdmOrgDeptQueryFindAll,
+          // 需要调用的API服务配置
+          apiServices: [{
+              //表格中台返回网格的字段
+              apiQueryRow:['orgId','orgCode','orgName','isEnable','updateControlId']
+          }],
+          //条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            pageSize: that.listQuery.pageSize,
+            pageIndex: page || that.listQuery.pageIndex,
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: that.listQuery
+          }
+        }
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        // 调用中台API方法（可复用）
+        requestGraphQL(paramD).then(response =>{
+          if(response.data[orgApis.mdmOrgInfoQueryGroupByPage.ServiceCode].result === '1' && response.data[orgApis.mdmOrgInfoQueryGroupByPage.ServiceCode].rows!=''){
+              if(page){
+                  //查询完返回指定的page页数
+                  that.listQuery.pageIndex = response.data[orgApis.mdmOrgInfoQueryGroupByPage.ServiceCode].pageIndexs;
+                  that.listQuery.pageSize = response.data[orgApis.mdmOrgInfoQueryGroupByPage.ServiceCode].pages;
+                  that.listQuery.pageTotal = response.data[orgApis.mdmOrgInfoQueryGroupByPage.ServiceCode].records;
+              }
+              that.list = response.data[orgApis.mdmOrgInfoQueryGroupByPage.ServiceCode].rows;
+              that.listLoading = false;
+            }
+        })
+    },
+    saveOrgManage(page){
+        this.orgManageVisible = true
+        const that = this
+        let queryObj = {
+          // api配置
+          apiConfig: orgApis.mdmOrgInfoGroupMutationSave,
+          // 需要调用的API服务配置
+          apiServices: [{
+              //表格中台返回网格的字段
+              apiQueryRow:[]
+          }],
+          //条件/实体参数（变量），根据typeParam中的定义配置
+          variables: {
+            pageSize: that.listQuery.pageSize,
+            pageIndex: page || that.listQuery.pageIndex,
+            //当前中台使用的名称有dataInfo、info，具体查看API文档
+            dataInfo: that.editQuery
+          }
+        }
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        // 调用中台API方法（可复用）
+        requestGraphQL(paramD).then(response =>{
+          if(response.data[orgApis.mdmOrgInfoGroupMutationSave.ServiceCode].result === '1' && response.data[orgApis.mdmOrgInfoGroupMutationSave.ServiceCode].rows!=''){
+            this.orgManageVisible = false
+            this.$message({
+              message: '保存成功',
+              type: 'success',
+              duration: 1000
+            });
+            }
+        })
+    },
+    handleSizeChange(val) {
+      this.listQuery.pageSize = val
+      this.queryTable(true)
+    },
+    handleCurrentChange(val) {
+       this.listQuery.pageIndex = val
+       this.queryTable(true)
+    },
+    editOrgManage() {
+      this.orgManageVisible = true
+    },
+    getCarSeriesCode(val) {
+       if(this.isMul) {
+         if(val[0] || val.length == '0') {
+          this.codeInside = {
+            code: [],
+            name: []
+          };
+          for(var i=0;i<val.length;i++) {
+            this.codeInside.code.push(val[i].carSeriesCode)
+            this.codeInside.name.push(val[i].carSeriesName)
+          }
+         }
+      } else {
+          this.editQuery.orgCode = val.orgCode;
+          this.editQuery.orgName = val.orgName;
+          this.editQuery.isEnable = val.isEnable;
+          this.editQuery.updateControlId = val.updateControlId;
+      }
+    },
+    resetOrgManage() {
+      this.listQuery.orgCode = ""
+      this.listQuery.orgName = ""
+    },
+     sendCode() {
+    },
+  }
+}
+</script>
+<style>
+.orgManageDialog {
+  height: 240px;
+  margin-top: calc(26vh) !important;
+}
+.orgManageBtn {
+  position: relative;
+  bottom: -18px;
+  left: -13px;
+}
+</style>

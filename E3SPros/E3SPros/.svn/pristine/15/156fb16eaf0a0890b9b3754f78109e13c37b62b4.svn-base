@@ -1,0 +1,1111 @@
+<template>
+<el-row>
+  <el-col :span="22">
+  <div class="app-container app-container-table filter-params-crm-scroll">
+    <div class="filter-container filter-button">
+      <el-button type="primary" size="small" @click="save">进度反馈</el-button>
+      <el-button size="small" @click="applyYQ">结案</el-button>
+      <el-button size="small" @click="applyJA">驳回</el-button>
+      <el-button size="small" @click="applyJA">问卷</el-button>
+    </div>
+
+    <el-steps :active="active" finish-status="success">
+      <el-step title="建单"></el-step>
+      <el-step title="派单"></el-step>
+      <el-step title="处理"></el-step>
+      <el-step title="回访"></el-step>
+      <el-step title="结案"></el-step>
+    </el-steps>
+
+    <div class="filter-container filter-title-crm">客户车辆信息</div>
+    <div class="filter-container filter-params-crm filter-params-sub">
+      <el-form label-position="right" disabled>
+        <el-row>
+          <el-col :span="6">
+            <txt_CustomerName :txt_CustomerName="form.custName" ref="custName"></txt_CustomerName>
+          </el-col>
+          <el-col :span="6">
+            <Sex :Sex="form.gender" ref="gender"></Sex>
+          </el-col>
+          <el-col :span="6" style="padding-left:31px;padding-right:0px">
+            <el-col :span="18" style="padding-right: 0px;">
+              <PhoneNumber :PhoneNumber="form.contactTel" ref="contactTel"></PhoneNumber>
+            </el-col>
+            <el-col
+              :span="6"
+              style="font-size:26px;padding-left:0px;padding-right:0px;text-align: left;">
+              <i class="el-icon-phone-crm el-icon-phone" @click="callscreen()"></i>
+              <i class="el-icon-message-crm el-icon-message" @click="msgmod()"></i>
+            </el-col>
+          </el-col>
+          <el-col :span="6">
+            <BackupPhone :BackupPhone="form.backupTel" ref="backupTel"></BackupPhone>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="6">
+            <UseCarName :UseCarName="form.useCustName" ref="useCustName"></UseCarName>
+          </el-col>
+          <el-col :span="6">
+            <Sex :Sex="form.useGenderCode" ref="useGenderCode"></Sex>
+          </el-col>
+          <el-col :span="6" style="padding-left:31px;padding-right:0px">
+            <el-col :span="18" style="padding-right: 0px;">
+              <UseCarPhone :UseCarPhone="form.usePhone" ref="usePhone"></UseCarPhone>
+            </el-col>
+            <el-col
+              :span="6"
+              style="font-size:26px;padding-left:0px;padding-right:0px;text-align: left;">
+              <i class="el-icon-phone-crm el-icon-phone" @click="usercall()"></i>
+              <i class="el-icon-message-crm el-icon-message" @click="backupMsg()"></i>
+            </el-col>
+          </el-col>
+          <el-col :span="6">
+            <BackupPhone :BackupPhone="form.useBackupTel" ref="useBackupTel"></BackupPhone>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="6">
+            <CarSeries :CarSeries="form.vCarseriesDesc" ref="vCarseriesDesc"></CarSeries>
+          </el-col>
+          <el-col :span="6">
+            <CarBrandNumber :CarBrandNumber="form.carLicense" ref="carLicense"></CarBrandNumber>
+          </el-col>
+          <el-col :span="6">
+            <VINCode :VINCode="form.vin" ref="vin"></VINCode>
+          </el-col>
+          <el-col :span="6">
+            <EngineNumber :EngineNumber="form.engineNo" ref="engineNo"></EngineNumber>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="6">
+            <CarBrand :CarBrand="form.carBrandCn" ref="carBrandCn"></CarBrand>
+          </el-col>
+          <el-col :span="6">
+            <CarModel :CarModel="form.vCartypeDesc" ref="vCartypeDesc"></CarModel>
+          </el-col>
+          <el-col :span="6">
+            <NumberAttributtion :NumberAttributtion="form.Numattr" ref="Numattr"></NumberAttributtion>
+          </el-col>
+        </el-row>
+      </el-form>
+    </div>
+    <div class="filter-container filter-title-crm">单据信息</div>
+    <div class="filter-container filter-params-crm filter-params-sub">
+      <el-form label-position="right" disabled>
+        <el-row>
+          <el-col :span="6">
+            <ServiceMenuNumber :ServiceMenuNumber="form.serverOrder" ref="serverOrder" />
+          </el-col>
+          <el-col :span="6">
+            <ComplaintDate :ComplaintDate="form.createdDate" ref="createdDate" />
+          </el-col>
+          <el-col :span="6">
+            <ServiceMenuNumber :ServiceMenuNumber="form.serverFullClassName" ref="serverFullClassName" />
+          </el-col>
+          <el-col :span="6">
+            <EnableOrDisable :EnableOrDisable="sfdhpz" ref="sfdhpz" />
+          </el-col>
+        </el-row>
+          <el-row>
+            <el-col :span="6">
+                <ComplaintDate :ComplaintDate="qwddTime" ref="qwddTime" />
+            </el-col>
+          <el-col :span="6">
+            <ServiceMenuNumber :ServiceMenuNumber="form.linkBillCode" ref="linkBillCode" />
+          </el-col>
+          <el-col :span="6">
+            <ServiceMenuNumber :ServiceMenuNumber="form.jydd" ref="jydd"/>
+          </el-col>
+          
+          </el-row>
+          <el-row>
+            <el-col :span="6" class="crm-label-required">
+                <ServiceMenuNumber :ServiceMenuNumber="form.jycp" ref="refjycp" />
+            </el-col>
+            <el-col :span="6">
+                <RelatedBenchmarkCar :RelatedBenchmarkCar="form.baseSeriesName" ref="baseSeriesName"/>
+            </el-col>
+            <el-col :span="6">
+                <ServiceMenuNumber :ServiceMenuNumber="form.dutyDlrName" ref="dutyDlrName" />
+            </el-col>
+          </el-row>
+          <el-row>
+          <el-col :span="6">
+            <OffsiteNetwork :swd_Responsible="form.nextDealEmpName" ref="nextDealEmpName" />
+          </el-col>
+          <el-col :span="6">
+            <DutyPeoplePhone :DutyPeoplePhone="form.nextDealPhone" ref="nextDealPhone" />
+          </el-col>
+          </el-row>
+          <el-row>
+          <el-col :span="6">
+            <Remarks :Remarks="form.desc" ref="desc" />
+          </el-col>
+          </el-row>
+          <el-row>
+          <el-col :span="6">
+            <Remarks :Remarks="form.custreq" ref="custreq" />
+          </el-col>
+          </el-row>
+          <el-row>
+          <el-col :span="6">
+            <Remarks :Remarks="form.serverHD" ref="serverHD" />
+          </el-col>
+          </el-row>
+          <el-row>
+          <el-col :span="6">
+            <JobDescription :JobDescription="form.distRemark" ref="distRemark" />
+          </el-col>
+          </el-row>
+          <el-row>
+          <el-col :span="6">
+            <Remarks :Remarks="form.remark" ref="remark" />
+          </el-col>
+          </el-row>
+      </el-form>
+    </div>
+    <div class="filter-container filter-title-crm">回访信息</div>
+    <div class="filter-container filter-params-crm filter-params-sub">
+      <el-form label-position="right">
+        <el-row>
+          <el-form label-position="right" disabled>
+            <el-col :span="6">
+              <ReturnVisitTime_single
+                :ReturnVisitTime_single="ruleForm.ReturnVisitTime_single"
+                ref="ReturnVisitTime_single"
+              />
+            </el-col>
+          </el-form>
+          <el-col :span="6" class="crm-label-required">
+            <ContactStatus :ContactStatus="ruleForm.ContactStatus" ref="ContactStatus"></ContactStatus>
+          </el-col>
+
+          <el-col :span="6" class="crm-label-required">
+            <NextReturnVisitTime
+              :NextReturnVisitTime="ruleForm.NextReturnVisitTime"
+              ref="NextReturnVisitTime"
+            ></NextReturnVisitTime>
+          </el-col>
+
+          <el-form label-position="right" disabled>
+            <el-col :span="6">
+              <RevisitTimes :RevisitTimes="ruleForm.RevisitTimes" ref="RevisitTimes"></RevisitTimes>
+            </el-col>
+          </el-form>
+
+          
+        </el-row>
+        <el-row>
+          <el-col :span="6" class="crm-label-required">
+            <ReturnVisitContent
+              :ReturnVisitContent="ruleForm.ReturnVisitContent"
+              ref="ReturnVisitContent"/>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="6">
+            <TxtArea_OpinionFeedback
+              :TxtArea_OpinionFeedback="ruleForm.TxtArea_OpinionFeedback"
+              ref="TxtArea_OpinionFeedback"/>
+          </el-col>
+        </el-row>
+      </el-form>
+    </div>
+
+    <div class="filter-container filter-title-crm">过往记录</div>
+    <Table :tabledatas="tabledatas_record" ref="tabledatas_record" />
+    <!-- 电话弹窗 -->
+      <el-dialog
+        :visible.sync="callflag"
+        width="900px"
+        style="height:700px;margin:0 0 0 0;overflow-y: scroll"
+        class="dialog"
+        title="外呼"
+        append-to-body
+      >
+        <div class="filter-container filter-params-crm">
+          <el-form label-position="right">
+            <el-row>
+              <el-col :span="8">
+                <CustomerName :CustomerName="custtxt" ref="custtxt"></CustomerName>
+              </el-col>
+              <el-col :span="8">
+                <PhoneNumber :PhoneNumber="callphone" ref="callphone"></PhoneNumber>
+              </el-col>
+              <el-col :span="4">
+                <el-button type="primary" size="small" @click="callout()">外呼</el-button>
+              </el-col>
+            </el-row>
+          </el-form>
+        </div>
+      </el-dialog>
+      <!-- 短信弹窗 -->
+      <el-dialog
+        :visible.sync="Msgmodflag"
+        width="900px"
+        style="height:700px;margin:0 0 0 0;overflow-y: scroll"
+        class="dialog"
+        title="发送短信"
+        append-to-body
+      >
+        <div class="filter-container filter-params-crm">
+          <el-form label-position="right">
+            <el-row>
+              <el-col :span="22">
+                <el-row>
+                  <el-col :span="9" class="crm-label-required">
+                    <ModelName ref="ModelName" :ReceiverCellPhone="modn"></ModelName>
+                  </el-col>
+                  <el-col :span="9" class="crm-label-required">
+                    <MsgModel ref="MsgModel" :MessageModel="msgModel" @Cetdata="getMsg"></MsgModel>
+                  </el-col>
+                  <el-col :span="9" class="crm-label-required">
+                    <ModelContentText ref="ModelContentText" :ModelContentTextarea="modc"></ModelContentText>
+                  </el-col>
+                </el-row>
+                <el-row>
+                  <el-col :span="18" class="crm-label-required">
+                    <el-button type="primary" size="small" @click.native="query">发送</el-button>
+                  </el-col>
+                </el-row>
+              </el-col>
+            </el-row>
+          </el-form>
+        </div>
+      </el-dialog>
+      
+  </div>
+  </el-col>
+  <el-col :span="2">
+    <ExtendedInfo :queryParams="queryParams" ref="Exinfo" />
+  </el-col>
+</el-row>
+</template>
+<script>
+import { crmApis } from "@/api/graphQLApiList/crm";
+import { requestGraphQL } from "@/api/commonRequest";
+import Table from "@/components/crm/table/Table";
+//客户车辆信息
+import UseCarPhone from "@/components/crm/textbox/Public/customerInfos/UseCarPhone";
+import txt_CustomerName from "@/components/crm/textbox/Public/customerInfos/txt_CustomerName";
+import Sex from "@/components/crm/Select/Common/Customer/Sex";
+import PhoneNumber from "@/components/crm/textbox/Public/customerInfos/PhoneNumber";
+import BackupPhone from "@/components/crm/textbox/Public/customerInfos/BackupPhone";
+import CarSeries from "@/components/crm/textbox/Public/carInfo/CarSeries";
+import CarBrandNumber from "@/components/crm/textbox/Public/carInfo/CarBrandNumber";
+import VINCode from "@/components/crm/textbox/Public/carInfo/VINCode";
+import UseCarName from "@/components/crm/textbox/Public/customerInfos/UseCarName";
+import CarBrand from "@/components/crm/textbox/Public/carInfo/CarBrand";
+import CarModel from "@/components/crm/textbox/Public/carInfo/CarModel";
+import NumberAttributtion from "@/components/crm/textbox/customerInfo/NumberAttributtion";
+import EngineNumber from "@/components/crm/textbox/Public/customerInfos/EngineNumber";
+import CustomerName from "@/components/crm/textbox/Public/customerInfos/txt_CustomerName";
+
+//单据信息
+import ServiceMenuNumber from "@/components/crm/textbox/Public/ServiceMenuNumber";
+import SourceNumber from "@/components/crm/EjectWindows/SourceNumber";
+import ServiceType from "@/components/crm/EjectWindows/swd_complaintCategory";
+import RelatedBenchmarkCar from "@/components/crm/EjectWindows/RelatedBenchmarkCar";
+import ResponsibleAgent from "@/components/crm/EjectWindows/ResponsibleAgent";
+import ResponsibleDepartment from "@/components/crm/EjectWindows/ResponsibleDepartment";
+import OffsiteNetwork from "@/components/crm/EjectWindows/swd_Responsible";
+import DutyPeoplePhone from "@/components/crm/textbox/Complaint/DutyPeoplePhone";
+import JobDescription from "@/components/crm/textbox/Complaint/JobDescription";
+import Remarks from "@/components/crm/textbox/Complaint/Remarks";
+import DealWithContent from "@/components/crm/textbox/Complaint/DealWithContent";
+import ComplaintDate from "@/components/crm/Time/ComplaintDate";
+import EnableOrDisable from "@/components/crm/Select/Whether/EnableOrDisable";
+
+//回访信息
+import NextReturnVisitTime from "@/components/crm/Time/NextReturnVisitTime";
+import RevisitTimes from "@/components/crm/textbox/Clue/RevisitTimes";
+import ContactStatus from "@/components/crm/Select/Clue/ContactStatus";
+import ReturnVisitContent from "@/components/crm/textbox/Clue/CallCenterClue/ReturnVisitContent";
+import TxtArea_OpinionFeedback from "@/components/crm/textbox/Clue/Revisit/TxtArea_OpinionFeedback";
+import ReturnVisitTime_single from "@/components/crm/Time/ReturnVisitTime_single";
+
+import ModelName from "@/components/crm/textbox/Public/Message/ReceiverCellPhone";
+import MsgModel from "@/components/crm/EjectWindows/MessageModel";
+import ModelContentText from "@/components/crm/textbox/Public/Message/ModelContentTextarea";
+import ExtendedInfo from "@/components/crm/ExtendedInfo"
+export default {
+  name: "rescueReturnVisit",
+  components: {
+    ExtendedInfo,
+    Table,
+    txt_CustomerName,
+    Sex,
+    PhoneNumber,
+    BackupPhone,
+    VINCode,
+    UseCarName,
+    CarBrand,
+    CarModel,
+    NumberAttributtion,
+    EngineNumber,
+    UseCarPhone,
+    CarSeries,
+    CarBrandNumber,
+
+    ServiceMenuNumber,
+    SourceNumber,
+    ServiceType,
+    RelatedBenchmarkCar,
+    ResponsibleAgent,
+    ResponsibleDepartment,
+    OffsiteNetwork,
+    DutyPeoplePhone,
+    JobDescription,
+    Remarks,
+    DealWithContent,
+    CustomerName,
+    ModelName,
+    MsgModel,
+    ModelContentText,
+    ComplaintDate,
+    EnableOrDisable,
+
+    ReturnVisitTime_single,
+    NextReturnVisitTime,
+    RevisitTimes,
+    ContactStatus,
+    ReturnVisitContent,
+    TxtArea_OpinionFeedback
+  },
+  data() {
+    return {
+      xzUserId:"",
+      dlrcl:false,
+      pvcl:false,
+      dlrkf:false,
+      pvkf:false,
+      clObj:"",
+      params: this.$route.params,
+      TSserverType:"",
+      TSserverId:"",
+      TSserverOrder:"",
+      crruNode:"",
+      carBrandCode:"",
+      bigClassCode:"",
+      nextDealUserId:"",
+      nextDealUserName:"",
+      nextDealEmpId:"",
+      nextDealEmpName:"",
+      nextDealOrgId:"",
+      nextDealOrgName:"",
+      active: 3,
+      dialogVisible: false,
+      dialogYQSQ: false,
+      fileList: [],
+      callflag:false,
+      Msgmodflag:false,
+      Attrflag:false,
+      carAttrflag:false,
+      telEditFlag:false,
+      dealDESC:{
+        input:""
+      },
+      qwddTime:{
+          value: "",
+          labelname:"期望到达时间",
+      },
+      sfdhpz:{
+        value: "",
+        labelname:"是否电话排障",
+        lkCode:"DB0064"
+      },
+      jygzyy:{
+        value: "",
+        labelname:"故障原因",
+        lkCode:"LX077"
+      },
+      jjfs:{
+        value: "",
+        labelname:"解决方式",
+        lkCode:"LX005"
+      },
+      jyccf:{
+        input: "",
+        labelname:"出车费用",
+      },
+      jydcf:{
+        input: "",
+        labelname:"吊车费用",
+      },
+      jyqtfy:{
+        input: "",
+        labelname:"其他费用",
+      },
+      jyzfy:{
+        input: "",
+        labelname:"合计费用",
+      },
+      form:{
+        Numattr: {
+          input: ""
+        },
+        vCartypeDesc: {
+          input: ""
+        },
+        carBrandCn: {
+          input: ""
+        },
+        engineNo: {
+          input: ""
+        },
+        vin: {
+          input: ""
+        },
+        carLicense: {
+          input: ""
+        },
+        vCarseriesDesc: {
+          input: ""
+        },
+        backupTel: {
+          input: ""
+        },
+        usePhone: {
+          input: ""
+        },
+        useCustName: {
+          input: ""
+        },
+        useBackupTel: {
+          input: ""
+        },
+        contactTel: {
+          input: ""
+        },
+        custName: {
+          input: ""
+        },
+        gender: {
+          value: ""
+        },
+        useGenderCode: {
+          value: ""
+        },
+        serverOrder: {
+          input: ""
+        },
+        createdDate: {
+          value: "",
+          labelname:"救援日期",
+        },
+        ccTime: {
+          value: "",
+          labelname:"出车时间",
+        },
+        ddTime: {
+          value: "",
+          labelname:"到达时间",
+        },
+        dealTime: {
+          value: "",
+          labelname:"处理时间",
+        },
+        addQty: {
+          input: "",
+          labelname:"救援次数",
+          isdisabled:true
+        },
+        jyzlc: {
+          input: "",
+          labelname:"救援地点总里程"
+        },
+        gzlc: {
+          input: "",
+          labelname:"故障车辆里程"
+        },
+        linkBillCode: {
+          input: "",
+          labelname:"所在地标志物"
+        },
+        serverFullClassName: {
+          input: "",
+          labelname:"救援类型"
+        },
+        jydd: {
+          input: "",
+          labelname:"救援地点"
+        },
+        baseSeriesName: {
+          input: "",
+          labelname:"救援车型"
+        },
+        dutyDlrName: {
+          input: "",
+          labelname:"责任网点"
+        },
+        nextDealOrgName: {
+          input: "",
+          dialogVisible:false
+        },
+        nextDealEmpName: {
+          input: "",
+          dialogVisible:false
+        },
+        nextDealPhone: {
+          input: ""
+        },
+        distRemark: {
+          input: ""
+        },
+        remark: {
+          input: ""
+        },
+        desc: {
+          input: "",
+          labelname:"故障描述"
+        },
+        custreq: {
+          input: "",
+          labelname:"客户要求"
+        },
+        serverHD: {
+          input: "",
+          labelname:"坐席回答"
+        },
+        jycp:{
+          input: "",
+          labelname:"救援车牌"
+        }
+      },
+      ruleForm: {
+        ReturnVisitTime_single: {
+          value: new Date()
+        },
+        NextReturnVisitTime: {
+          value: ""
+        },
+        RevisitTimes: {
+          input: ""
+        },
+        ReturnVisitContent: {
+          input: ""
+        },
+        TxtArea_OpinionFeedback: {
+          input: ""
+        },
+        ContactStatus: {
+          value: ""
+        }
+      },
+      tabledatasDB: {
+        // 操作列
+        ismuti: false,
+        isoperat: false,
+        havedistrbute: false,
+        haveEdit: false,
+        haveDel: false,
+        colnames: [
+          { label: "服务单号", value: "applyTime" },
+          { label: "客户名称", value: "delayReson" },
+          { label: "呼叫结果", value: "shPersonName" },
+          { label: "督办人", value: "delayStatus" },
+          { label: "督办时间", value: "shDes" },
+          { label: "监控状态", value: "shTimie" },
+          { label: "沟通内容", value: "shDes" },
+          { label: "备注", value: "shDes" }
+        ],
+        queryObj: {
+          // .后面是服务编码，.前面固定写死
+          apiConfig: crmApis.csBuComplaintDelayQueryFindAll,
+          apiQueryRow: [
+            "applyTime",
+            "delayReson",
+            "shPersonName",
+            "delayStatus",
+            "shDes",
+            "shTimie"
+          ],
+          params: {
+            oemCode:this.$store.getters.orgInfo.OEM_CODE,
+            groupCode:this.$store.getters.orgInfo.GROUP_CODE,
+            serverOrder:"",
+          }
+        }
+      },
+      tabledatas_record: {
+        // 操作列
+        ismuti: false,
+        isoperat: false,
+        havedistrbute: false,
+        haveEdit: false,
+        haveDel: false,
+        colnames: [
+          { label: "回访单号", value: "" },
+          { label: "来源单号", value: "" },
+          { label: "来源单据类型", value: "" },
+          { label: "联系电话", value: "" },
+          { label: "接触状态", value: "" },
+          { label: "备注", value: "" },
+          { label: "建单时间", value: "" },
+          { label: "回访内容", value: "" },
+          { label: "计划拜访时间", value: "" }
+        ],
+        queryObj: {
+          // .后面是服务编码，.前面固定写死
+          apiConfig: crmApis.csBuComplaintOrderQueryFindAll,
+          apiQueryRow: [],
+          params: {}
+        }
+      },
+      // 号码归属地
+      flag:true,
+      //电话弹框组件初始化
+      custtxt:{
+        input:"",
+        isreadonly: false
+      },
+      callphone:{
+        input:""
+      },
+      //短信弹框组件初始化
+      modn:{
+        input:""
+      },
+      msgModel: {
+        input: ""
+      },
+      modc: {
+        input: ""
+      },
+      queryParams:{
+        serverOrder:this.$route.params.serverOrder
+      }
+    };
+  },
+  created(){
+    //this.initData();
+  },
+  mounted: function() {
+    this.$nextTick(function(){
+      this.initData(this.$route.params.serverOrder)
+    });
+  },
+  methods: {
+    getarr(val){
+      let redata={}
+      redata=val
+      this.xzUserId=redata[0].userId
+    },
+    setBtnDp(crnode){
+      if(crnode=="2")
+      {
+        this.crruNode="TS_DLRCL";
+        this.dlrcl=true;
+        this.dlrkf=true;
+        this.clObj="DLR";
+      }
+      if(crnode=="23")
+      {
+        this.crruNode="TS_PVCL";
+        this.pvcl=true;
+        this.pvkf=true;
+        this.clObj="PV";
+      }
+      if(crnode=="25")
+      {
+        this.crruNode="TS_ZJCL";
+        this.dlrkf=true;
+        this.pvkf=true;
+        this.clObj="ZJ";
+      }
+      //clObj
+    },
+    initData(fwdh){
+      let that = this;
+      if(fwdh==undefined)
+      {
+        return;
+      }
+      let queryObj = {
+        // api配置
+        apiConfig: crmApis.csBuComplaintOrderQueryFindAll,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+              //表格中台返回网格的字段
+              apiQueryRow: [
+              "addQty",
+              "backupTel",
+              "baseSeriesCode",
+              "baseSeriesName",
+              "bigClassCode",
+              "carBrandCn",
+              "carBrandCode",
+              "carLicense",
+              "caseTime",
+              "closeResult",
+              "complainDesc",
+              "contactTel",
+              "createdDate",
+              "crruNode",
+              "crruNodeName",
+              "custAge",
+              "custName",
+              "custNo",
+              "custRequirement",
+              "custTag",
+              "dealDlrCode",
+              "dealDlrName",
+              "distRemark",
+              "dutyDlrCode",
+              "dutyDlrName",
+              "dutyObj",
+              "empName",
+              "engineNo",
+              "faultDate",
+              "faultMileage",
+              "gender",
+              "genderName",
+              "invoiceDate",
+              "isAsseName",
+              "lastUpdatedDate",
+              "linkBillCode",
+              "mileage",
+              "nextDealEmpName",
+              "nextDealOrgName",
+              "nextDealPhone",
+              "remark",
+              "requOrgCode",
+              "requOrgName",
+              "reviewScore",
+              "serverAnswer",
+              "serverClassCode",
+              "serverFullClassName",
+              "serverId",
+              "serverLevel",
+              "serverLevelName",
+              "serverOrder",
+              "serverSourceCode",
+              "serverSourceName",
+              "serverTitle",
+              "serverUrgency",
+              "serverUrgencyName",
+              "status",
+              "statusName",
+              "useBackupTel",
+              "useCustAge",
+              "useCustName",
+              "useGenderCode",
+              "useGenderName",
+              "usePhone",
+              "vCarseriesDesc",
+              "vCartypeDesc",
+              "vin"
+            ]
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: 10,
+          pageIndex: 1,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: {
+            oemCode:this.$store.getters.orgInfo.OEM_CODE,
+            groupCode:this.$store.getters.orgInfo.GROUP_CODE,
+            serverOrder:fwdh
+          }
+        }
+      };
+      //转换了中台请求格式数据
+      
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result == "1" 
+          //&&response.data[queryObj.apiConfig.ServiceCode].rows != ""
+        ) {
+          
+          let results = response.data[queryObj.apiConfig.ServiceCode].rows[0];
+          that.TSserverType="2"
+          that.TSserverId=results["serverId"]
+          that.TSserverOrder=results["serverOrder"]
+          that.crruNode=results["crruNode"]
+          that.setBtnDp(results["status"])
+          that.carBrandCode=results["carBrandCode"]
+          that.bigClassCode=results["bigClassCode"]
+          for (let key in that.form) {
+            if('input' in that.form[key]){
+              //
+              if(results.hasOwnProperty(key))
+              {
+                that.form[key].input = results[key];
+                that.$refs[key].getData()
+              }
+            }else{
+              if(results.hasOwnProperty(key)){
+                
+                that.form[key].value = results[key];
+                that.$refs[key].getData()
+              }
+            }
+          }
+
+        //   that.tabledatasCL.queryObj.params.serverOrder = fwdh;
+        //   setTimeout(function () {
+        //     if (that.$refs.tableCL!=undefined){
+        //       that.$refs.tableCL.getData();
+        //     }
+        //   }, 100)
+        }else{
+          that.$crmcf.showMessages(that,'error',response.data[queryObj.apiConfig.ServiceCode].msg)
+        }
+      });
+      that.$refs.Exinfo.initCL()
+      that.$refs.Exinfo.initcustinfo()
+    },
+    applyJA: function() {
+      this.getNextInfo("TS_DLRSQJA");
+    },
+    getNextInfo(val) {
+      ;
+      let that = this;
+      that.isJaFlag=""
+      var saveObj={}
+      that.$set(saveObj, "oemCode", this.$store.getters.orgInfo.OEM_CODE);
+      that.$set(saveObj, "groupCode", this.$store.getters.orgInfo.GROUP_CODE);
+      that.$set(saveObj, "serverType", "2");
+      that.$set(saveObj, "carBrandCode", that.carBrandCode);
+      that.$set(saveObj, "serverClassCode", that.bigClassCode);
+      that.$set(saveObj, "nodeCode", val);
+      let queryObj = {
+        // api配置
+        type: "query",
+        apiConfig: crmApis.getNextDutyPerson,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: [
+              "dutyEmpId",
+              "dutyEmpName",
+              "dutyOrgId",
+              "dutyOrgName",
+              "dutyUserId",
+              "dutyUserMobile",
+              "dutyUserName"
+            ]
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: 100,
+          pageIndex: 1,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: saveObj
+        }
+      };
+
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[queryObj.apiConfig.ServiceCode].result == "1" 
+          //&&response.data[queryObj.apiConfig.ServiceCode].rows != ""
+        ) {
+          let results = response.data[queryObj.apiConfig.ServiceCode].rows[0];
+          if(results==undefined)
+          {
+            var html=`<div>找不到下一步处理人</div>`
+            if (html != '') {
+              this.$notify.error({
+                title: "校验项",
+                dangerouslyUseHTMLString: true,
+                message: html
+              });
+              return
+            }
+          }else{
+            //给下一责任组件赋值
+            that.nextDealUserId=results["dutyUserId"];
+            that.nextDealUserName=results["dutyUserName"];
+            that.nextDealEmpId=results["dutyEmpId"];
+            that.nextDealEmpName=results["dutyEmpName"];
+            that.nextDealOrgId=results["dutyOrgId"];
+            that.nextDealOrgName=results["dutyOrgName"];
+            this.save(val)
+          }
+        }else{
+          this.$message({
+          message: response.data[queryObj.apiConfig.ServiceCode].msg,
+          type: "error",
+          duration: 1000
+        });
+        }
+      });
+    },
+    save(val){
+      let that = this
+      //校验
+      var html=""
+      if(that.$refs.DealWithContent.input==""||that.$refs.DealWithContent.input==null)
+      {
+        html = html + `<div>处理内容不能为空</div>`
+      }
+      if (html != '') {
+        this.$notify.error({
+          title: "校验项",
+          dangerouslyUseHTMLString: true,
+          message: html
+        });
+        return
+      }
+      //赋值
+      var saveObj={}
+      that.$set(saveObj, "oemCode", this.$store.getters.orgInfo.OEM_CODE);
+      that.$set(saveObj, "groupCode", this.$store.getters.orgInfo.GROUP_CODE);
+      that.$set(saveObj, "serverType", "2");
+      that.$set(saveObj, "custName", that.$refs.custName.input);
+      that.$set(saveObj, "contactTel", that.$refs.contactTel.input);
+      that.$set(saveObj, "serverId", that.TSserverId);
+      that.$set(saveObj, "serverOrder", that.TSserverOrder);
+      that.$set(saveObj, "crruNode", val.toString()=="[object MouseEvent]"?that.crruNode:val);
+      if(that.clObj=="PV")
+      {
+        that.$set(saveObj, "dealTitle", "网点处理");
+      }else if(that.clObj=="DLR"){
+        that.$set(saveObj, "dealTitle", "厂家处理");
+      }
+      else if(that.clObj=="ZJ"){
+        that.$set(saveObj, "dealTitle", "专家处理");
+      }
+      that.$set(saveObj, "dealContent",that.$refs.DealWithContent.input);
+      that.$set(saveObj, "nextDealUserId", that.nextDealUserId);
+      that.$set(saveObj, "nextDealUserName", that.nextDealUserName);
+      that.$set(saveObj, "nextDealEmpId", that.nextDealEmpId);
+      that.$set(saveObj, "nextDealEmpName", that.nextDealEmpName);
+      that.$set(saveObj, "nextDealOrgId", that.nextDealOrgId);
+      that.$set(saveObj, "nextDealOrgName", that.nextDealOrgName);
+
+      let queryObj = {
+        // api配置
+        type: "mutation",
+        apiConfig: crmApis.csBuComplaintOrderMutationDealTS,
+        // 需要调用的API服务配置
+        apiServices: [{
+            //表格中台返回网格的字段
+            apiQueryRow:[]
+        }],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: saveObj
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response =>{
+        if(
+          response.data[queryObj.apiConfig.ServiceCode].result === "1"  
+          //&&response.data[queryObj.apiConfig.ServiceCode].rows!=""
+          ){
+          this.dialogVisible = false
+          that.$crmcf.showMessages(that,'success','操作成功')
+          that.$crmcf.crmcloseView(that,'crmMyToBe')
+          }else{
+            that.$crmcf.showMessages(that,'error',response.data[queryObj.apiConfig.ServiceCode].msg)
+          }
+      })
+    },
+    submitUpload() {
+      this.$refs.upload.submit();
+    },
+    applyYQ() {
+      let that = this;
+      that.dialogYQSQ = true;
+      that.yqsqOrder=that.$refs.serverOrder.input
+      that.tabledatasJL.queryObj.params.serverOrder = that.$refs.serverOrder.input;
+      setTimeout(function () {
+        
+        if (that.$refs.tableJL!=undefined){
+          that.$refs.tableJL.getData();
+        }
+      }, 100)
+    },
+    applyOP: function() {
+      
+      let that = this
+      //校验
+      var html=""
+      if(that.delayreason=="")
+      {
+        html = html + `<div>请填写申请延期原因</div>`
+      }
+      if (html != '') {
+        this.$notify.error({
+          title: "校验项",
+          dangerouslyUseHTMLString: true,
+          message: html
+        });
+        return
+      }
+      //赋值
+      var saveObj={}
+      that.$set(saveObj, "oemCode", this.$store.getters.orgInfo.OEM_CODE);
+      that.$set(saveObj, "groupCode", this.$store.getters.orgInfo.GROUP_CODE);
+      // that.$set(saveObj, "serverType", "2");
+      that.$set(saveObj, "serverId", that.TSserverId);
+      that.$set(saveObj, "serverOrder", that.TSserverOrder);
+      that.$set(saveObj, "delayReson", that.delayreason);
+
+      let queryObj = {
+        // api配置
+        type: "mutation",
+        apiConfig: crmApis.csBuComplaintDelaySave,
+        // 需要调用的API服务配置
+        apiServices: [{
+            //表格中台返回网格的字段
+            apiQueryRow:[]
+        }],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: saveObj
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response =>{
+        if(
+          response.data[queryObj.apiConfig.ServiceCode].result === "1"  
+          //&&response.data[queryObj.apiConfig.ServiceCode].rows!=""
+          ){
+          this.dialogYQSQ = false
+          that.$crmcf.showMessages(that,'success','延期申请成功')
+          }else{
+          that.$crmcf.showMessages(that,'error',response.data[queryObj.apiConfig.ServiceCode].msg)
+          }
+      })
+    },
+    //电话
+    callscreen(){
+      this.callflag=true;
+    },
+    usercall() {
+      let that = this;
+      that.callflag = true;
+    },
+    //短信
+    msgmod(){
+      this.Msgmodflag=true;
+    },
+    backupMsg(){
+      this.Msgmodflag=true;
+    },
+    getMsg(rowData) {
+      this.modc.input = rowData.templateName;
+      this.$refs.ModelContentText.getData();
+    }
+  }
+};
+</script>

@@ -1,0 +1,316 @@
+/**
+* description: 系统通知场景 修改,增加弹窗
+* author: dinggf
+* createdDate: 2019-10-25
+*/
+<template>
+  <section class="editModule">
+    <el-dialog
+      :close-on-click-modal="false"
+      :title="textMap[popupsState]"
+      :append-to-body="true"
+      :visible.sync="curPopupsVisible"
+      @close="sendCode"
+      width="1000px"
+    >
+      <div class="filter-container filter-params">
+        <el-row :gutter="26" ref="vailComponentList">
+          <component
+            v-for="comp in tableComponents.filter(o => o.isMust === true)"
+            :ref="comp.isRequire ? comp.isRequire+ comp.compKey : comp.compKey"
+            :validrule="comp.validrule"
+            :key="comp.compKey"
+            :codeField="comp.codeField"
+            :textField="comp.textField"
+            :popupsKey="comp.compKey"
+            :is="comp.component"
+            :code="formField[comp.codeField]"
+            @changeCode="getComponentCode"
+            @focusCode="getFocusCode"
+            :disabled="comp.disabled"
+            :isRequire="comp.isRequire"
+            :isMul="comp.isMul"
+            :span="comp.span || 8"
+            :labelName="comp.labelName"
+            :lookuptype="comp.lookuptype"
+            :dateOptionsType="comp.dateOptionsType"
+          ></component>
+        </el-row>
+      </div>
+      
+      <one-table-template
+        ref="multipleTable"
+        :dynamicButtons="tableObj.tableButtons"
+        :dynamicComponents="tableObj.tableComponents"
+        :dynamicApiConfig="tableObj.apiConfig"
+        :dynamicTableCols="tableObj.tableCols"
+        :dynamicFormFields="tableObj.formField"
+        :dynamicIsShowMoreBtn="false"
+        :dynamicIsShowSelect="isShowSel"
+      />
+      <div slot="footer" class="dialog-footer">
+      <el-button
+        v-for="comp in tableButtons"
+        :key="comp.compKey"
+        :type="comp.type"
+        @click="comp.clickEvent"
+      >{{comp.text}}</el-button>
+    </div>
+    </el-dialog>
+  </section>
+</template>
+
+<script>
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { formMixins } from "@/components/mixins/formMixins";
+import { orgApis } from "@/api/graphQLApiList/org";
+import OneTableTemplate from "@/components/templates/popupsOneTable";
+import { requestGraphQL } from "@/api/commonRequest";
+export default {
+  // 组件混入对象
+  mixins: [formMixins,oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate
+  },
+  data() {
+    return {
+      isShowSel: true,
+      //通知信息保存
+      apiConfig: orgApis.mdsSysSceneSettingMutationSave,
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "",
+          size: "small",
+          clickEvent: () => this.save(),
+          text: this.$t("sys.button.save")  //保存
+        },
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset1(),
+          text: this.$t("sys.button.reset") //重置
+        }
+      ],
+      tableComponents: [
+        {
+          compKey: "compKey1",
+          labelName: this.$t("org.label.sceneCoding"),  //场景编码
+          codeField: "sceneCode",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isRequire: true,
+          isMust: true
+        },
+        {
+          compKey: "compKey2",
+          labelName: this.$t("org.label.sceneName"),  //场景名称
+          codeField: "sceneDesc",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isRequire: true,
+          isMust: true
+        },
+        {
+          compKey: "compKey3",
+          labelName: this.$t("org.label.serviceModel"),  //业务模块
+          lookuptype: "DB0001",
+          codeField: "belongto",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey4",
+          labelName: this.$t("org.label.sendingType"),  //发送类型
+          lookuptype: "LX063",
+          codeField: "sendType",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey5",
+          labelName: this.$t("org.label.isEnable"),  //是否启用
+          codeField: "isEnable",
+          component: () => import("@/components/org/isEnable/isEnable"),
+          type: "dropdownList",
+          isMust: true
+        }
+      ],
+      formField: {
+        sceneCode: '',
+        sceneDesc: '',
+        belongto: '',
+        sendType: '',
+        isEnable: ''
+      },
+      textMap: {
+        edit: '通知信息修改',
+        add: '通知信息增加'
+      },
+      texttitle:'通知提醒对象设置',
+      //通知场景对象查询
+      tableObj: {
+        apiConfig: orgApis.mdsSysSceneSettingDQueryByPage,
+        tableButtons: [
+          {
+            compKey: "btnKey3",
+            type: "",
+            size: "small",
+            clickEvent: () => this.queryTable(1),
+            text: this.$t("sys.button.query") //搜索
+          },
+          {
+            compKey: "btnKey4",
+            type: "",
+            size: "small",
+            clickEvent: () => this.save2(),
+            text: this.$t("sys.button.save")  //保存
+          },
+          {
+            compKey: "btnKey5",
+            type: "",
+            size: "small",
+            clickEvent: () => this.reset2(),
+            text: this.$t("sys.button.reset") //重置
+          }
+        ],
+        tableComponents: [
+          {
+            compKey: "compKey9",
+            labelName: '通知场景对象设置',  //对象类型
+            codeField: "11",
+            span: 18,
+            component: () => import("@/components/org/label"),
+            type: "textLabel",
+            isMust: true
+          },
+          {
+            compKey: "compKey6",
+            labelName: '对象类型',  //对象类型
+            lookuptype: "DB0001",
+            codeField: "receiveType",
+            component: () => import("@/components/org/LookupValue"),
+            type: "dropdownList",
+            isMust: true
+          },
+          {
+            compKey: "compKey7",
+            labelName: '收件人',  //收件人
+            codeField: "receiver",
+            component: () => import("@/components/org/commonInput"),
+            type: "inputText",
+            isMust: true
+          },
+          {
+            compKey: "compKey8",
+            labelName: '收件岗位',  //收件岗位
+            lookuptype: "DB0001",
+            codeField: "receivePost",
+            component: () => import("@/components/org/LookupValue"),
+            type: "dropdownList",
+            isMust: true
+          },
+        ],
+        tableCols: [
+          {
+            prop: "receiver",
+            label: '收件人',//收件人
+            width: null,
+            align: "center",
+          },
+          {
+            prop: "receiveType",
+            label: '收件类型',//收件类型
+            width: null,
+            align: "center",
+          },
+          {
+            prop: "isEnable",
+            label: '是否启用',//是否启用
+            width: null,
+            align: "center",
+          },
+        ],
+        formField: {
+          receiveType: '',
+          receiver: '',
+          receivePost: ''
+        }
+      }
+    }
+  },
+  methods: {
+    reset1(){
+      for(var key in this.formField){
+        this.formField[key] = ''
+      }
+    },
+    save2(){
+      for(var key in this.tableObj.formField){
+        if(this.tableObj.formField[key] == ''){
+          this.$message({
+            message: "不能为空",
+            type: "error",
+            duration: 1000
+          });
+          return
+        }
+      }
+      const that = this.$refs.multipleTable;
+      that.listLoading = true;
+      let queryObj = {
+        // 保存mutation
+        type: "mutation",
+        // api配置
+        apiConfig: orgApis.mdsSysSceneSettingDMutation,
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: that.dynamicFormFields
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = this.$refs.multipleTable.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (response.data[queryObj.apiConfig.ServiceCode].result === "1") {
+          this.$refs.multipleTable.queryTable(1, null, 1, this.tableObj.formField);
+          that.listLoading = false;
+          that.$message({
+            message: "保存成功",
+            type: "success",
+            duration: 2000
+          });
+        } else {
+          this.$message({
+            message:
+              "保存失败：" +
+              response.data[queryObj.apiConfig.ServiceCode].msg,
+            type: "warn",
+            duration: 2000
+          });
+        }
+      });
+    },
+    reset2(){
+      for(var key in this.tableObj.formField){
+        this.tableObj.formField[key] = ''
+      }
+    }
+  },
+}
+</script>
+
+<style lang="scss" scoped>
+// /deep/ .el-dialog__body section {
+//   position: relative;
+// }
+// /deep/ .el-dialog__footer {
+//   position: absolute;
+//   right: 30px;
+//   top: -4px;
+// }
+</style>

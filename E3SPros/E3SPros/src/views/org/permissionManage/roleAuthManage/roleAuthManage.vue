@@ -1,0 +1,282 @@
+<template>
+    <div>
+      <div class="app-container app-container-table">
+      <TreeTable ref="multipleTable"
+          :treeObject="treeObject"
+          :dynamicButtons="tableButtons"
+          :dynamicComponents="tableComponents"
+          :dynamicFormFields="formField"
+          :dynamicIsShowSelect="false"
+          :dynamicTableCols="tableCols"
+          :dynamicApiConfig="apiConfig"
+          :dynamicIsShowMoreBtn="isMoreBtn"
+          :dynamicWidth="siderWidth"
+          :dynamicTableOtherHeight="conHeight"
+        />
+      <edit
+        :dynamicEditRowData="editRowData"
+        :popupsVisible="editPopupsVisible"
+        :key="editPopupsKey"
+        :popupsState="editPopupsState"
+        @close="close"
+      ></edit>
+     <userAuthorization :key="authKey" :handleVisible="showAuthorz" :handleTitle="handleTitle" :editData="selectDate" @visible="closeAuthorz"></userAuthorization>
+     <addUserAuthorization :orgId="formField.orgId" :key="modalData.addPermissSettingKey" :handleVisible="modalData.addPermissSettingShow" :handleTitle="modalData.addPermissSettingTitle" :editData="modalData.addPermissSettingData"></addUserAuthorization>
+     <personManageg :key="personManagegKey" :editDatad="personManagegData" :memberEditVisible="personManagegShow"></personManageg>
+
+    </div>
+
+    </div>
+</template>
+<script>
+import { orgApis } from '@/api/graphQLApiList/org'
+import TreeTable from '@/components/templates/treeTable'
+import OneTableTemplate from '@/components/templates/oneTable'
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins'
+import Edit from './edit'
+import userAuthorization from '@/views/org/permissionManage/roleAuthManage/userAuthorization'
+import addUserAuthorization from '@/views/org/permissionManage/roleAuthManage/addUserAuthorization'
+import personManageg from './personManage'
+export default {
+  mixins:[oneTableWithViewTemplateMixins],
+  name:"roleAuthManage",
+  components: {
+    TreeTable,
+    Edit,
+    userAuthorization,
+    addUserAuthorization,
+    personManageg
+  },
+  mounted() {
+      //调用加载树的方法 params1 父节点ID, params2当前节点id
+      this.$refs.multipleTable.queryOrganization('parentOrgTreeId', 'orgTreeId')
+  },
+  data() {
+    return {
+        authKey:'a',
+        showAuthorz:false,
+        selectDate:{},
+        //树对象
+        treeObject:{
+          // 配置树网格查询API配置对象
+          treeApiConfig: orgApis.mdmOrgRelationRealQueryByPage,
+          // 树接口需要返回的字段
+          returnTreeCol:['orgName','orgCode','orgBelongType','orgTreeId','linkId','parentOrgTreeId'],
+          // 树的查询条件
+          treeQuery:{
+          //  orgTreeId:'-1'
+          isEnable:'1'
+          },
+          //排序的对象 label现在是名字 , children 子节点
+          defaultProps: {
+            children: 'children',
+            label: 'orgName'
+          },
+        },
+        //设置菜单栏宽度
+        siderWidth:250,
+        //设置是否显示更多按钮
+        conHeight:35,
+        isMoreBtn:false,
+        // 网格查询API配置对象
+        apiConfig: orgApis.sysRoleQueryCommonByPage,
+        // 动态组件-按钮
+        tableButtons: [
+          {compKey: 'btnKey1', type: 'primary', size: 'small', clickEvent: () => this.queryTable(1), text: this.$t('sys.button.query')},/*查询*/
+          {compKey: 'btnKey2', type: '', size: 'small', clickEvent: () => this.add(), text:  this.$t('sys.button.add')},/*新增*/
+          {compKey: 'btnKey3', type: '', size: 'small', clickEvent: () => this.openPersonManageg() , text: this.$t('org.label.MemberManagement')},/*成员管理*/
+          {compKey: 'btnKey4', type: '', size: 'small', clickEvent: () => this.checkAuthorization(), text: this.$t('org.label.ViewPermissions')},/*查看权限*/
+          {compKey: 'btnKey5', type: '', size: 'small', clickEvent: () => this.userAuthorizationd(), text:this.$t('org.label.funPreSettings')},/*功能权限设置*/
+        ],
+        // 动态组件-查询条件
+        tableComponents: [
+          {compKey: 'compKey1',span:10, labelName: this.$t('org.label.roleName'),/*角色名称*/ codeField: 'roleName', component: () => import('@/components/org/commonInput'), type: 'inputText', isMust: true},
+          {compKey: 'compKey2',span:10, labelName: this.$t('org.label.displayGlobalRole'), codeField: 'roleType', isRequire: false, component: () => import('@/components/org/isEnable/isEnable'), type: 'dropdownList', isMust: true},//是否显示全局
+        ],
+        // 动态生成网格列
+        tableCols: [
+          { prop: 'controlBtn', label: this.$t('sys.content.operate'),/*操作*/ codeField: 'controlBtn', width: 100, align: 'center' , isComponent: true,
+            comps: [
+              {compKey: 'propKey0', labelName: this.$t('sys.button.edit'),/*修改*/  codeField: 'editControlBtn', clickEvent: this.edit, component: () => import('@/components/org/linkButton')},
+              {compKey: 'propKey1', labelName: this.$t('sys.button.delete'),/*删除*/  codeField: 'delControlBtn', clickEvent: this.del, component: () => import('@/components/org/linkButton')}
+            ]
+          },
+          { prop: 'roleId', label: this.$t('org.label.roleName'),/*角色ID*/ hidden: true, align: 'center' },
+          { prop: 'roleName', label: this.$t('org.label.roleName'),/*角色名称*/ width: null, align: 'center' },
+          { prop: 'roleCode', label: this.$t('org.label.roleCode'),/*角色编码*/ width: 150, align: 'center'},
+          { prop: 'roleDesc', label: this.$t('org.label.roleDesc'),/*角色描述*/ width: 150, align: 'center' },
+          { prop: 'roleType', label: this.$t('org.label.roleType'),/*是否全局*/ width: null, align: 'center',isDefalus:true},
+          { prop: 'orgName', label: this.$t('org.label.orgName'),/*所属部门*/ width: null, align: 'center'},
+          { prop: 'orgId', label: this.$t('org.label.orgName'),/*所属部门ID*/ hidden: true, align: 'center'}
+          // { prop: 'updateControlId', label: '并发控制', width: null, align: 'center', hidden: true}
+        ],
+        selectRowsDatas:{},
+        clickRowsData:{},
+        personManagegKey:'personManagegKey',
+        personManagegData:{},
+        personManagegShow:false,
+        //查询条件
+        formField:{
+          roleName: '',
+          roleType:'',
+          orgId:''
+        },
+        handleTitle:0,
+        orgClickData:{}
+
+    }
+  },
+  methods:{
+    openPersonManageg(){
+      let obj = this.clickRowsData
+      if(JSON.stringify(obj) == "{}"){
+          this.$message({"message":this.$t('org.message.selOneData'),/*请选择一条数据*/type: 'warning'});
+          return false
+      }
+      this.personManagegData = obj
+      this.personManagegShow = true
+      this.personManagegKey+=1
+    },
+    //增加
+    add() {
+      if(JSON.stringify(this.orgClickData) == "{}"){
+        this.$message({
+          message: this.$t('org.message.chooseOrgName')/*请选择组织*/,
+          type: "warning",
+          duration: 2000
+        });
+        return false;
+      }
+      this.editRowData = {}
+      this.editRowData.orgName = this.orgClickData.orgName
+      this.editRowData.orgId = this.orgClickData.orgTreeId
+      this.showEdit('add')
+    },
+    // 绑定单击树的事件
+    handleNodeClick(data) {
+      this.orgClickData = data
+      this.formField.orgId = data.orgTreeId
+      this.$refs.multipleTable.queryTable(1)
+    },
+    queryTable(page, dataType, size, filterObj, cb) {
+      // validpopups 组件弹窗  validpage 表单查询
+      this.$utils.validataMoth(this, 'validpage')
+      if (this.valid) {
+       
+        this.$refs.multipleTable.queryTable(page, dataType, size, filterObj, cb)
+      }
+    },
+    //删除
+    del(index) {
+      this.$confirm(this.$t('org.message.confirmDeletion'), this.$t('org.label.warnning'), {
+          confirmButtonText:  this.$t('sys.button.confirm'),
+          cancelButtonText:  this.$t('sys.button.cancel'),
+          type: 'warning'
+        }).then(() => {
+          this.delData(index)
+        }).catch(() => {
+        });
+    },
+    delData(index){
+      var curIndex = index
+      const that = this.$refs.multipleTable
+      if (curIndex === undefined || curIndex === null) {
+        var currentRow
+        if (that.isMul === true) {
+          // 多选
+          var selectData = that.selection
+          if (selectData.length > 0) {
+            currentRow = selectData[0]
+          }
+        } else {
+          // 单选
+          currentRow = that.currentRow
+        }
+        if (currentRow) {
+          curIndex = currentRow.index
+        }
+      }
+
+      if (curIndex === undefined || curIndex === null) {
+        this.$alert(this.$t('org.message.selDelData'),/*请选择需要删除的数据*/ '提示')
+        return
+      }
+      var editRowData = that.list[curIndex];
+      let role = editRowData.roleId;
+      let queryObj = {
+          //保存需要传 type="mutation"
+          type:'mutation',
+          // api配置
+          apiConfig: orgApis.sysRoleMutationCommonDel,
+          // 需要调用的API服务配置
+          apiServices: [{
+            //表格中台返回网格的字段
+            apiQueryRow:[]
+          }],
+            //条件/实体参数（变量），根据typeParam中的定义配置
+            variables: {
+              //  pageSize: 1000,
+              //  pageIndex: 1,
+               //当前中台使用的名称有dataInfo、info，具体查看API文档
+               dataInfo: {
+                 roleId:role
+               }
+            }
+      }
+        //转换了中台请求格式数据
+        var paramD = that.$getParams(queryObj);
+        this.$requestGraphQL(paramD).then(response =>{
+            if(response.data[orgApis.sysRoleMutationCommonDel.ServiceCode].result === '1'){
+                //通关如果的状态确认是编辑还是添加
+                this.$message({message:this.$t('sys.tips.esTip14'),/*删除成功*/type: 'success'});
+                this.queryTable(1);
+            }
+        })
+    },
+    selectRowsData(row){
+      this.selectRowsDatas = row
+    },
+    checkAuthorization(){
+      let obj = this.clickRowsData
+      const that = this.$refs.multipleTable;
+      let selectData = that.$refs.multipleTable.selection;
+      if(JSON.stringify(obj) == "{}"){
+          this.$message({"message":this.$t('org.message.selOneData'),/*请选择一条数据*/type: 'warning'});
+          return false
+      }
+      this.handleTitle = 0;
+      this.showAuthorz = true;
+      this.authKey = this.authKey +1;
+      this.selectDate = obj
+    },
+    closeAuthorz(){
+      this.showAuthorz = false;
+    },
+    userAuthorizationd(){
+      const that = this.$refs.multipleTable;
+      let obj = this.clickRowsData
+      let selectData = that.$refs.multipleTable.selection;
+      if(JSON.stringify(obj) == "{}"){
+          this.$message({"message":this.$t('org.message.selOneData'),/*请选择一条数据*/type: 'warning'});
+          return false
+      }
+      this.handleTitle = 1;
+      this.authKey = that.authKey +1;
+      this.showAuthorz = true;
+      this.selectDate = obj
+    }
+  }
+}
+</script>
+<style scoped>
+/deep/aside.el-aside.el-slide {
+    height: calc(90vh - 57px);
+}
+/deep/#TreeTable .el-slide {
+    width: 20% !important;
+    float: left;
+    position: relative;
+    top: 49px;
+    overflow-x: hidden;
+}
+</style>

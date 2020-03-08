@@ -1,0 +1,1938 @@
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button">
+      <el-button type="primary" size="small" @click="fetchData()">查询</el-button>
+      <el-button size="small" @click="reviseModel()" :disabled="disabled">修改</el-button>
+      <el-button size="small" @click="addModel()">新增</el-button>
+      <el-button size="small" @click="savaGrid()">保存</el-button>
+      <el-button size="small" @click="importModel()">导入零件价</el-button>
+      <el-button size="small" @click="queryprihisModel()">查询价格调整历史</el-button>
+      <el-button size="small" @click="reset()">重置</el-button>
+    </div>
+    <div class="filter-container filter-params">
+      <el-row :gutter="26">
+        <el-col :span="22">
+          <el-row>
+            <el-col :span="6">
+              <label>备件号</label>
+              <el-input v-model="listQuery.partNo" suffix-icon="el-icon-search" size="small" @focus="paChooseVisibleModel"></el-input>
+            </el-col>
+            <paChoose :dialogFormVisible="paChooseVisible" @changeCode="getPaChooseVisible"></paChoose>
+            <el-col :span="6">
+              <label>备件名称</label>
+              <el-input v-model="listQuery.partNameVal" size="small"></el-input>
+            </el-col>
+            <LookupValue :span="6" :isMul="false" :isShowLabel="true" :code="listQuery.orderTypePaAttr" :lookuptype="listQuery.lookuptypePaAttr" :labelName="labelNamePaAttr" @changeCode="getLookupValuePaAttr" />
+            <el-col :span="6">
+              <label>备件类别</label>
+              <el-select placeholder="请选择" v-model="listQuery.partTypeNameSelectVal" size="small">
+                <el-option :label="item.partTypeName" :value="item.partTypeCode" v-for="item in partTypeName" :key="item.partTypeId">
+                </el-option>
+              </el-select>
+            </el-col>
+          </el-row>
+        </el-col>
+        <el-col :span="2">
+          <el-button :icon="moreBtnIcon" @click="changeToggleParam" class="moreParam">更多</el-button>
+        </el-col>
+        <el-col :span="22" v-show="toggleParam">
+          <!-- class="toggleParam" -->
+          <el-row>
+            <LookupValue :span="6" :isMul="false" :isShowLabel="true" :code="listQuery.dlrOrderSwitchName" :lookuptype="listQuery.lookupSwitchName" :labelName="labelNameSwitch" @changeCode="getLookupValueSwitch" />
+            <el-col :span="6">
+              <label>备件车型</label>
+              <el-select placeholder="请选择" v-model="listQuery.partCarTypeVal" size="small">
+                <el-option :label="item.carTypeCn" :value="item.carTypeCode" v-for="item in carBrandList" :key="item.carSeriesId">
+                </el-option>
+              </el-select>
+            </el-col>
+            <!-- <LookupValue :span="6" :isMul="false" :labelName="labelName" @changeCode="getcarSeriesId" :code="listQuery.carSeriesId" :lookuptype="listQuery.lookupSwitchName" /> -->
+            <LookupValue :span="6" :isMul="false" :isShowLabel="true" :code="listQuery.orderTypeBrand" :lookuptype="listQuery.lookuptypeBrand" :labelName="labelNameBrand" @changeCode="getLookupValueBrand" />
+            <LookupValue :span="6" :isMul="false" :isShowLabel="true" :code="listQuery.orderTypeOwner" :lookuptype="listQuery.lookuptypeOwner" :labelName="labelNameOwner" @changeCode="getLookupValueOwner" />
+          </el-row>
+          <el-row>
+            <el-col :span="6">
+              <lableName curLabelName="修改时间起始" :isShowLabel="true" :isRequire="false"></lableName>
+              <el-date-picker type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="yyyy-MM-dd HH:mm:ss" v-model="listQuery.beginDateInputVal">
+              </el-date-picker>
+            </el-col>
+          </el-row>
+        </el-col>
+      </el-row>
+    </div>
+    <div class="filter-container filter-title">查询结果</div>
+    <el-table ref="multipleTable" :data="list" style="width: 100%" @select="handleSelect" v-loading="listLoading" element-loading-text="Loading" border fit stripe highlight-current-row>
+      <el-table-column label="序号" width="60" align="center" type="index">
+      </el-table-column>
+      <el-table-column width="60" type="selection" align="center">
+      </el-table-column>
+      <el-table-column label="备件号" width="150" align="center">
+        <template slot-scope="scope">{{scope.row.partNo}}</template>
+      </el-table-column>
+      <el-table-column label="备件名称" width="150" align="center">
+        <template slot-scope="scope">{{scope.row.partName}}</template>
+      </el-table-column>
+      <el-table-column label="备件属性" width="120" align="center">
+        <template slot-scope="scope">{{scope.row.partPropertyName}}</template>
+      </el-table-column>
+      <el-table-column label="备件品种" width="120" align="center">
+        <template slot-scope="scope">{{scope.row.partVarietyName}}</template>
+      </el-table-column>
+      <el-table-column label="备件类别" width="120" align="center">
+        <template slot-scope="scope">{{scope.row.partTypeName}}</template>
+      </el-table-column>
+      <el-table-column label="备件品牌" width="120" align="center">
+        <template slot-scope="scope">{{scope.row.partBrandName}}</template>
+      </el-table-column>
+      <el-table-column label="建议零售价" width="150" align="center">
+        <template slot-scope="scope">{{scope.row.userPriceNr}}</template>
+      </el-table-column>
+      <el-table-column label="零售价+" width="150" align="center">
+        <template slot-scope="scope">
+          <el-input-number v-model="scope.row.salePriceNr" :controls="false" :precision="2" :step="0.1" type="number" size="mini" @blur="isBig(scope.row)"></el-input-number>
+        </template>
+      </el-table-column>
+      <el-table-column label="采购价" width="150" align="center">
+        <template slot-scope="scope">{{scope.row.dlrPriceNr}}</template>
+      </el-table-column>
+      <el-table-column label="订货开关" width="120" align="center">
+        <template slot-scope="scope">{{scope.row.dlrOrderSwitchName}}</template>
+      </el-table-column>
+      <el-table-column label="安全库存" width="120" align="center">
+        <template slot-scope="scope">{{scope.row.safeQty}}</template>
+      </el-table-column>
+      <el-table-column label="单位" align="center">
+        <template slot-scope="scope">{{scope.row.unit}}</template>
+      </el-table-column>
+      <el-table-column label="所有者类型" width="150" align="center">
+        <template slot-scope="scope">{{scope.row.ownerTypeName}}</template>
+      </el-table-column>
+      <el-table-column label="采购包装含量" width="180" align="center">
+        <template slot-scope="scope">{{scope.row.purPackQty}}</template>
+      </el-table-column>
+      <el-table-column prop="brandCode" label="最小销售包装含量" width="240" align="center">
+        <template slot-scope="scope">{{scope.row.dlrLeastSaleQty}}</template>
+      </el-table-column>
+      <el-table-column label="备件车型" width="120" align="center">
+        <template slot-scope="scope">{{scope.row.pubCarTypeName}}</template>
+      </el-table-column>
+      <el-table-column label="备件状态" width="120" align="center">
+        <template slot-scope="scope">{{scope.row.partFlowStateName}}</template>
+      </el-table-column>
+      <el-table-column label="备注" align="center">
+        <template slot-scope="scope">{{scope.row.remark}}</template>
+      </el-table-column>
+    </el-table>
+    <el-pagination background layout="prev, pager, next, sizes, ->, total" prev-text="上一页" next-text="下一页" :page-sizes="[10, 20, 30]" :page-size="10" :total="list ? mainPageTotal:0" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+
+    <!-- 修改按钮弹窗 -->
+    <section>
+      <!-- 主机厂备件修改 -->
+      <el-dialog width="80%" v-if="isDlr==1" title="修改备件" :visible.sync="dialogRevisePaVisible" center :append-to-body="true" :close-on-click-modal="false">
+        <div class="filter-container filter-params">
+          <el-form :model="reviseForm" :rules="rules" ref="reviseForm" class="demo-ruleForm">
+            <el-row :gutter="10">
+              <el-col :span="8">
+                <el-form-item label="备件号" prop="reviseForm.partNo">
+                  <el-input disabled v-model="reviseForm.partNo" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="备件名称" prop="reviseForm.partName">
+                  <el-input disabled v-model="reviseForm.partName" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="备件车型" prop="reviseForm.carType">
+                  <el-input disabled v-model="reviseForm.carType" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="备件品牌" prop="reviseForm.partBrandName">
+                  <el-input disabled v-model="reviseForm.partBrandName" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="备件单位" prop="reviseForm.unit">
+                  <el-input disabled v-model="reviseForm.unit" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="备件属性" prop="reviseForm.partPropertyName">
+                  <el-input disabled v-model="reviseForm.partPropertyName" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="备件类别" prop="reviseForm.partTypeName">
+                  <el-input disabled v-model="reviseForm.partTypeName" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item prop="reviseForm.purPackQty">
+                  <lableName curLabelName="采购包装含量" :isShowLabel="true" :isRequire="true"></lableName>
+                  <el-input disabled v-model="reviseForm.purPackQty" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="采购价" prop="reviseForm.purPrice">
+                  <el-input disabled v-model="reviseForm.purPrice" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item prop="reviseForm.userPriceNr">
+                  <lableName curLabelName="建议零售价" :isShowLabel="true" :isRequire="true"></lableName>
+
+                  <el-input disabled v-model="reviseForm.userPriceNr" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item prop="reviseForm.oncePurLimited">
+                  <lableName curLabelName="每次最大订单量" :isShowLabel="true" :isRequire="true"></lableName>
+                  <el-input v-model="reviseForm.oncePurLimited" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item prop="reviseForm.dlrLeastSaleQty">
+                  <lableName curLabelName="最小销售包装含量" :isShowLabel="true" :isRequire="true"></lableName>
+                  <el-input :disabled="reviseFormdisabled" v-model="reviseForm.dlrLeastSaleQty" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="零售价" prop="reviseForm.salePriceNr">
+                  <el-input v-model="reviseForm.salePriceNr" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="安全库存" prop="reviseForm.safeQty">
+                  <el-input v-model="reviseForm.safeQty" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <LookupValue :span="8" :isMul="false" :isShowLabel="true" :code="reviseForm.reviseBuyPaAttr" :lookuptype="addForm.lookupBuyPaAttr" labelName="采购属性" @changeCode="getAddLookupValueBuyPaAttr" />
+              <LookupValue :span="8" :isMul="false" :isShowLabel="true" :code="reviseForm.reviseBuySwitch" :lookuptype="addForm.lookupBuySwitch" labelName="采购开关" @changeCode="getAddLookupValueBuySwitch" />
+              <LookupValue :span="8" :isMul="false" :isShowLabel="true" :code="reviseForm.reviseBuySwitch" :lookuptype="addForm.lookupPaSpeed" labelName="备件流速" @changeCode="getAddLookupValuePaSpeed" />
+              <el-col :span="8">
+                <el-form-item prop="minOutQty">
+                  <lableName curLabelName="最小出库量" :isShowLabel="true" :isRequire="false"></lableName>
+                  <el-input v-model="reviseForm.minOutQty" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="库存上限" prop="maxStoreQty">
+                  <el-input v-model="reviseForm.maxStoreQty" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="库存下限" prop="minStoreQty">
+                  <el-input v-model="reviseForm.minStoreQty" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="4">
+                <!-- <el-form-item label="油品备件" prop="minOutQty"> -->
+                <el-checkbox label="油品备件" v-model="reviseForm.revisePaOil" @change="revisechangePaOli"></el-checkbox>
+                <!-- </el-form-item> -->
+              </el-col>
+              <el-col :span="4">
+                <!-- <el-form-item label="通用备件" prop="paPublic"> -->
+                <el-checkbox label="通用备件" v-model="reviseForm.paPublic" @change="revisechangePPublic"></el-checkbox>
+                <!-- </el-form-item> -->
+              </el-col>
+              <el-col :span="8">
+                <el-form-item>
+                  <el-button type="primary" @click="savaAdd(1)">保存</el-button>
+                  <el-button @click="resetReviseForm()">重置</el-button>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-form>
+        </div>
+      </el-dialog>
+      <!-- 经销商自定义备件 -->
+      <el-dialog width="80%" v-if="isDlr==0" title="修改备件" :visible.sync="dialogRevisePaVisible" center :append-to-body="true" :close-on-click-modal="false">
+        <div class="filter-container filter-params">
+          <el-form :model="reviseForm" :rules="rules" ref="reviseForm" class="demo-ruleForm">
+            <el-row :gutter="10">
+              <el-col :span="8">
+                <el-form-item label="备件号" prop="reviseForm.partNo">
+                  <el-input disabled v-model="reviseForm.partNo" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="备件名称" prop="reviseForm.partName">
+                  <el-input v-model="reviseForm.partName" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="备件车型" prop="reviseForm.carType">
+                  <el-input v-model="reviseForm.carType" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="备件品牌" prop="reviseForm.partBrandName">
+                  <el-input v-model="reviseForm.partBrandName" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="备件单位" prop="reviseForm.unit">
+                  <el-input v-model="reviseForm.unit" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="备件属性" prop="reviseForm.partPropertyName">
+                  <el-input v-model="reviseForm.partPropertyName" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="备件类别" prop="reviseForm.partTypeName">
+                  <el-input v-model="reviseForm.partTypeName" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item prop="reviseForm.purPackQty">
+                  <lableName curLabelName="采购包装含量" :isShowLabel="true" :isRequire="true"></lableName>
+                  <el-input v-model="reviseForm.purPackQty" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="采购价" prop="reviseForm.purPrice">
+                  <el-input v-model="reviseForm.purPrice" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item prop="reviseForm.userPriceNr">
+                  <lableName curLabelName="建议零售价" :isShowLabel="true" :isRequire="true"></lableName>
+
+                  <el-input v-model="reviseForm.userPriceNr" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item prop="reviseForm.oncePurLimited">
+                  <lableName curLabelName="每次最大订单量" :isShowLabel="true" :isRequire="true"></lableName>
+                  <el-input v-model="reviseForm.oncePurLimited" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item prop="reviseForm.dlrLeastSaleQty">
+                  <lableName curLabelName="最小销售包装含量" :isShowLabel="true" :isRequire="true"></lableName>
+                  <el-input v-model="reviseForm.dlrLeastSaleQty" placeholder="" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="零售价" prop="reviseForm.salePriceNr">
+                  <el-input v-model="reviseForm.salePriceNr" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="安全库存" prop="reviseForm.safeQty">
+                  <el-input v-model="reviseForm.safeQty" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <LookupValue :span="8" :isMul="false" :isShowLabel="true" :code="reviseForm.reviseBuyPaAttr" :lookuptype="addForm.lookupBuyPaAttr" labelName="采购属性" @changeCode="getAddLookupValueBuyPaAttr" />
+              <LookupValue :span="8" :isMul="false" :isShowLabel="true" :code="reviseForm.reviseBuySwitch" :lookuptype="addForm.lookupBuySwitch" labelName="采购开关" @changeCode="getAddLookupValueBuySwitch" />
+              <LookupValue :span="8" :isMul="false" :isShowLabel="true" :code="reviseForm.reviseBuySwitch" :lookuptype="addForm.lookupPaSpeed" labelName="备件流速" @changeCode="getAddLookupValuePaSpeed" />
+              <el-col :span="8">
+                <el-form-item prop="minOutQty">
+                  <lableName curLabelName="最小出库量" :isShowLabel="true" :isRequire="false"></lableName>
+                  <el-input v-model="reviseForm.minOutQty" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="库存上限" prop="maxStoreQty">
+                  <el-input v-model="reviseForm.maxStoreQty" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="库存下限" prop="minStoreQty">
+                  <el-input v-model="reviseForm.minStoreQty" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="4">
+                <!-- <el-form-item label="油品备件" prop="minOutQty"> -->
+                <el-checkbox label="油品备件" v-model="reviseForm.revisePaOil" @change="revisechangePaOli"></el-checkbox>
+                <!-- </el-form-item> -->
+              </el-col>
+              <el-col :span="4">
+                <!-- <el-form-item label="通用备件" prop="paPublic"> -->
+                <el-checkbox label="通用备件" v-model="reviseForm.paPublic" @change="revisechangePPublic"></el-checkbox>
+                <!-- </el-form-item> -->
+              </el-col>
+              <el-col :span="8">
+                <el-form-item>
+                  <el-button type="primary" @click="savaAdd(1)">保存</el-button>
+                  <el-button @click="resetReviseForm()">重置</el-button>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-form>
+        </div>
+      </el-dialog>
+    </section>
+    <!-- 新增按钮弹窗 -->
+    <section>
+      <el-dialog width="80%" :visible.sync="dialogAddPaVisible" title="新增自定义备件 " center :append-to-body="true" :close-on-click-modal="false" @close="closeAddPa">
+        <div class="filter-container filter-params">
+          <el-form :model="addForm" :rules="addRules" ref="addForm" class="demo-ruleForm">
+            <el-row :gutter="10">
+              <div class="filter-container filter-title">基本属性</div>
+              <el-col :span="8">
+                <el-form-item label="备件号" prop="partNo">
+                  <el-input disabled v-model="addForm.partNo" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item prop="partNoAdd">
+                  <el-input v-model="addForm.partNoAdd" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="备件名称" prop="partName">
+                  <el-input v-model="addForm.partName" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="备件品牌" prop="partBrandName">
+                  <el-input v-model="addForm.partBrandName" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="备件单位" prop="unit">
+                  <el-input v-model="addForm.unit" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <LookupValue :span="8" :isMul="false" :isShowLabel="true" :code="addForm.addOrderTypePaAttr" :lookuptype="listQuery.lookuptypePaAttr" :labelName="labelNamePaAttr" @changeCode="getAddLookupValuePaAttr" :isRequire="true" />
+              <el-col :span="8">
+                <el-form-item label="备件车型" prop="carType">
+                  <el-input v-model="addForm.carType" suffix-icon="el-icon-search" @focus="showCarType" size="small"></el-input>
+                  <carTypeModel :isMul="true" ref="carTypeModel" @changeCode="getCarTypeCode"></carTypeModel>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="备件类别" prop="partTypeName">
+                  <el-select placeholder="请选择" v-model="addForm.addPartTypeNameSelectVal" size="small">
+                    <el-option :label="item.partTypeName" :value="item.partTypeId" v-for="item in partTypeName" :key="item.partTypeId">
+                    </el-option>
+                  </el-select>
+                </el-form-item>
+              </el-col>
+
+            </el-row>
+            <el-row :gutter="10">
+              <div class="filter-container filter-title">采购属性</div>
+              <el-col :span="8">
+                <el-form-item label="采购价" prop="cgPrice">
+                  <el-input v-model.number="addForm.cgPrice" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item prop="purPackQty">
+                  <lableName curLabelName="采购包装含量" :isShowLabel="true" :isRequire="true"></lableName>
+                  <el-input v-model.number="addForm.purPackQty" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item prop="userPriceNr">
+                  <lableName curLabelName="建议零售价" :isShowLabel="true" :isRequire="true"></lableName>
+                  <el-input v-model.number="addForm.userPriceNr" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="零售价" prop="salePriceNr">
+                  <el-input v-model.number="addForm.salePriceNr" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="安全库存" prop="safeQty">
+                  <el-input v-model.number="addForm.safeQty" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item prop="oncePurLimited">
+                  <lableName curLabelName="每次最大订单量" :isShowLabel="true" :isRequire="true"></lableName>
+                  <el-input v-model.number="addForm.oncePurLimited" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item prop="dlrLeastSaleQty">
+                  <lableName curLabelName="最小销售包装含量" :isShowLabel="true" :isRequire="true"></lableName>
+                  <el-input v-model.number="addForm.dlrLeastSaleQty" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <LookupValue :span="8" :isMul="false" :isShowLabel="true" :code="addForm.orderAddTypeOwner" :lookuptype="listQuery.lookuptypeOwner" :labelName="labelNameOwner" @changeCode="getAddLookupValueOwner" :isRequire="true" />
+              <el-col :span="8">
+                <el-form-item label="库存上限" prop="maxStoreQty">
+                  <el-input v-model.number="addForm.maxStoreQty" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="库存下限" prop="minStoreQty">
+                  <el-input v-model.number="addForm.minStoreQty" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <LookupValue :span="8" :isMul="false" :isShowLabel="true" :code="addForm.addBuyPaAttr" :lookuptype="addForm.lookupBuyPaAttr" labelName="采购属性" @changeCode="getAddLookupValueBuyPaAttr" />
+              <LookupValue :span="8" :isMul="false" :isShowLabel="true" :code="addForm.addBuySwitch" :lookuptype="addForm.lookupBuySwitch" labelName="采购开关" @changeCode="getAddLookupValueBuySwitch" />
+              <LookupValue :span="8" :isMul="false" :isShowLabel="true" :code="addForm.addPaSpeed" :lookuptype="addForm.lookupPaSpeed" labelName="备件流速" @changeCode="getAddLookupValuePaSpeed" />
+              <el-col :span="8">
+                <el-form-item prop="minOutQty">
+                  <lableName curLabelName="最小出库量" :isShowLabel="true" :isRequire="false"></lableName>
+                  <el-input v-model="addForm.minOutQty" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="4">
+                <!-- <el-form-item label="油品备件" prop="minOutQty"> -->
+                <el-checkbox label="油品备件" v-model="paOli" @change="addchangePaOli"></el-checkbox>
+                <!-- </el-form-item> -->
+              </el-col>
+              <el-col :span="4">
+                <!-- <el-form-item label="通用备件" prop="paPublic"> -->
+                <el-checkbox label="通用备件" v-model="paPublic" @change="addchangePPublic"></el-checkbox>
+                <!-- </el-form-item> -->
+              </el-col>
+              <el-col :span="8" style="float:right">
+                <el-form-item>
+                  <el-button type="primary" @click="savaAdd()">保存</el-button>
+                  <el-button @click="addRest()">重置</el-button>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-form>
+        </div>
+      </el-dialog>
+    </section>
+    <!-- 导入零售价按钮弹窗 -->
+    <section>
+      <el-dialog width="80%" title="零售价格导入" :visible.sync="dialogImportPaVisible" center :append-to-body="true" :close-on-click-modal="false" @close="closeImportModel">
+        <div class="filter-container filter-params">
+          <el-form :model="reviseForm" :rules="rules" ref="reviseForm" class="demo-ruleForm">
+            <el-row :gutter="10">
+              <el-col :span="8">
+                <el-form-item label="导入" prop="importFile.fileName">
+                  <el-input v-model="importFile.fileName" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <el-col :span="5">
+                <el-col :span="8">
+                  <el-upload class="upload-demo" ref="upload" style="width:68px;display:inline-block;" :file-list="fileList" name="excelFile" action :headers="uploadHeaders" :http-request="handleChange" :on-success="uploadSuccess" :auto-upload="true" :before-upload="beforeAvatarUpload" :before-remove="beforeRemove" :on-exceed="handleExceed" :limit="1" :show-file-list="false" list-type="text">
+                    <el-button type="primary" size="small">导入</el-button>
+                  </el-upload>
+                </el-col>
+                <el-col :span="8">
+                  <el-button type="text">模板下载</el-button>
+                </el-col>
+              </el-col>
+              <!-- </el-col> -->
+            </el-row>
+          </el-form>
+          <el-table :data="importList" style="width: 100%" v-loading="listLoading" element-loading-text="Loading" border fit stripe highlight-current-row>
+            <el-table-column label="序号" width="60" align="center" type="index">
+            </el-table-column>
+            <el-table-column label="备件号" width="150" align="center">
+              <template slot-scope="scope">{{scope.row.partNo}}</template>
+            </el-table-column>
+            <el-table-column label="备件名称" width="150" align="center">
+              <template slot-scope="scope">{{scope.row.partName}}</template>
+            </el-table-column>
+            <el-table-column label="建议零售价" width="150" align="center">
+              <template slot-scope="scope">{{scope.row.userPrice}}</template>
+            </el-table-column>
+            <el-table-column label="原零售价+" width="150" align="center">
+              <template slot-scope="scope">{{scope.row.oldSalePrice}}</template>
+            </el-table-column>
+            <el-table-column label="零售价" width="150" align="center">
+              <template slot-scope="scope">{{scope.row.newSalePrice}}</template>
+            </el-table-column>
+            <el-table-column label="备件类别" align="center">
+              <template slot-scope="scope">{{scope.row.partType}}</template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </el-dialog>
+    </section>
+    <!-- 查询价格调整历史按钮弹窗 -->
+    <section>
+      <el-dialog width="80%" :visible.sync="dialogQueryprihisPaVisible" title="价格调整历史" center :append-to-body="true" :close-on-click-modal="false" @close="closeQueryprihisModel">
+        <div class="filter-container filter-params">
+          <el-form :model="queryprihisForm" :rules="rules" ref="queryprihisForm" class="demo-ruleForm">
+            <el-row :gutter="10">
+              <LookupValue :span="8" :isMul="false" :isShowLabel="true" :code="queryprihisForm.priceType" :lookuptype="queryprihisForm.lookuppriceType" :labelName="labelNamePrice" @changeCode="getLookupValuePrice" />
+              <el-col :span="8">
+                <el-form-item prop="partNo">
+                  <lableName curLabelName="备件号" :isShowLabel="true" :isRequire="true"></lableName>
+                  <el-input v-model="queryprihisForm.partNo" placeholder="请选择" size="small"></el-input>
+                </el-form-item>
+              </el-col>
+              <LookupValue :span="8" :isMul="false" :isShowLabel="true" :code="queryprihisForm.orderTypeOwner" :lookuptype="queryprihisForm.lookuptypeOwner" :labelName="labelNameOwner" @changeCode="getLookupValueOwnerH" />
+              <el-col :span="8">
+                <el-form-item prop="time">
+                  <lableName curLabelName="调整时间" :isShowLabel="true" :isRequire="true"></lableName>
+                  <el-date-picker type="daterange" value-format="yyyy-MM-dd HH:mm:ss" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" v-model="queryprihisForm.time">
+                  </el-date-picker>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item style="float:right">
+                  <el-button type="primary" @click="queryprihis()">查询</el-button>
+                  <el-button @click="getExcel()">导出</el-button>
+                  <el-button @click="resetQueryprihis()">重置</el-button>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-form>
+        </div>
+        <el-table :data="listQueryprihis" ref="queryprihisTable" style="width: 100%" v-loading="listLoading" element-loading-text="Loading" border fit stripe highlight-current-row>
+          <el-table-column label="序号" width="60" align="center" type="index">
+          </el-table-column>
+          <el-table-column label="所有者类型" width="150" align="center" prop="paOwnerTypeName">
+            <template slot-scope="scope">{{scope.row.paOwnerTypeName}}</template>
+          </el-table-column>
+          <el-table-column label="备件号" width="150" align="center" prop="partNo">
+            <template slot-scope="scope">{{scope.row.partNo}}</template>
+          </el-table-column>
+          <el-table-column label="备件名称" width="150" align="center" prop="partName">
+            <template slot-scope="scope">{{scope.row.partName}}</template>
+          </el-table-column>
+          <el-table-column label="价格类型" width="150" align="center" prop="priceTypeName">
+            <template slot-scope="scope">{{scope.row.priceTypeName}}</template>
+          </el-table-column>
+          <el-table-column label="调整前价格" width="150" align="center" prop="beforePrice">
+            <template slot-scope="scope">{{scope.row.beforePrice}}</template>
+          </el-table-column>
+          <el-table-column label="调整后价格" width="150" align="center" prop="afterPrice">
+            <template slot-scope="scope">{{scope.row.afterPrice}}</template>
+          </el-table-column>
+          <el-table-column label="调整人" width="150" align="center" prop="modifyName">
+            <template slot-scope="scope">{{scope.row.modifyName}}</template>
+          </el-table-column>
+          <el-table-column label="调整时间" align="center" prop="lastUpdatedDate">
+            <template slot-scope="scope">{{scope.row.lastUpdatedDate}}</template>
+          </el-table-column>
+        </el-table>
+        <el-pagination background layout="prev, pager, next, sizes, ->, total" prev-text="上一页" next-text="下一页" :page-sizes="[10, 20, 30]" :page-size="10" :total="list ? pageTotalHis:0" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+      </el-dialog>
+    </section>
+  </div>
+</template>
+<script>
+import { getListQuery } from '@/api/table'
+import { paApis } from '@/api/graphQLApiList/pa'
+import { requestGraphQL } from '@/api/commonRequest'
+import chooseSupplier from '@/components/pa/chooseSupplier'
+import paChoose from '@/components/pa/paChoose'
+import LookupValue from '@/components/org/LookupValue'
+import partsCarTypeSelect from '@/components/se/partsCarTypeSelect'
+import carTypeModel from '@/components/se/CarTypeModal/CarTypeModal'
+import config from '@/utils/config'
+import lableName from '@/components/lableName'
+import { seApis } from '@/api/graphQLApiList/se'
+
+export default {
+  name: 'paDbPartCartypeRfQuery',
+  components: {
+    chooseSupplier,
+    paChoose,
+    LookupValue,
+    partsCarTypeSelect,
+    carTypeModel,
+    lableName
+  },
+  data() {
+    return {
+      flag: '',
+      mainPageTotal: '', //分页
+      pageTotalHis: '', //价格调整历史分页
+      disabled: true, //控制修改按钮是否可用
+      dialogRevisePaVisible: false, //修改按钮弹窗显示与否
+      dialogAddPaVisible: false, //新增按钮弹窗显示与否
+      dialogImportPaVisible: false, //导入零售价按钮弹窗显示与否
+      dialogQueryprihisPaVisible: false, //查询价格调整历史弹窗显示与否
+      reviseFormdisabled: false,
+      carBrandList: '',
+      userPriceNr: '', //建议零售价
+      salePriceNr: '',
+      labelNamePaAttr: '备件属性',
+      labelNameBrand: '备件品牌',
+      labelNameOwner: '所有者类型',
+      labelName: '备件车型',
+      labelNameSwitch: '订货开关',
+      labelNamePrice: '价格类型',
+      isDlr: 0,
+      fileList: [],
+      fromRow: '',
+      uploadHeaders: {
+        Authorization: this.$store.getters.token
+      },
+      //修改弹窗表单
+      reviseForm: {
+        partNo: '',
+        partName: '',
+        partBrandName: '',
+        unit: '',
+        partPropertyName: '',
+        partTypeName: '',
+        purPackQty: '',
+        userPriceNr: '',
+        dlrLeastSaleQty: '',
+        salePriceNr: '',
+        safeQty: '',
+        oncePurLimited: '', //每次最大订单量
+        carType: '', //备件车型
+        purPrice: '',
+        ownerType: '',
+        reviseBuyPaAttr: '', //采购属性值列表
+        reviseBuySwitch: '', //采购开关值列表
+        reviseBuySwitch: '', //备件流速
+        revisePaOil: '', //油品备件
+        paPublic: '', //通用备件
+        minOutQty: '', //最小出库量
+        maxStoreQty: '',
+        minStoreQty: ''
+      },
+      //新增弹窗表单
+      addForm: {
+        partNo: '',
+        partNoAdd: '',
+        partName: '',
+        partBrandName: '',
+        unit: '',
+        partPropertyName: '',
+        carType: '',
+        mark: '',
+        partTypeName: '',
+        cgPrice: '',
+        purPackQty: '',
+        userPriceNr: '',
+        salePriceNr: '',
+        safeQty: '',
+        oncePurLimited: '',
+        dlrLeastSaleQty: '',
+        orderAddTypeOwner: '',
+        minStoreQty: '',
+        maxStoreQty: '',
+        addOrderTypePaAttr: '',
+        addPartTypeNameSelectVal: '',
+        // addBuyPaAttr: '', //采购属性值列表
+        // lookupBuyPaAttr: '',
+        // addBuySwitch: '', //采购开关值列表
+        // lookupBuySwitch: 'PA0005',
+        // addPaSpeed: '', //备件流速
+        // lookupPaSpeed: '',
+        // addPaOil: '', //油品备件
+        // lookupPaOil: '',
+        // paPublic: '', //通用备件
+        // lookupPaAnyPa: '',
+        minOutQty: '' //最小出库量
+      },
+      addRules: {
+        partNo: [
+          {
+            required: true,
+            message: '备件号长度在 10 到 45 个字符',
+            trigger: 'blur'
+          }
+        ],
+        partName: [{ required: true, message: '备件名称不能为空' }],
+        partBrandName: [{ required: true, message: '备件品牌不能为空' }],
+        unit: [{ required: true, message: '备件单位不能为空' }],
+        partPropertyName: [{ required: true, message: '备件属性不能为空' }],
+        // partTypeName: [
+        //   { required: true, message: '备件类别不能为空', trigger: 'blur' }
+        // ],
+        cgPrice: [
+          { required: true, message: '采购价不能为空' },
+          { type: 'number', message: '采购价必须为数字值', trigger: 'change' }
+        ],
+        purPackQty: [
+          { required: true, message: '采购包装含量不能为空' },
+          {
+            type: 'number',
+            message: '采购包装含量必须为数字值',
+            trigger: 'change'
+          }
+        ],
+        userPriceNr: [
+          { required: true, message: '建议零售价不能为空' },
+          {
+            type: 'number',
+            message: '建议零售价必须为数字值',
+            trigger: 'change'
+          }
+        ],
+        salePriceNr: [
+          { required: true, message: '零售价不能为空' },
+          { type: 'number', message: '零售价必须为数字值', trigger: 'change' }
+        ],
+        safeQty: [
+          { required: true, message: '安全库存不能为空' },
+          { type: 'number', message: '安全库存必须为数字值', trigger: 'change' }
+        ],
+        oncePurLimited: [
+          { required: true, message: '每次最大订单量不能为空' },
+          {
+            type: 'number',
+            message: '每次最大订单量必须为数字值',
+            trigger: 'change'
+          }
+        ],
+        dlrLeastSaleQty: [
+          {
+            required: true,
+            message: '最小销售包装含量不能为空',
+            trigger: 'blur'
+          },
+          {
+            type: 'number',
+            message: '最小销售包装含量必须为数字值',
+            trigger: 'change'
+          }
+        ],
+        orderAddTypeOwner: [{ required: true, message: '所有者类型不能为空' }],
+        // partTypeName:[
+        //   { required: true, message: '备件类别不能为空' }
+        // ],
+        maxStoreQty: [
+          { required: true, message: '库存上限不能为空' },
+          { type: 'number', message: '库存上限必须为数字值', trigger: 'change' }
+        ],
+        minStoreQty: [
+          { required: true, message: '库存下限不能为空' },
+          { type: 'number', message: '库存下限必须为数字值', trigger: 'change' }
+        ]
+      },
+
+      //查询价格调整历史弹窗表单
+      queryprihisForm: {
+        priceType: '',
+        partNo: '',
+        time: '', //调整时间
+        orderTypeOwner: '',
+        lookuptypeOwner: 'PA0033',
+        lookuppriceType: 'PA0080'
+      },
+      rules: {},
+      //导入零件价弹窗
+      importFile: {
+        fileName: ''
+      },
+      toggleParam: false,
+      moreBtnIcon: 'el-icon-plus',
+      list: null,
+      importList: null,
+      listQueryprihis: null, //查询价格调整历史，查询按钮，后台返回数据
+      listLoading: true,
+      selectionChangeArr: [], //勾选中的表格数据
+      chooseSupplierVisible: false,
+      paChooseVisible: false,
+      ycheckboxStatus: '', //获取有库存复选框的状态
+      paPublic: '', //不合理价格复选框的状态
+      paOli: '', //网点价为零价格复选框的状态
+      partTypeName: '',
+      listQuery: {
+        pageIndex: 1,
+        pageSize: 10,
+        limit: 20,
+        partNo: '', //备件号
+        partNameVal: '', //备件名称
+        partPropertyName: '', //备件属性
+        partTypeNameSelectVal: '', //备件类别
+        addPartTypeNameSelectVal: '',
+        dlrOrderSwitchName: '', //订货开关
+        lookupSwitchName: 'PA0007',
+        partCarTypeVal: '', //备件车型，
+        partBrandName: '', //备件品牌
+        lookuptypePaAttr: 'PA0030',
+        orderTypePaAttr: '',
+        orderTypeBrand: '',
+        lookuptypeBrand: 'PA0008',
+        orderTypeOwner: '',
+        lookuptypeOwner: 'PA0033',
+        partName: '',
+        partTypeCode: '',
+        partTypeId: '',
+        partPropertyCode: '',
+        partBrandCode: '',
+        beginDateInputVal: [],
+        carSeriesId: ''
+      },
+      tableHeaderRowClassName({ row, rowIndex }) {
+        if (rowIndex === 0) {
+          return 'background-color:rgb(239, 239, 239);height:32px;'
+        }
+      }
+    }
+  },
+  created() {
+    this.partTypeSelect()
+    this.carFetchData()
+  },
+  methods: {
+    changeToggleParam() {
+      this.toggleParam = !this.toggleParam
+      if (this.toggleParam) {
+        this.moreBtnIcon = 'el-icon-minus'
+      } else {
+        this.moreBtnIcon = 'el-icon-plus'
+      }
+    },
+    fetchData(page) {
+      const that = this
+      this.flag = 1
+      let obj = {}
+      obj.partNo = that.listQuery.partNo
+      obj.partName = that.listQuery.partNameVal
+      obj.partTypeCode = that.listQuery.partTypeNameSelectVal
+      // obj.partTypeId = that.listQuery.partTypeId
+      obj.partPropertyCode = that.listQuery.orderTypePaAttr
+      obj.partBrandCode = that.listQuery.orderTypeBrand
+      obj.dlrOrderSwitch = that.listQuery.dlrOrderSwitchName
+      obj.beginDate =
+        that.listQuery.beginDateInputVal == undefined
+          ? undefined
+          : that.listQuery.beginDateInputVal[0]
+      obj.endDate =
+        that.listQuery.beginDateInputVal == undefined
+          ? undefined
+          : that.listQuery.beginDateInputVal[1]
+      obj.pubCarTypeCode = that.listQuery.partCarTypeVal
+      obj.ownerType = that.listQuery.orderTypeOwner
+      that.listLoading = true
+      const queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+          paApis.paDbPartCartypeRfQueryList.InputType +
+          ')',
+        // 请求API
+        apiUrl: paApis.paDbPartCartypeRfQueryList.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: paApis.paDbPartCartypeRfQueryList.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+            // 表格中台返回网格的字段
+            apiQueryRow: [
+              'canUseQtyReal',
+              'canUseQtyTheory',
+              'createdDate',
+              'creator',
+              'dlrId',
+              'dlrLeastSaleQty',
+              'dlrOrderSwitchName',
+              'dlrPriceNr',
+              'frozenQty',
+              'groupCode',
+              'groupId',
+              'isEnable',
+              'isRefine',
+              'isSystem',
+              'lastUpdatedDate',
+              'maxStoreQty',
+              'minStoreQty',
+              'modifier',
+              'mycatOpTime',
+              'oemCode',
+              'oemId',
+              'oemStoreQty',
+              'oncePurLimited',
+              'orderNo',
+              'oweQty',
+              'ownerType',
+              'partBrandCode',
+              'partBrandName',
+              'partFlowStateName',
+              'partId',
+              'partName',
+              'partNo',
+              'partPropertyCode',
+              'partPropertyName',
+              'partType',
+              'partTypeCode',
+              'partTypeId',
+              'partTypeName',
+              'partVarietyName',
+              'planPrice',
+              'purPackQty',
+              'remark',
+              'safeQty',
+              'salePriceNr',
+              'sdpOrgId',
+              'sdpUserId',
+              'storeQty',
+              'unit',
+              'updateControlId',
+              'userPriceNr',
+              'wayQty',
+              'pubCarTypeCode',
+              'pubCarTypeName',
+              'ownerTypeName'
+            ]
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.listQuery.pageSize,
+          pageIndex: page || that.listQuery.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: obj
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj)
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[paApis.paDbPartCartypeRfQueryList.ServiceCode]
+            .result === '1'
+        ) {
+          if (page) {
+            //查询完返回指定的page页数
+            that.listQuery.pageIndex = page
+          }
+          that.mainPageTotal = Number(
+            response.data[paApis.paDbPartCartypeRfQueryList.ServiceCode].records
+          )
+          that.list =
+            response.data[paApis.paDbPartCartypeRfQueryList.ServiceCode].rows
+          that.listLoading = false
+        }
+      })
+    },
+    //查询价格调整历史_查询
+    queryprihis(
+      page,
+      dataType = '',
+      excelName = '',
+      excelSheetName = '',
+      tableColumns = null
+    ) {
+      const that = this
+      this.flag = 2
+      let obj = {
+        priceType: this.queryprihisForm.priceType,
+        partNo: this.queryprihisForm.partNo,
+        beginDate:
+          this.queryprihisForm.time == undefined
+            ? undefined
+            : this.queryprihisForm.time[0],
+        endDate:
+          this.queryprihisForm.time == undefined
+            ? undefined
+            : this.queryprihisForm.time[1],
+        paOwnerType: this.queryprihisForm.orderTypeOwner,
+        dlrId: this.$store.getters.orgInfo.DLR_ID
+      }
+      const queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+          paApis.paDbDlrPartPriceHisQueryList.InputType +
+          ')',
+        // 请求API
+        apiUrl: paApis.paDbDlrPartPriceHisQueryList.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: paApis.paDbDlrPartPriceHisQueryList.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+            // 表格中台返回网格的字段
+            apiQueryRow: [
+              'afterPrice',
+              'beforePrice',
+              'dlrId',
+              'lastUpdatedDate',
+              'modifier',
+              'modifyName',
+              'paOwnerType',
+              'paOwnerTypeName',
+              'partId',
+              'partName',
+              'partNo',
+              'priceType',
+              'priceTypeName'
+            ]
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.listQuery.pageSize,
+          pageIndex: page || that.listQuery.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: obj
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj)
+      if (dataType === 'excel') {
+        queryObj.variables.pageSize = 99999
+        if (tableColumns == null) tableColumns = []
+        var tmpCols = tableColumns // .filter(o => o.hidden !== true)
+        // 网格列对象转为excel列对象
+        var excelCols = {}
+        for (var i = 0; i < tmpCols.length; i++) {
+          if (tmpCols[i].property != null)
+            excelCols[tmpCols[i].property] = tmpCols[i].label
+        }
+        // 数据类型
+        paramD.dataType = 'excel'
+        // excel文件名称
+        paramD.excelName = excelName
+        // 根据请求API描述excel数据对象
+        paramD.excels = [
+          {
+            // excel sheet名称
+            title: excelSheetName,
+            // 对应API服务编码
+            actionName: queryObj.apiServices[0].apiServiceCode,
+            // excel列
+            columns: excelCols
+          }
+        ]
+      }
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (dataType == 'excel') {
+          //导出excel查询
+          var nowDate = new Date()
+          this.$utils.downloadFile(
+            response,
+            `价格调整历史列表导出${nowDate.getFullYear()}-${nowDate.getMonth() +
+              1}-${nowDate.getDate()}  ${nowDate.getHours()}：${nowDate.getMinutes()}：${nowDate.getSeconds()}.xlsx`
+          )
+          this.listLoading = false
+        } else if (
+          response.data[paApis.paDbDlrPartPriceHisQueryList.ServiceCode]
+            .result === '1'
+        ) {
+          if (page) {
+            // 查询完返回指定的page页数
+            that.listQuery.pageIndex = page
+          }
+          that.pageTotalHis = Number(
+            response.data[paApis.paDbDlrPartPriceHisQueryList.ServiceCode]
+              .records
+          )
+          that.listQueryprihis =
+            response.data[paApis.paDbDlrPartPriceHisQueryList.ServiceCode].rows
+          that.listLoading = false
+        }
+      })
+    },
+    //导入路径
+    beforeAvatarUpload(file) {
+      this.importFile.fileName = file.name
+      const extension = file.name.split('.')[1] === 'xls'
+      const extension2 = file.name.split('.')[1] === 'xlsx'
+      if (!extension && !extension2) {
+        this.$alert('上传文件只能为Excel文件', '提示', {
+          confirmButtonText: '确定',
+          type: 'warning'
+        })
+      }
+      return extension || extension2
+    },
+    beforeRemove(file, fileList) {
+      this.$alert(
+        `选择文件类型或大小不符，已移除 ${file.name}，请重新选择`,
+        '提示',
+        {
+          confirmButtonText: '确定',
+          type: 'warning'
+        }
+      )
+    },
+    handleExceed(files, fileList) {
+      this.$message.warning(
+        `当前限制选择 1 个文件，本次选择了 ${
+          files.length
+        } 个文件，共选择了 ${files.length + fileList.length} 个文件`
+      )
+    },
+    uploadSuccess(response) {
+      if (
+        response.data.result === '1' &&
+        response.data.rows != null &&
+        response.data.rows.length > 0
+      ) {
+        var tempList = response.data.rows
+        var implistTemp = []
+        //导入Excel模块列头、数据是否必填
+        var excelCols = [
+          { name: '配件号', required: true },
+          { name: '零售价', required: true }
+        ]
+        var isErrorTemplate = false // 模版错误
+        var firstRow = tempList[0]
+        for (let i = 0; i < excelCols.length; i++) {
+          if (firstRow.hasOwnProperty(excelCols[i].name) == false) {
+            isErrorTemplate = false
+          } else {
+            isErrorTemplate = true
+          }
+        }
+        if (isErrorTemplate) {
+          this.$alert('Excel模版错误', '提示', {
+            confirmButtonText: '确定',
+            type: 'warning'
+          })
+          this.$refs.upload.clearFiles()
+          this.importList = []
+          return
+        }
+        // var dataNullErrorMsg = ''
+        // for (var i = 0; i < tempList.length; i++) {
+        //   // 检查数据是否为空
+        //   if (!this.$utils.isEmpty(dataNullErrorMsg)) break
+        //   var row = tempList[i]
+        //   for (var j = 0; j < excelCols.length; j++) {
+        //     var col = excelCols[j]
+        //     if (col.required == true && this.$utils.isEmpty(row[col.name])) {
+        //       dataNullErrorMsg = `Excel第${i + 2}行“${col.name}”不能为空`
+        //       break
+        //     }
+        //   }
+        // }
+        // if (!this.$utils.isEmpty(dataNullErrorMsg)) {
+        //   this.$alert(dataNullErrorMsg, '提示', {
+        //     confirmButtonText: '确定',
+        //     type: 'warning'
+        //   })
+        //   this.$refs.upload.clearFiles()
+        //   this.importList = []
+        //   return
+        // }
+        for (let i = 0; i < tempList.length; i++) {
+          var newRow = {
+            partNo: tempList[i].partNo,
+            partName: tempList[i].partName,
+            userPrice: tempList[i].userPrice,
+            oldSalePrice: tempList[i].oldSalePrice,
+            newSalePrice: tempList[i].newSalePrice,
+            partType: tempList[i].partType
+          }
+          implistTemp.push(newRow)
+        }
+
+        this.importList = implistTemp
+        this.$alert('文件导入成功', '提示', {
+          confirmButtonText: '确定',
+          type: 'success'
+        })
+      } else {
+        this.$alert(`文件导入失败${response.data.msg}`, '提示', {
+          confirmButtonText: '确定',
+          type: 'warning'
+        })
+      }
+      this.$refs.upload.clearFiles()
+    },
+    //处理文件选择器改变事件
+    handleChange(param) {
+      var url =
+        '/ly/mp/busicen/prc/excel/paDbDlrPartListMutationImportSalePrice.do' // API根据不同功能url不同，请配置到对应模块配置
+      var that = this
+      this.$requestImport(url, param, function(response) {
+        that.uploadSuccess(response)
+      })
+    },
+    //导出价格调整历史
+    getExcel() {
+      var tableColumns = null ? null : this.$refs.queryprihisTable.columns
+      this.queryprihis(
+        1,
+        'excel',
+        '价格调整历史列表导出',
+        '价格调整历史列表',
+        tableColumns
+      )
+    },
+    //判断零售价是否大于建议零售价
+    isBig(row) {
+      this.salePriceNr = row.salePriceNr
+      this.userPriceNr = row.userPriceNr
+      if (Number(this.salePriceNr) < 0) {
+        this.$message({
+          message: '零售价不能小于0',
+          type: 'warning'
+        })
+      } else if (Number(this.salePriceNr) > Number(this.userPriceNr)) {
+        this.$message({
+          message: '零售价不能高于建议零售价',
+          type: 'warning'
+        })
+      }
+      //  parseFloat(this.salePriceNr).toFixed(2)
+    },
+    savaGrid() {
+      const that = this
+      let selectData = that.$refs.multipleTable.selection
+      if (selectData.length == 0) {
+        this.$message({ message: '请选择一条数据进行保存', type: 'warning' })
+        return false
+      } else if (selectData.length > 1) {
+        this.$message({ message: '只能选择一条数据进行保存', type: 'warning' })
+        return false
+      } else if (this.salePriceNr == null) {
+        this.$message({
+          message: '零售价不能为空',
+          type: 'warning'
+        })
+        return false
+      }
+      let obj = {}
+      obj.partId = selectData[0].partId
+      obj.partNo = selectData[0].partNo
+      obj.dlrId = selectData[0].dlrId
+      obj.ownerType = selectData[0].ownerType
+      obj.salePriceNr = parseFloat(selectData[0].salePriceNr)
+      let queryObj = {
+        //保存需要传 type="mutation"
+        type: 'mutation',
+        // api配置
+        apiConfig: paApis.paDbDlrPartListMutationUpdateSalePrice,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            //表格中台返回网格的字段
+            apiQueryRow: []
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          // pageSize: 1000,
+          // pageIndex: 1,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: obj
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj)
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[
+            paApis.paDbDlrPartListMutationUpdateSalePrice.ServiceCode
+          ].result === '1'
+        ) {
+          this.$message({ message: '保存成功', type: 'success' })
+          this.fetchData()
+          // that.$refs.multipleTable.clearSelection()
+        } else {
+          this.$message({
+            message:
+              '保存失败：' +
+              response.data[
+                paApis.paDbDlrPartListMutationUpdateSalePrice.ServiceCode
+              ].msg,
+            type: 'warn',
+            uration: 2000
+          })
+        }
+      })
+    },
+    savaAdd(isAdd = '') {
+      //isAdd 新增为空，修改为1
+      const that = this
+      if (isAdd == '') {
+        this.$refs.addForm.validate(valid => {
+          if (valid) {
+            let obj = {}
+            obj.partId = this.fromRow.partId
+            obj.dlrId = this.fromRow.dlrId
+            obj.partNo = that.addForm.partNo + '-' + that.addForm.partNoAdd
+            obj.partName = that.addForm.partName
+            obj.partBrandCode = that.addForm.partBrandName
+            obj.unit = that.addForm.unit
+            obj.partPropertyCode = that.addForm.addOrderTypePaAttr
+            obj.partTypeId = that.addForm.addPartTypeNameSelectVal
+            obj.remark = that.addForm.mark
+            obj.purPrice = Number(that.addForm.cgPrice)
+            obj.purPackQty = Number(that.addForm.purPackQty)
+            obj.salePrice = Number(that.addForm.salePriceNr)
+            obj.userPrice = Number(that.addForm.userPriceNr)
+            obj.dlrLeastSaleQty = Number(that.addForm.dlrLeastSaleQty)
+            // obj.dlrId = that.reviseForm.dlrId
+            obj.oncePurLimited = Number(that.addForm.oncePurLimited)
+            obj.maxStoreQty = Number(that.addForm.maxStoreQty)
+            obj.minStoreQty = Number(that.addForm.minStoreQty)
+            obj.safeQty = Number(that.addForm.safeQty)
+            obj.ownerType = that.addForm.orderAddTypeOwner
+            obj.pubSeriesCode = that.addForm.carType
+            //新增字段待确定
+            // obj.addBuyPaAttr = that.addForm.addBuyPaAttr //采购属性值列表
+            // obj.addBuySwitch = that.addForm.addBuySwitch //采购开关值列表
+            // obj.addPaSpeed = that.addForm.addPaSpeed //备件流速
+            // obj.addPaOil = that.addForm.addPaOil //油品备件
+            // obj.addAnyPa = that.addForm.addAnyPa //通用备件
+            // obj.minOutQty = that.addForm.addAnyPa //最小出库量
+            let queryObj = {
+              //保存需要传 type="mutation"
+              type: 'mutation',
+              // api配置
+              apiConfig: paApis.paDbDlrPartListMutationSave,
+              // 需要调用的API服务配置
+              apiServices: [
+                {
+                  //表格中台返回网格的字段
+                  apiQueryRow: []
+                }
+              ],
+              //条件/实体参数（变量），根据typeParam中的定义配置
+              variables: {
+                // pageSize: 1000,
+                // pageIndex: 1,
+                //当前中台使用的名称有dataInfo、info，具体查看API文档
+                dataInfo: obj
+              }
+            }
+
+            //转换了中台请求格式数据
+            var paramD = that.$getParams(queryObj)
+            requestGraphQL(paramD).then(response => {
+              if (
+                response.data[paApis.paDbDlrPartListMutationSave.ServiceCode]
+                  .result === '1'
+              ) {
+                this.$message({ message: '保存成功', type: 'success' })
+                if (isAdd == '') {
+                  this.dialogAddPaVisible = false
+                  this.fetchData()
+                }
+              } else {
+                this.$message({
+                  message:
+                    '保存失败：' +
+                    response.data[
+                      paApis.paDbDlrPartListMutationSave.ServiceCode
+                    ].msg,
+                  type: 'warn',
+                  uration: 2000
+                })
+              }
+            })
+          } else {
+            this.isValiad = true
+            return false
+          }
+        })
+      } else if (isAdd == 1) {
+        this.$refs.reviseForm.validate(valid => {
+          if (valid) {
+            let obj = {}
+            obj.partId = this.fromRow.partId
+            obj.dlrId = this.fromRow.dlrId
+            obj.partNo = that.reviseForm.partNo
+            obj.partName = that.reviseForm.partName
+            obj.partBrandCode = that.reviseForm.partBrandName
+            obj.unit = that.reviseForm.unit
+            obj.partPropertyCode = that.reviseForm.partPropertyName
+            obj.partTypeId = that.reviseForm.partTypeName
+            obj.remark = that.addForm.mark
+            obj.purPrice = Number(that.reviseForm.purPrice)
+            obj.purPackQty = Number(that.reviseForm.purPackQty)
+            obj.salePrice = Number(that.reviseForm.salePriceNr)
+            obj.userPrice = Number(that.reviseForm.userPriceNr)
+            obj.dlrLeastSaleQty = Number(that.reviseForm.dlrLeastSaleQty)
+            // obj.dlrId = that.reviseForm.dlrId
+            obj.oncePurLimited = Number(that.reviseForm.oncePurLimited)
+            obj.maxStoreQty = Number(that.reviseForm.maxStoreQty)
+            obj.minStoreQty = Number(that.reviseForm.minStoreQty)
+            obj.safeQty = Number(that.reviseForm.safeQty)
+            obj.ownerType = that.reviseForm.ownerType
+            obj.pubSeriesCode = that.reviseForm.carType
+            //新增字段待确定
+            // obj.addBuyPaAttr = that.reviseForm.addBuyPaAttr //采购属性值列表
+            // obj.addBuySwitch = that.reviseForm.addBuySwitch //采购开关值列表
+            // obj.addPaSpeed = that.reviseForm.addPaSpeed //备件流速
+            // obj.addPaOil = that.reviseForm.addPaOil //油品备件
+            // obj.addAnyPa = that.reviseForm.addAnyPa //通用备件
+            // obj.minOutQty = that.reviseForm.addAnyPa //最小出库量
+            obj.updateControlId = that.reviseForm.updateControlId
+            let queryObj = {
+              //保存需要传 type="mutation"
+              type: 'mutation',
+              // api配置
+              apiConfig: paApis.paDbDlrPartListMutationSave,
+              // 需要调用的API服务配置
+              apiServices: [
+                {
+                  //表格中台返回网格的字段
+                  apiQueryRow: []
+                }
+              ],
+              //条件/实体参数（变量），根据typeParam中的定义配置
+              variables: {
+                // pageSize: 1000,
+                // pageIndex: 1,
+                //当前中台使用的名称有dataInfo、info，具体查看API文档
+                dataInfo: obj
+              }
+            }
+
+            //转换了中台请求格式数据
+            var paramD = that.$getParams(queryObj)
+            requestGraphQL(paramD).then(response => {
+              if (
+                response.data[paApis.paDbDlrPartListMutationSave.ServiceCode]
+                  .result === '1'
+              ) {
+                this.$message({ message: '保存成功', type: 'success' })
+                if (isAdd == 1) {
+                  this.dialogRevisePaVisible = false
+                  this.fetchData()
+                }
+              } else {
+                this.$message({
+                  message:
+                    '保存失败：' +
+                    response.data[
+                      paApis.paDbDlrPartListMutationSave.ServiceCode
+                    ].msg,
+                  type: 'warn',
+                  uration: 2000
+                })
+              }
+            })
+          } else {
+            this.isValiad = true
+            return false
+          }
+        })
+      }
+    },
+    addRest() {
+      this.addForm = {
+        partNoAdd: '',
+        partName: '',
+        partBrandName: '',
+        unit: '',
+        partPropertyName: '',
+        carType: '',
+        mark: '',
+        partTypeName: '',
+        cgPrice: '',
+        purPackQty: '',
+        userPriceNr: '',
+        salePriceNr: '',
+        safeQty: '',
+        oncePurLimited: '',
+        dlrLeastSaleQty: '',
+        orderAddTypeOwner: '',
+        minStoreQty: '',
+        maxStoreQty: '',
+        addOrderTypePaAttr: '',
+        addPartTypeNameSelectVal: ''
+      }
+       this.addForm.partNo = this.$store.getters.orgInfo.DLR_CODE
+    },
+    //备件类别下拉框
+    partTypeSelect(page) {
+      const that = this
+      this.listLoading = true
+      let obj = {}
+      const queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+          paApis.paDbAttrTypeQueryList.InputType +
+          ')',
+        // 请求API
+        apiUrl: paApis.paDbAttrTypeQueryList.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: paApis.paDbAttrTypeQueryList.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+            // 表格中台返回网格的字段
+            apiQueryRow: [
+              'partTypeId',
+              'partTypeName',
+              'partTypeCode',
+              'isEnable',
+              'isEnableCn',
+              'isRefine',
+              'isRefineCn',
+              'groupFlag',
+              'safeCoefficient',
+              'partPropertyCode',
+              'partPropertyName',
+              'remark',
+              'updateControlId'
+            ]
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.listQuery.pageSize,
+          pageIndex: page || that.listQuery.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: obj
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj)
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[paApis.paDbAttrTypeQueryList.ServiceCode].result === '1'
+        ) {
+          if (page) {
+            //查询完返回指定的page页数
+            that.listQuery.pageIndex = page
+          }
+          that.pageTotal =
+            response.data[paApis.paDbAttrTypeQueryList.ServiceCode].records
+          that.partTypeName =
+            response.data[paApis.paDbAttrTypeQueryList.ServiceCode].rows
+          that.listLoading = false
+        } else {
+          this.$message({
+            message:
+              '查询失败：' +
+              response.data[paApis.paDbAttrTypeQueryList.ServiceCode].msg,
+            type: 'warn',
+            uration: 2000
+          })
+        }
+      })
+    },
+    //备件车型下拉框
+    carFetchData(page) {
+      const that = this
+      this.listLoading = true
+      let obj = { partId: this.listQuery.code }
+      const queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+          paApis.paDbPartCartypeRfQueryCarType.InputType +
+          ')',
+        // 请求API
+        apiUrl: paApis.paDbPartCartypeRfQueryCarType.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+          {
+            // API服务编码&参数
+            apiServiceCode: paApis.paDbPartCartypeRfQueryCarType.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+            // 表格中台返回网格的字段
+            apiQueryRow: [
+              'partCartypeRfId',
+              'partId',
+              'carTypeCode',
+              'carTypeCn',
+              'carSeriesId',
+              'carSeriesId',
+              'carSeriesCn'
+            ]
+          }
+        ],
+        // 条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.listQuery.pageSize,
+          pageIndex: page || that.listQuery.pageIndex,
+          // 当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: obj
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj)
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[paApis.paDbPartCartypeRfQueryCarType.ServiceCode]
+            .result === '1'
+        ) {
+          if (page) {
+            //查询完返回指定的page页数
+            that.listQuery.pageIndex = page
+          }
+          that.pageTotal =
+            response.data[
+              paApis.paDbPartCartypeRfQueryCarType.ServiceCode
+            ].records
+          that.carBrandList =
+            response.data[paApis.paDbPartCartypeRfQueryCarType.ServiceCode].rows
+          that.listLoading = false
+        } else {
+          this.$message({
+            message:
+              '查询失败：' +
+              response.data[paApis.paDbPartCartypeRfQueryCarType.ServiceCode]
+                .msg,
+            type: 'warn',
+            uration: 2000
+          })
+        }
+      })
+    },
+
+    //备件目录重置按钮
+    reset() {
+      this.listQuery = {
+        partNo: '', //备件号
+        partNameVal: '', //备件名称
+        orderTypePaAttr: '', //备件属性
+        partTypeNameSelectVal: '', //备件类别
+        dlrOrderSwitchName: '', //订货开关
+        partCarTypeVal: '', //备件车型，
+        orderTypeBrand: '', //备件品牌
+        orderTypeOwner: '' //所有者类型
+      }
+    },
+    //修改按钮弹窗重置按钮
+    resetreviseModel() {
+      this.handleSelect()
+    },
+    //查询价格调整历史按钮弹窗重置按钮
+    resetQueryprihis() {
+      this.queryprihisForm = {
+        priceType: '',
+        partNo: '',
+        paOwnerType: '',
+        time: '' //调整时间
+      }
+    },
+    handleSizeChange(val) {
+      this.listQuery.pageSize = val
+      let that = this
+      switch (that.flag) {
+        case 1:
+          that.fetchData()
+          break
+        case 2:
+          that.queryprihis()
+      }
+    },
+    handleCurrentChange(val) {
+      this.listQuery.pageIndex = val
+      let that = this
+      switch (that.flag) {
+        case 1:
+          that.fetchData()
+          break
+        case 2:
+          that.queryprihis()
+      }
+    },
+    //修改备件弹窗显示
+    reviseModel() {
+      this.dialogRevisePaVisible = true
+    },
+    //新增弹窗显示
+    addModel() {
+      this.dialogAddPaVisible = true
+      this.addForm.partNo = this.$store.getters.orgInfo.DLR_CODE
+      this.$refs.addForm == undefined
+        ? this.$refs.addForm
+        : this.$refs.addForm.resetFields()
+    },
+    //导入零售价弹窗显示
+    importModel() {
+      this.dialogImportPaVisible = true
+    },
+    //查询价格调整历史弹窗显示
+    queryprihisModel() {
+      this.dialogQueryprihisPaVisible = true
+    },
+    //传值给供应商简称公共弹窗
+    getChooseSupplierVisible(val) {
+      this.chooseSupplierVisible = false
+      this.listQuery.supplierShortNameInputVal = val.name[0]
+    },
+    //传值给备件选择公共弹窗
+    getPaChooseVisible(val) {
+      if (val == undefined) {
+        this.paChooseVisible = false
+      } else {
+        this.paChooseVisible = false
+        this.listQuery.partNo = val.name
+        this.listQuery.partNameVal = val.partName
+        this.listQuery.code = val.code
+        this.carFetchData()
+      }
+    },
+
+    //点击供应商简称弹窗
+    supplierShortNameModel() {
+      this.chooseSupplierVisible = true
+    },
+    //点击备件编码弹窗
+    paChooseVisibleModel() {
+      this.paChooseVisible = true
+    },
+    //选中表格数据启用修改按钮
+    handleSelect(selection, row) {
+      if (selection.length != 0) {
+        this.fromRow = row
+        this.disabled = false
+        //ownerType =1主机厂备件 ownerType=0经销商自定义备件
+        if (row.ownerType == 1) {
+          this.isDlr = 1
+          this.reviseForm = {
+            partNo: row.partNo,
+            partName: row.partName,
+            partBrandName: row.partBrandName,
+            unit: row.unit,
+            partPropertyName: row.partPropertyName,
+            partTypeName: row.partTypeName,
+            purPackQty: row.purPackQty,
+            userPriceNr: row.userPriceNr,
+            dlrLeastSaleQty: row.dlrLeastSaleQty,
+            salePriceNr: row.salePriceNr,
+            safeQty: row.safeQty,
+            purPrice: row.dlrPriceNr,
+            ownerType: row.ownerType,
+            carType: row.pubCarTypeCode,
+            oncePurLimited: row.oncePurLimited,
+            updateControlId: row.updateControlId
+          }
+          this.reviseFormdisabled = true
+        } else if (row.ownerType == 0) {
+          this.isDlr = 0
+          this.reviseForm = {
+            partNo: row.partNo,
+            partName: row.partName,
+            partBrandName: row.partBrandName,
+            unit: row.unit,
+            partPropertyName: row.partPropertyName,
+            partTypeName: row.partTypeName,
+            purPackQty: row.purPackQty,
+            userPriceNr: row.userPriceNr,
+            dlrLeastSaleQty: row.dlrLeastSaleQty,
+            salePriceNr: row.salePriceNr,
+            safeQty: row.safeQty,
+            purPrice: row.dlrPriceNr,
+            ownerType: row.ownerType,
+            carType: row.pubCarTypeCode,
+            oncePurLimited: row.oncePurLimited,
+            updateControlId: row.updateControlId
+          }
+        }
+      } else {
+        this.disabled = true
+      }
+    },
+    //导入零售价弹窗关闭
+    closeImportModel() {
+      this.importFile.fileName = ''
+      this.importList = []
+    },
+    //查询价格调整历史弹窗关闭
+    closeQueryprihisModel() {
+      this.resetQueryprihis()
+      this.listQueryprihis = []
+    },
+    //新增弹出关闭
+    closeAddPa() {
+      this.$refs.addForm.resetFields()
+      this.addForm.addPartTypeNameSelectVal = ''
+      this.addForm.addOrderTypePaAttr = ''
+      this.addForm.orderAddTypeOwner = ''
+    },
+    //重置修改按钮弹窗
+    resetReviseForm() {
+      this.reviseForm.salePriceNr = ''
+      this.reviseForm.safeQty = ''
+      this.reviseForm.maxStoreQty = ''
+    },
+    revisechangePaOli(val) {
+      this.reviseForm.revisePaOil = val
+      if (this.reviseForm.revisePaOil == true) {
+        this.reviseForm.revisePaOil = '1'
+      } else {
+        this.reviseForm.revisePaOil = '0'
+      }
+    },
+    revisechangePPublic(val) {
+      this.reviseForm.paPublic = val
+      if (this.reviseForm.paPublic == true) {
+        this.reviseForm.paPublic = '1'
+      } else {
+        this.reviseForm.paPublic = '0'
+      }
+    },
+    addchangePaOli(val) {
+      this.addForm.addPaOil = val
+      if (this.addForm.addPaOil == true) {
+        this.addForm.addPaOil = '1'
+      } else {
+        this.addForm.addPaOil = '0'
+      }
+    },
+    addchangePPublic(val) {
+      this.addForm.paPublic = val
+      if (this.addForm.paPublic == true) {
+        this.addForm.paPublic = '1'
+      } else {
+        this.addForm.paPublic = '0'
+      }
+    },
+    getLookupValueBrand(val) {
+      this.listQuery.orderTypeBrand = val
+    },
+    getLookupValuePaAttr(val) {
+      this.listQuery.orderTypePaAttr = val
+    },
+    getLookupValueOwner(val) {
+      this.listQuery.orderTypeOwner = val
+    },
+    getAddLookupValuePaAttr(val) {
+      this.addForm.addOrderTypePaAttr = val
+    },
+    getcarSeriesId(val) {
+      this.listQuery.carSeriesId = val
+    },
+    getLookupValueOwnerH(val) {
+      this.queryprihisForm.orderTypeOwner = val
+    },
+    getLookupValueSwitch(val) {
+      this.listQuery.dlrOrderSwitchName = val
+    },
+    getLookupValuePrice(val) {
+      this.queryprihisForm.priceType = val
+    },
+    getAddLookupValueOwner(val) {
+      this.addForm.orderAddTypeOwner = val
+    },
+    showCarType() {
+      this.$refs.carTypeModel.open()
+    },
+    getCarTypeCode(val, carType) {
+      this.addForm.carType = carType
+    },
+    getAddLookupValueBuyPaAttr(val) {
+      this.addForm.addBuyPaAttr = val
+    },
+    getAddLookupValueBuySwitch(val) {
+      this.addForm.addBuySwitch = val
+    },
+    getAddLookupValuePaSpeed(val) {
+      this.addForm.addPaSpeed = val
+    },
+    getAddLookupValuePaOil(val) {
+      this.addForm.addPaOil = val
+    },
+    getAddLookupValuePaAnyPa(val) {
+      this.addForm.addAnyPa = val
+    },
+    getReviseFormLookupValueBuyPaAttr(val) {
+      this.reviseForm.reviseBuyPaAttr = val
+    },
+    getReviseLookupValueBuySwitch(val) {
+      this.reviseForm.reviseBuySwitch = val
+    },
+    getReviseLookupValuePaSpeed(val) {
+      this.reviseForm.revisePaSpeed = val
+    }
+  }
+}
+</script>
+
+

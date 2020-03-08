@@ -1,0 +1,122 @@
+<!--
+* description: 非直营二级网点设置
+* author:yxy
+* createdDate: 2019-07-31
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template ref="multipleTable"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="false"
+      :dynamicIsInitTable="true"
+      :dynamicIsColumnDrop="true"
+      :dynamicIsShowMoreBtn="false"
+    />
+
+    <edit
+      :dynamicEditRowData="editRowData"
+      :popupsVisible="editPopupsVisible"
+      :key="editPopupsKey"
+      :popupsState="editPopupsState"
+      @close="close"
+    ></edit>
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { veApis } from '@/api/graphQLApiList/ve'
+import OneTableTemplate from '@/components/templates/oneTable'
+import Edit from './edit'
+import { CacheConfig } from '@/cache/configCache/index'
+export default {
+  name:"noDirSedNetSet",
+  // 组件混入对象
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+    Edit
+  },// 阻塞路由预加载网格中组件的数据
+beforeRouteEnter(to, from, next) {CacheConfig.initData(to.path, function(){next()})},
+
+  data() {
+    return {
+      // 网格查询API配置对象
+      apiConfig: veApis.veDbPactCompanyQueryFindAll,
+      // 动态组件-按钮
+      tableButtons: [
+        {compKey: 'btnKey1', type: 'primary', size: 'small', clickEvent: () => this.queryTable(1), text:this.$t('sys.button.query')},//查询
+        {compKey: 'btnKey2', type: '', size: 'small', clickEvent: () => this.add(), text:this.$t('sys.button.add')},// '新增'
+        {compKey: 'btnKey3', type: '', size: 'small', clickEvent: () => this.this.exportExcel(), text:this.$t('sys.button.export')},// '导出'
+        {compKey: 'btnKey4', type: '', size: 'small', clickEvent: () => this.reset(), text:this.$t('sys.button.reset')},//重置
+
+      ],
+
+
+      // 动态组件-查询条件
+      tableComponents: CacheConfig.cacheData[this.$route.path] && CacheConfig.cacheData[this.$route.path].tableComponents.length > 0 ? CacheConfig.cacheData[this.$route.path].tableComponents : [
+         {compKey: 'compKey1', labelName: this.$t('org.label.carBrandCn'), codeField: 'carBrandCode', component: () => import('@/components/org/carBrand/carBrand'), isRequire: true, type: 'dropdownList', isMust: true},//品牌
+
+        {compKey: 'compKey2', labelName: this.$t('ve.label.organizationCode'), codeField: 'guno', component: () => import('@/components/org/commonInput'), type: 'inputText', isMust: true},//机构代码
+        {compKey: 'compKey3', labelName:this.$t('ve.label.sedNetFullName'), codeField: 'compFullName', component: () => import('@/components/org/commonInput'), type: 'inputText', isMust: true},//二级网点全称
+
+        {compKey: 'compKey4', labelName: this.$t('org.label.isEnable'), lookuptype: 'VE0188', ccodeField: 'isEnable', component: () => import('@/components/org/isEnable/isEnable'), type: 'dropdownList', isMust: true} // 是否启用
+      ],
+      // 动态生成网格列
+      tableCols: this.getCols(),
+
+
+
+      //表单查询数据
+      formField:{
+        carBrandCode: '',
+        guno: '',
+        compFullName:'',
+        isEnable:''
+
+      }
+    }
+  },
+  methods: {
+    del() {
+      console.info('删除')
+    },
+    getCols() {
+      var cols = [
+        { prop: 'controlBtn', label:this.$t('sys.content.operate'), codeField: 'controlBtn', width: 60, align: 'center', fixed: true, isComponent: true,
+          comps:[{compKey: 'propKey0', align: 'center', labelName:this.$t('sys.button.edit'), codeField: 'editControlBtn', clickEvent: this.edit, component: () => import('@/components/org/linkButton')}]
+
+        }//操作
+      ]
+      if (CacheConfig.cacheData[this.$route.path] && CacheConfig.cacheData[this.$route.path].tableCols.length > 0) {
+        cols = cols.concat(CacheConfig.cacheData[this.$route.path].tableCols)
+      } else {
+        cols = cols.concat([
+         { prop: 'carBrandCn', label: this.$t('org.label.carBrandCn'), width: null, align: 'center' },//品牌名称
+       { prop: 'carBrandCode', label: '品牌ID', width: null, align: 'center', hidden: true },
+        { prop: 'pactCompanyName', label:"二网类型", width: null, align: 'center' },//二网类型
+        { prop: 'compFullName', label: "二级网点全称", width: null, align: 'center' },//二级网点全称
+         { prop: 'compShortName', label:"二级网点简称", width: null, align: 'center' },//二级网点简称
+         { prop: 'guno', label: this.$t('ve.label.organizationCode'), width: null, align: 'center' },//机构代码
+         { prop: 'compAddr', label:"二级网点地址", width: null, align: 'center' },//二级网点地址
+        { prop: 'enableStatus', label:this.$t('org.label.isEnable'), width: null, align: 'center'},//是否启用
+         { prop: 'pactBegDate', label:"授权开始日期", width: null, align: 'center' },//授权开始日期
+          { prop: 'pactEndDate', label:"授权结束日期", width: null, align: 'center' },//授权结束日期
+        { prop: 'invBank', label:"开户银行", width: null, align: 'center' },//开户银行
+
+        { prop: 'roleDesc', label: '角色描述', width: null, align: 'center', hidden: true },
+        { prop: 'roleId', label: '角色ID', width: null, align: 'center', hidden: true },
+
+        { prop: 'roleOrgType', label: '组织类型编码', width: null, align: 'center', hidden: true },
+        { prop: 'enabled', label: '是否启用编码', width: null, align: 'center', hidden: true },
+        { prop: 'builtIn', label: '是否内置编码', width: null, align: 'center' , hidden: true },
+            ])
+      }
+      return cols
+    }
+  }
+}
+</script>

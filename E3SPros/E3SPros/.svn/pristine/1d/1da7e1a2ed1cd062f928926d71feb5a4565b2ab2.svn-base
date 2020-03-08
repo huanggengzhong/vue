@@ -1,0 +1,413 @@
+<!--
+* description: 来店登记
+* author: zouzx
+* createdDate: 2019-10-17
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template
+      ref="multipleTable"
+      :dynamicSearchField="searchField"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="false"
+      :dynamicIsInitTable="false"
+      :dynamicIsColumnDrop="false"/>
+
+      <toShopQRDiag
+        :dynamicEditRowData="historyRowData"
+        :popupsVisible="historyPopupsVisible"
+        :key="historyPopupsKey"
+        :popupsState="historyPopupsState"
+        @close="historyclose"
+      ></toShopQRDiag>
+
+      <toShopLDDiag
+        :dynamicEditRowData="DRRowData"
+        :popupsVisible="DRPopupsVisible"
+        :key="DRPopupsKey"
+        :popupsState="DRPopupsState"
+        @close="DRclose"
+      ></toShopLDDiag>
+
+  </div>
+</template>
+<script>
+import { crmApis } from "@/api/graphQLApiList/crm";
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import OneTableTemplate from "@/components/crm/Template/crmonePage";
+import { CacheConfig } from '@/cache/configCache/index'
+import toShopQRDiag from "./toShopQRDiag"
+import toShopLDDiag from "./toShopLDDiag"
+
+export default {
+  name:"toShopRegister",
+  // 组件混入对象
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+    toShopQRDiag,
+    toShopLDDiag
+  },
+  // 阻塞路由预加载网格中组件的数据
+  beforeRouteEnter(to, from, next) {CacheConfig.initData(to.path, function(){next()})},
+  data() {
+    var p = new Promise(function(resolve, reject) {
+      setTimeout(function() {
+        console.log("异步 start");
+        resolve("异步 end");
+      }, 1000);
+    });
+    console.log("同步 start");
+    return {
+      searchField:"网点/销售顾问",
+      // 网格查询API配置对象
+      dialogVisible2:false,
+      apiConfig: crmApis.mdmBuComeOrderQueryList,
+      // 动态组件-按钮
+      tableButtons: [
+        // {
+        //   compKey: "btnKey1",
+        //   type: "primary",
+        //   size: "small",
+        //   clickEvent: () => this.queryTable(1),
+        //   text: "查询"
+        // },
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.XZDJ(),
+          text: "新增登记"
+        },
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.exportExcel(),
+          text: "导出"
+        },
+        // {
+        //   compKey: "btnKey4",
+        //   type: "",
+        //   size: "small",
+        //   clickEvent: () => this.reset(),
+        //   text: "重置"
+        // }
+      ],
+      // 动态组件-查询条件
+      tableComponents:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableComponents.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableComponents
+          : [
+              {
+                compKey: "compKey1",
+                labelName: "网点",
+                codeField: "dlrId",
+                component: () => import("@/components/crm/crmEjectWindows/crmChangeDlr/index"),
+                type: "propus",
+                isMust: false,
+                isMul:false,
+              },
+              {
+                compKey: "compKey2",
+                labelName: "销售顾问",
+                codeField: "caEmpId",
+                component: () => import("@/components/crm/crmEjectWindows/crmSalesConsultant/index"),
+                type: "propus",
+                isMust: false,
+                isMul:false,
+              },
+              {
+                compKey: "compKey3",
+                labelName: "来店目的",
+                codeField: "comePurposeId",
+                lookuptype: "DB0060",
+                component: () => import("@/components/org/LookupValue"),
+                type: "dropdownList",
+                isMust: false,
+                isMul:false,
+              },
+              {
+                compKey: "compKey4",
+                labelName: "来店状态",
+                codeField: "comeState",
+                lookuptype: "VE0199",
+                component: () => import("@/components/org/LookupValue"),
+                type: "dropdownList",
+                isMust: false,
+                isMul:false,
+              },
+              {
+                compKey: "compKey5",
+                labelName: "到店时间",
+                codeField: "comeTimeStart,comeTimeEnd",
+                component: () => import("@/components/crm/Time/crmdtDatePicker"),
+                type: "inputText",
+                isMust: false
+              }
+            ],
+      // 动态生成网格列
+      tableCols:
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableCols.length > 0
+          ? CacheConfig.cacheData[this.$route.path].tableCols
+          : [
+              {
+                prop: "controlBtn",
+                label: "操作",
+                width: 148,
+                align: "center",
+                codeField: 'controlBtn',
+                isComponent: true,
+                comps: [
+                  {
+                    compKey: "propKey1",
+                    labelName: '确认到店',
+                    codeField: 'editControlBtn',
+                    align: "center",
+                    isShowLabel:true,
+                    isShow:true,
+                    clickEvent: this.toShpoQR,
+                    component: () => import("@/components/org/linkButton")
+                  },
+                  {
+                    compKey: "propKey2",
+                    labelName: '客户留档',
+                    codeField: 'editControlBtn',
+                    align: "center",
+                    isShowLabel:true,
+                    isShow:true,
+                    clickEvent: this.customerRemian,
+                    component: () => import("@/components/org/linkButton")
+                  }
+                ]
+              },
+              {
+                prop: "humanQty",
+                label: "来店人数",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "carSeriesCn",
+                label: "意向车系",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "comePurposeName",
+                label: "来店目的",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "comeTime",
+                label: "到店时间",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "leaveDate",
+                label: "离店时间",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "custSourceName",
+                label: "客户来源",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "caEmpName",
+                label: "销售顾问",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "comeStateName",
+                label: "来店状态",
+                width: null,
+                align: "center",
+              },
+              {
+                prop: "custName",
+                label: "客户名称",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "",
+                label: "电话",
+                width: null,
+                align: "center"
+              },
+              {
+                prop: "",
+                label: "是否首次来店",
+                width: null,
+                align: "center",
+              },
+              {
+                prop: "remark",
+                label: "备注",
+                width: null,
+                align: "center",
+              },
+              {
+                prop: "comePurposeId",
+                label: "来店目的编码",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "comeId",
+                label: "来店ID",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "comeState",
+                label: "来店状态编码",
+                width: null,
+                align: "center",
+                hidden: true
+              },
+              {
+                prop: "custSource",
+                label: "客户来源编码",
+                width: null,
+                align: "center",
+                hidden: true
+              }
+            ],
+      // 表单查询数据
+      formField: {
+        dlrId: this.$store.getters.orgInfo.DLR_ID,
+        caEmpId: "",
+        comePurposeId: "",
+        comeState: "",
+        comeTimeStart:"",
+        comeTimeEnd:""
+      },
+      historyPopupsVisible: false,
+      DRPopupsVisible:false,
+      TPPopupsVisible:false,
+      // 新增、编辑弹窗Key
+      historyPopupsKey: "history1",
+      DRPopupsKey: "upload",
+      TPPopupsKey: "pic",
+      // 新增、编辑弹窗状态（add/edit/view）
+      historyPopupsState: "",
+      DRPopupsState: "",
+      TPPopupsState: "",
+      // 新增、编辑行对象
+      historyRowData: {},
+      DRRowData: {}
+    };
+  },
+  methods: {
+    // 确认到店
+    toShpoQR(index) {
+        debugger
+        var curIndex = index;
+        const that = this.$refs.multipleTable;
+        if (curIndex === undefined || curIndex === null) {
+            var currentRow;
+            if (that.isMul === true) {
+            // 多选
+            var selectData = that.selection;
+            if (selectData.length > 0) {
+                currentRow = selectData[0];
+            }
+            } else {
+            // 单选
+            currentRow = that.currentRow;
+            }
+            if (currentRow) {
+            curIndex = currentRow.index;
+            }
+        }
+
+        if (curIndex === undefined || curIndex === null) {
+            this.$alert("请选择需要留档的数据", "提示");
+            return;
+        }
+        this.historyRowData = that.list[curIndex];
+        debugger
+        if(this.historyRowData.comeState=="1")
+        {
+          this.showhistoryEdit("edit");
+        }else{
+          this.$alert("来店状态为制作的才能确认到店", "提示");
+        }
+    },
+    toLd(){
+      this.DRRowData = null;
+      this.showDREdit("edit");
+    },
+    // 客户留档
+    customerRemian(index) {
+      var curIndex = index;
+      const that = this.$refs.multipleTable;
+      if (curIndex === undefined || curIndex === null) {
+        var currentRow;
+        if (that.isMul === true) {
+        // 多选
+        var selectData = that.selection;
+        if (selectData.length > 0) {
+            currentRow = selectData[0];
+        }
+        } else {
+        // 单选
+        currentRow = that.currentRow;
+        }
+        if (currentRow) {
+        curIndex = currentRow.index;
+        }
+      }
+      if (curIndex === undefined || curIndex === null) {
+        this.$alert("请选择需要查看的数据", "提示");
+        return;
+      }
+      this.DRRowData = that.list[curIndex];
+      if(this.DRRowData.comePurposeId=="1"&&this.DRRowData.comeState=="2")
+      {
+        this.showDREdit("edit");
+      }else{
+        this.$alert("来店目的为看车且确认到店之后才能留档", "提示");
+      }
+    },
+    showhistoryEdit(type) {
+      this.historyPopupsState = type;
+      this.historyPopupsVisible = true;
+      this.historyPopupsKey = this.$utils.generateId();
+    },
+    showDREdit(type) {
+      this.DRPopupsState = type;
+      this.DRPopupsVisible = true;
+      this.DRPopupsKey = this.$utils.generateId();
+    },
+    XZDJ:function(){
+      let that=this
+      that.dialogVisible2=false
+      that.$crmcf.jumpDetailTag(that, "addRegister", "/addRegister");
+    },
+    historyclose(type) {
+      this.historyPopupsVisible = false;
+      this.historyPopupsKey = this.$utils.generateId();
+    },
+    DRclose(type) {
+      this.DRPopupsVisible = false;
+      this.DRPopupsKey = this.$utils.generateId();
+    },
+  }
+};
+</script>

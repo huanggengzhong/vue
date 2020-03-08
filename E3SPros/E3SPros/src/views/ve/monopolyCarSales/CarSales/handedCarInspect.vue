@@ -1,0 +1,101 @@
+<!--
+* description: 交车项检查
+* author: guanri
+* createdDate: 2019-10-23
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template ref="multipleTable"
+     
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowMoreBtn="isMoreBtn"
+      :dynamicIsShowSelect="false"
+      :dynamicIsInitTable="true"
+      :dynamicIsColumnDrop="true"
+    />
+
+  
+  </div>
+</template>
+
+<script>
+import { veApis } from "@/api/graphQLApiList/ve";
+import { requestGraphQL } from "@/api/commonRequest";
+import OneTableTemplate from "@/components/templates/oneTable";
+import { oneTableWithViewTemplateMixins } from "@/components/mixins/oneTableWithViewTemplateMixins";
+import { valueObjectMixins } from '@/components/mixins/valueObjectMixins'
+import { CacheConfig } from "@/cache/configCache/index";
+export default {
+  name: "dlrSales",
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+  },
+  data() {
+    return {
+      //设置是否显示更多按钮
+      isMoreBtn: false,
+      // 网格查询API配置对象
+      apiConfig: veApis.veBuAgentProjectTypeMutationSave,
+
+    
+      // 动态生成网格列
+      tableCols: [
+        {
+          prop: "controlBtn",
+            label: this.$t("ve.label.option")
+          ,//选择
+          codeField: "controlBtn",
+          width: 200,
+          align: "center",
+          fixed: true,
+          isComponent: true,
+        },
+           {
+          prop: "controlBtn",
+            label: this.$t("ve.label.deliveryCarClass")
+          ,//交车类型
+          codeField: "controlBtn",
+          width: 400,
+          align: "center",
+          fixed: true,
+          isComponent: true,
+        },
+              {
+          prop: "controlBtn",
+            label: this.$t("ve.label.deliveryProject")
+          ,//交车项
+          codeField: "controlBtn",
+          width: 445,
+          align: "center",
+          fixed: true,
+          isComponent: true,
+        },
+         
+
+       
+      ],
+
+      //查询条件
+      formField: {
+        carBrandCode: "",
+        dlrShortName: "",
+        orgType: "",
+        dlrCode: "",
+        dlrFullName: ""
+      },
+    }
+  },
+}
+</script>
+
+<style>
+.filter-title{
+  display: none;
+}
+.app-container{
+  margin-top: 15px;
+}
+</style>

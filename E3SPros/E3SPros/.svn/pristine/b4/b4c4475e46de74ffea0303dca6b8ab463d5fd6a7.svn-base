@@ -1,0 +1,390 @@
+<!--
+* description: 报备申请查询
+* author: yangsq
+* createdDate: 2019-09-25
+-->
+<template>
+  <div class="app-container app-container-table">
+    <one-table-template
+      ref="multipleTable"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicFormFields="formField"
+      :dynamicIsShowSelect="false"
+      :dynamicIsShowMoreBtn="true"
+    />
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { veApis } from "@/api/graphQLApiList/ve";
+import OneTableTemplate from "@/components/templates/oneTable";
+import { CacheConfig } from '@/cache/configCache/index'
+
+export default {
+    name: "veApplicationFiling",
+  // 组件混入对象：{data[listQuery] methods[queryTable]}
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+  },
+  // 阻塞路由预加载网格中组件的数据
+ beforeRouteEnter(to, from, next) {
+  CacheConfig.initData(to.path, function(){next()})
+ },
+   data() {
+    return {
+      // 网格查询API配置对象
+      apiConfig: veApis.veApplicationForFiling,
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "primary",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: this.$t("sys.button.query") //查询
+        },
+        {
+          compKey: "btnKey4",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: this.$t("sys.button.reset") //重置
+        },
+        {
+          compKey: "btnKey5",
+          type: "",
+          size: "small",
+          clickEvent: () => this.exportExcel(),
+          text: this.$t("sys.button.export") //导出
+        }
+
+      ],
+      // 动态组件-查询条件
+      tableComponents: CacheConfig.cacheData[this.$route.path] && CacheConfig.cacheData[this.$route.path].tableComponents && CacheConfig.cacheData[this.$route.path].tableComponents.length > 0 ? CacheConfig.cacheData[this.$route.path].tableComponents: [
+        // 显示组件
+        {
+          compKey: "compKey1",
+          labelName: this.$t("ve.label.carBrandCode"),//品牌
+          codeField: "carBrandCode",
+          isMul:true,
+          component: () =>import("@/components/org/carBrand/carBrand"),
+          type: "dropdownList",
+          isMust: true
+        },
+         {
+          compKey: "compKey2",
+          labelName: this.$t("org.label.dlrName"),//经销商
+          codeField: "dlr",
+          component: () => import("@/components/org/orgDlr"),
+          type: "propus",
+          isMul:false,
+          isMust: true
+        },
+         {
+          compKey: "compKey3",
+          labelName: this.$t("ve.label.applyDate"),//申请时间
+          codeField: "applyDate",
+          component: () => import("@/components/org/datePicker/datePicker"),
+          type: "datePicker",
+          isMul:false,
+          isMust: true
+        },
+        {
+          compKey: "compKey4",
+          labelName: this.$t("ve.label.reach"),//至
+          codeField: "reach",
+          component: () => import("@/components/org/datePicker/datePicker"),
+          type: "datePicker",
+          isMul:false,
+          isMust: true
+        },
+        {
+          compKey: "compKey5",
+          labelName: this.$t("ve.label.applyType"),//申请状态
+          codeField: "applyType",
+          lookuptype: 'VE0305',
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMul:false,
+          isMust: false
+        },
+        {
+          compKey: "compKey6",
+          labelName: this.$t("ve.label.policyType"),//政策类型
+          lookuptype: 'VE0192',
+          codeField: "policyType",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMul:false,
+          isMust: false
+        }
+      ],
+      // 动态生成网格列
+      tableCols: CacheConfig.cacheData[this.$route.path] && CacheConfig.cacheData[this.$route.path].tableCols && CacheConfig.cacheData[this.$route.path].tableCols.length > 0 ? CacheConfig.cacheData[this.$route.path].tableCols: [
+
+        {
+          prop: "carBrandCode",
+          label: this.$t("ve.label.carBrandCode"),//品牌
+          codeField: "carBrandCode",
+          width: 160,
+          align: "center",
+        },
+        {
+          prop: "bigArea",
+          label: this.$t("ve.label.bigarea"),//大区
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "smallArea",
+          label: this.$t("ve.label.smallArea"),//小区
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "prohibit",
+          label: this.$t("org.label.province"),//省份
+          width: null,
+          align: "center",
+
+        },
+        {
+          prop: "cityName",
+          label: this.$t("ve.label.city"),//城市
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "dlr",
+          label: this.$t("ve.label.dlr"),//经销商
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "custName",
+          label: this.$t("ve.label.custName"),//客户名称
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "custType",
+          label: this.$t("ve.label.custType"),//客户类型
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "credNo",
+          label: this.$t("ve.label.custType"),//证件号码
+          width: 160,
+          align: "center",
+        },
+        {
+          prop: "policyType",
+          label: this.$t("ve.label.policyType"),//政策类型
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "applyType",
+          label: this.$t("ve.label.applyType"),//申请状态
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "applyPeople",
+          label: this.$t("ve.label.applyPeople"),//申请人
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "auditTime",
+          label: this.$t("ve.label.auditTime"),//审核时间
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "auditExplain",
+          label: this.$t("ve.label.auditExplain"),//审核说明
+          width: null,
+          align: "center",
+
+        },
+        {
+          prop: "validityPeriodOfFiling",
+          label: this.$t("ve.label.validityPeriodOfFiling"),//报备有效期
+          width: 120,
+          align: "center",
+        },
+        {
+          prop: "closingDate",
+          label: this.$t("ve.label.closingDate"),//截止日期
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "toReviewPeople",
+          label: this.$t("ve.label.toReviewPeople"),//复核人
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "toReviewDate",
+          label: this.$t("ve.label.toReviewDate"),//复核时间
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "toReviewExplain",
+          label: this.$t("ve.label.toReviewExplain"),//复核说明
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "applyFrequency",
+          label: this.$t("ve.label.applyFrequency"),//申请次数
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "useUnitName",
+          label: this.$t("ve.label.useUnitName"),//使用单位名称
+          width: 120,
+          align: "center",
+        },
+        {
+          prop: "purchasingUnitAddress",
+          label: this.$t("ve.label.purchasingUnitAddress"),//采购单位地址
+          width: 120,
+          align: "center",
+        },
+        {
+          prop: "personInChargeName",
+          label: this.$t("ve.label.personInChargeName"),//经办人姓名
+          width: 120,
+          align: "center",
+        },
+        {
+          prop: "personInChargePost",
+          label: this.$t("ve.label.personInChargePost"),//经办人职务
+          width: 120,
+          align: "center",
+        },
+        {
+          prop: "personInChargePhoneNumber",
+          label: this.$t("ve.label.personInChargePhoneNumber"),//经办人手机号
+          width: 120,
+          align: "center",
+        },
+        {
+          prop: "personInChargeLandline",
+          label: this.$t("ve.label.personInChargeLandline"),//经办人座机
+          width: 120,
+          align: "center",
+        },
+        {
+          prop: "decisionMakerName",
+          label: this.$t("ve.label.decisionMakerName"),//决策者姓名
+          width: 120,
+          align: "center",
+        },
+        {
+          prop: "decisionMakerPost",
+          label: this.$t("ve.label.decisionMakerPost"),//决策者职务
+          width: 120,
+          align: "center",
+        },
+        {
+          prop: "decisionMakerphoneNumber",
+          label: this.$t("ve.label.decisionMakerphoneNumber"),//决策者手机号
+          width: 120,
+          align: "center",
+        },
+        {
+          prop: "decisionMakerLandline",
+          label: this.$t("ve.label.decisionMakerLandline"),//决策者座机
+          width: 120,
+          align: "center",
+        },
+        {
+          prop: "thisTimePurchaseNumber",
+          label: this.$t("ve.label.thisTimePurchaseNumber"),//本次采购数量
+          width: 120,
+          align: "center",
+        },
+        {
+          prop: "estimatePurchaseDate",
+          label: this.$t("ve.label.estimatePurchaseDate"),//预计采购日期
+          width: 120,
+          align: "center",
+        },
+        {
+          prop: "thisYearPurchaseNumber",
+          label: this.$t("ve.label.thisYearPurchaseNumber"),//本年度采购总量
+          width: 120,
+          align: "center",
+        },
+        {
+          prop: "businessScope",
+          label: this.$t("ve.label.businessScope"),//经营范围
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "beVisitedPeople",
+          label: this.$t("ve.label.beVisitedPeople"),//被访问者
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "beVisitedPeoplePost",
+          label: this.$t("ve.label.beVisitedPeoplePost"),//被访问者职务
+          width: 120,
+          align: "center",
+        },
+        {
+          prop: "visitedType",
+          label: this.$t("ve.label.visitedType"),//访问方式
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "visitedDate",
+          label: this.$t("ve.label.visitedDate"),//访问日期
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "negotiationResults",
+          label: this.$t("ve.label.negotiationResults"),//商谈结果
+          width: null,
+          align: "center",
+        },
+        {
+          prop: "updateControlId",
+          label: "并发字段",
+          width: null,
+          align: "center",
+          hidden: true
+        }
+
+      ],
+      formField: {
+        carBrandCode: '',
+        dlr: '',
+        applyDate: '',
+        reach: '',
+        applyType: '',
+        updateControlId:'',
+        policyType: ''
+      }
+    };
+
+  },
+    methods: {
+  }
+}
+</script>

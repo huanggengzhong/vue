@@ -1,0 +1,122 @@
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button" ref="searcheHeight">
+      <el-button  size="small" @click.native="newData()">新增</el-button>
+      <el-button  size="small" @click.native="saveData()">保存</el-button>
+      <el-button  size="small" @click.native="auditData()">审核</el-button>
+      <el-button  size="small" @click.native="rejectedData()">驳回</el-button>
+      <el-button  size="small" @click.native="resetData()">重置</el-button>
+    </div>
+
+    <applyClaimDialog ref="applyClaimDialog" 
+                :applyClaimDialogVisible="applyClaimDialogVisible"
+                @close="collectionDialogClose" />  
+    <mix-form ref="applyForClaimForm" 
+        :dynamicFormFields="applyForClaimForm" 
+        :dynamicFieldsData="applyForClaimFormData">
+    </mix-form>
+    <mix-table
+        ref="applyForClaimListTable"
+        :queryParams="applyForClaimQueryParams"
+        :dynamicTableCols="applyForClaimUnitCols"
+        :isPaging="true"
+    />              
+  </div>
+</template>
+
+
+<script>
+ import { the_Height } from "@/components/se/seMixins/makeHeightForTemplate";
+ import { paApis } from '@/api/graphQLApiList/pa'
+ import LookupValue from '@/components/org/LookupValue/index'
+ import lableName from '@/components/lableName' 
+ import applyClaimDialog from './applyForClaimDialog'    
+ import mixTable from "@/components/basicComponent/mixTable" 
+ import mixForm from '@/components/basicComponent/mixForm' 
+
+ export default {
+  mixins: [the_Height],
+  components:{
+    LookupValue,
+    lableName,
+    applyClaimDialog,
+    mixTable,
+    mixForm
+  },
+
+  data(){
+    return{
+        count: false,
+        toggleParam: false,
+        applyClaimDialogVisible: false,
+        //表单
+        applyForClaimForm: [
+            {label: '索赔单号', codeField: 'A1', type: 'inputTxt' },
+            {label: '入库单号', codeField: 'A2', type: 'inputTxt', event:this.entryWarehouseFetch, readonly: true, suffixIcon: 'suffixIcon'},
+            {label: '发票单号', codeField: 'A3', type: 'inputTxt'},
+            {label: '申请日期', codeField: 'A4', type: 'inputTxt' },
+            {label: '联系人', codeField: 'A5', type: 'inputTxt' },
+            {label: '联系电话', codeField: 'A6', type: 'inputTxt' },
+            {label: '传真号码', codeField: 'A7', type: 'inputTxt' },
+            {label: '备注', codeField: 'A8', type: 'inputTxt' }
+        ],
+        applyForClaimFormData: {
+            A1: '',
+            A2: '',
+            A3: '',
+            A4: '',
+            A5: '',
+            A6: '',
+            A7: '',
+            A8: ''
+      },
+      }
+    },
+
+  created(){
+  },
+
+  methods:{
+    //入库单号查询
+    entryWarehouseFetch(){
+        this.applyClaimDialogVisible = true;
+    },
+    //关闭入库单号弹出
+    collectionDialogClose(val){
+        var judge = val.split(" ")[0] === 'true' ? true : false;
+        if(judge){
+            this.applyForClaimFormData.A2 = val.split(" ")[1];
+            this.applyForClaimFormData.A3 = val.split(" ")[2];
+            this.makeDate();
+            this.applyClaimDialogVisible = val.split(" ")[3] === 'flase' ? false : false;
+        }else{
+            this.applyClaimDialogVisible = val.split(" ")[1] === 'flase' ? false : false;
+        }
+    },
+    //更多改变布局
+    changeToggleParam() {
+        if (!this.count) {
+            this.toggleParam = true;
+            this.count = true;
+        } else {
+            this.toggleParam = false;
+            this.count = false;
+        }
+    },
+    //日期选择器分开日期
+    makeDate() {
+        var date = new Date();
+        var year = date.getFullYear();
+        var month = date.getMonth() + 1;
+        if(month < 10){
+            month = "0" + month;
+        }
+        var day = date.getDate();
+        if(day < 10){
+            day = "0" + day;
+        }
+        this.applyForClaimFormData.A4 = year + "-" + month + "-" + day;
+    },
+  }
+}
+</script>

@@ -1,0 +1,429 @@
+<template>
+  <div class="app-container app-container-table">
+    <div class="filter-container filter-button"
+         ref="searcheHeight">
+      <el-button type="primary"
+                 @click="fetchData">查询</el-button>
+      <el-button size="small"
+                 @click="jumpCalendarGroup">日历组</el-button>
+      <el-button @click="resetForm('ruleForm')">重置</el-button>
+    </div>
+    <div class="filter-container filter-params"
+         ref="conHeight">
+      <el-row :gutter="26">
+        <el-form :model="ruleForm"
+                 :rules="rules"
+                 ref="ruleForm"
+                 class="demo-ruleForm">
+          <el-row>
+            <LookupValue :span="6"
+                         :isRequire="true"
+                         :isMul="isMul"
+                         :isShowLabel="isShowLabel"
+                         :code="ruleForm.carBrandCode"
+                         :lookuptype="carBrandCodeLookuptype"
+                         :labelName="carBrandCodeLookupValuelable"
+                         @changeCode="getPartBrandCode" />
+            <!-- <carBrand :span="6"
+                      :code="ruleForm.carBrandCode"
+                      @changeCode="getPartBrandCode" /> -->
+
+            <el-col :span="6">
+              <el-form-item label="经销商编码"
+                            prop="dlrCode">
+                <el-input @focus="openseComQueryChoDlr"
+                          v-model="ruleForm.dlrCode"
+                          suffix-icon="el-icon-search"
+                          placeholder="请选择"
+                          size="small"></el-input>
+              </el-form-item>
+            </el-col>
+            <seComQueryChoDlrMul ref="seComQueryChoDlrMul"
+                                 @changeCode="getseComQueryChoDlrMul"></seComQueryChoDlrMul>
+            <el-col :span="6">
+              <el-form-item label="日历年月"
+                            prop="yearMonths">
+                <el-date-picker v-model="ruleForm.yearMonths"
+                                type="month"
+                                :editable="false"
+                                @change="getDatetime"
+                                value-format="yyyy-MM"
+                                :default-value="faultTime"></el-date-picker>
+              </el-form-item>
+            </el-col>
+            <!-- <el-col :span="6">
+              <el-form-item prop="isNull">
+                <el-checkbox v-model="isNull"
+                             label="显示订货日历为空的记录"></el-checkbox>
+              </el-form-item>
+            </el-col> -->
+          </el-row>
+        </el-form>
+      </el-row>
+    </div>
+    <div class="filter-container filter-title"
+         ref="resultTitleHeight">查询结果</div>
+    <el-table :height="tableHeight"
+              :data="list"
+              style="width: 100%"
+              v-loading="listLoading"
+              element-loading-text="Loading"
+              border
+              fit
+              stripe
+              :header-cell-style="tableHeaderRowClassName"
+              highlight-current-row
+              ref="multipleTable">
+      <el-table-column label="序号"
+                       width="60"
+                       type="index"></el-table-column>
+      <el-table-column label="日历年月"
+                       width="90"
+                       prop="yearMonths">
+        <template slot-scope="scope">{{scope.row.yearMonths}}</template>
+      </el-table-column>
+      <el-table-column label="组织编码"
+                       width="110"
+                       prop="smallAreaName">
+        <template slot-scope="scope">{{scope.row.smallAreaName}}</template>
+      </el-table-column>
+      <el-table-column label="组织名称"
+                       width="110"
+                       prop="carBrandName">
+        <template slot-scope="scope">{{ scope.row.carBrandName}}</template>
+      </el-table-column>
+      <el-table-column label="经销商编码"
+                       width="110"
+                       prop="dlrCode">
+        <template slot-scope="scope">{{scope.row.dlrCode}}</template>
+      </el-table-column>
+      <el-table-column label="经销商名称"
+                       width="110"
+                       prop="dlrShortName">
+        <template slot-scope="scope">{{scope.row.dlrShortName}}</template>
+      </el-table-column>
+      <el-table-column width="80"
+                       v-for="(item,index) in date"
+                       :key="item"
+                       :prop="'date'+item">
+        <template slot="header">
+          <el-checkbox @change="handleCheckAll(item)"
+                       :label="item"
+                       v-model="headerCheckAllmodel['date'+item]">{{item+"+"}}</el-checkbox>
+        </template>
+        <template slot-scope="scope">
+          <el-checkbox v-model="scope.row['date'+item]"></el-checkbox>
+        </template>
+      </el-table-column>
+    </el-table>
+    <el-pagination ref="paginationHeight"
+                   background
+                   layout="prev, pager, next, sizes, ->, total"
+                   prev-text="上一页"
+                   next-text="下一页"
+                   :page-sizes="[10, 20, 30]"
+                   :page-size="10"
+                   :total="list?listRecords:0"
+                   @size-change="handleSizeChange"
+                   @current-change="handleCurrentChange" />
+
+  </div>
+
+</template>
+<script>
+import { paApis } from '@/api/graphQLApiList/pa'
+import { requestGraphQL } from '@/api/commonRequest'
+import seComQueryChoDlrMul from '@/components/se/seComQueryChoDlrMul'
+import LookupValue from '@/components/org/LookupValue'
+import { the_Height } from '@/components/se/seMixins/makeHeight'
+import carBrand from "@/components/org/carBrand/carBrand";
+
+export default {
+  mixins: [the_Height],
+  name: 'testTbale',
+  components: {
+    seComQueryChoDlrMul,
+    LookupValue,
+    carBrand
+  },
+  filters: {
+    statusFilter (status) {
+      const statusMap = {
+        published: 'success',
+        draft: 'gray',
+        deleted: 'danger'
+      }
+      return statusMap[status]
+    }
+  },
+  data () {
+    return {
+      // validateCOM: [],
+      isNull: false,
+      ruleForm: {
+        carBrandCode: '', //品牌
+        dlrCode: '', //经销商编码
+        yearMonths: '', //日历年月
+        isNull: 0 //显示订货日历为空的记录
+      },
+      rules: {
+        brandName: [
+          { required: true, message: '品牌不能为空', trigger: 'blur' }
+        ]
+      },
+      code: '1',
+      list: null,
+      listLoading: false,
+      date: '', //日历年月条件中的每个月的天数
+      headerCheckAllmodel: {}, //表头复选框v-model中的值
+      pageIndex: 1,
+      pageSize: 10,
+      listQuery: {},
+      isMul: false,
+      isShowLabel: true,
+      carBrandCodeLookuptype: 'PA0107',
+      carBrandCodeLookupValuelable: '日历类型',
+      listRecords: null,
+      tableHeaderRowClassName ({ row, rowIndex }) {
+        if (rowIndex === 0) {
+          return 'background-color:rgb(239, 239, 239);height:32px;'
+        }
+      }
+    }
+  },
+
+  mounted () {
+    this.colmnNum1()
+  },
+  computed: {
+    faultTime () {
+      let nowDate = new Date()
+      let y = nowDate.getFullYear()
+      // let m = nowDate.getMonth() + 1;
+      let m =
+        parseInt(nowDate.getMonth()) + 1 < 10
+          ? '0' + (parseInt(nowDate.getMonth()) + 1)
+          : parseInt(nowDate.getMonth()) + 1
+      return (this.ruleForm.yearMonths = y + '' + m)
+    }
+  },
+  methods: {
+    submitForm (formName) {
+      this.$refs[formName].validate(valid => { })
+    },
+    resetForm (formName) {
+      this.$refs[formName].resetFields()
+      this.ruleForm.carBrandCode = ''
+      this.isNull = false
+      this.ruleForm.isNull = '0'
+    },
+    //设置时间默认为当前时间
+    getDatetime (val) {
+      let year = val.substring(0, 4)
+      let month = val.substring(5, 7)
+      this.ruleForm.yearMonths = year + month
+    },
+    //通过查询条件日历年月判断动态表格有多少列
+    colmnNum1 () {
+      // let year = Number(this.ruleForm.yearMonths.split("-")[0]);
+      // let month = Number(this.ruleForm.yearMonths.split("-")[1]);
+      let year = Number(this.ruleForm.yearMonths.substring(0, 4))
+      let month = Number(this.ruleForm.yearMonths.substring(4, 6))
+      this.date = new Date(year, month, 0).getDate()
+    },
+    //表格全选
+    handleCheckAll (day) {
+      //column, event
+      var num = 0
+      this.list.forEach(row => {
+        row['date' + day] = this.headerCheckAllmodel['date' + day]
+      })
+    },
+    fetchData (page) {
+      if (
+        this.ruleForm.carBrandCode == null ||
+        this.ruleForm.carBrandCode == undefined ||
+        this.ruleForm.carBrandCode == ''
+      ) {
+        this.$message({
+          message: '日历类型不能会空',
+          type: 'warning',
+          duration: 2000
+        })
+        return
+      }
+      this.colmnNum1()
+      this.listLoading = true
+      const that = this
+      if (that.isNull) {
+        that.ruleForm.isNull = 1
+      } else {
+        that.ruleForm.isNull = 0
+      }
+
+      let queryObj = {
+        // 请求类型&参数 保存mutation  查询query
+        type: 'query',
+        typeParam:
+          '($pageIndex: Int, $pageSize: Int, $dataInfo: ' +
+          paApis.paDbPurCalendarQueryFindAll.InputType +
+          ')',
+        // api配置
+        // apiConfig: paApis.paDbPurCalendarQueryFindAll,
+        // 请求API
+        apiUrl: paApis.paDbPurCalendarQueryFindAll.APIUrl,
+        // 需要调用的API服务配置
+        apiServices: [
+
+          {
+            // API服务编码&参数
+            apiServiceCode: paApis.paDbPurCalendarQueryFindAll.ServiceCode,
+            apiServiceParam:
+              '(dataInfo: $dataInfo, pageIndex: $pageIndex, pageSize: $pageSize)',
+            //表格中台返回网格的字段
+            apiQueryRow: [
+              'beginDate',
+              'calSeqId',
+              'carBrandName',
+              'column1',
+              'column10',
+              'column2',
+              'column3',
+              'column4',
+              'column5',
+              'column6',
+              'column7',
+              'column8',
+              'column9',
+              'createdDate',
+              'createdName',
+              'creator',
+              'date1',
+              'date10',
+              'date11',
+              'date12',
+              'date13',
+              'date14',
+              'date15',
+              'date17',
+              'date18',
+              'date19',
+              'date2',
+              'date20',
+              'date21',
+              'date22',
+              'date23',
+              'date24',
+              'date25',
+              'date26',
+              'date27',
+              'date28',
+              'date29',
+              'date3',
+              'date30',
+              'date31',
+              'date4',
+              'date5',
+              'date6',
+              'date7',
+              'date8',
+              'date9',
+              'dlrCode',
+              'dlrId',
+              'dlrShortName',
+              'endDate',
+              'groupCode',
+              'groupId',
+              'isEnable',
+              'isSystem',
+              'lastUpdatedDate',
+              'modifier',
+              'modifyName',
+              'mycatOpTime',
+              'oemCode',
+              'oemId',
+              'orderNo',
+              'partBrandCode',
+              'purCalendarId',
+              'sdpOrgId',
+              'sdpUserId',
+              'smallAreaName',
+              'updateControlId',
+              'yearMonths'
+            ]
+          }
+        ],
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          pageSize: that.pageSize,
+          pageIndex: that.pageIndex,
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: that.ruleForm
+        }
+      }
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj)
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (
+          response.data[paApis.paDbPurCalendarQueryFindAll.ServiceCode]
+            .result === '1' &&
+          response.data[paApis.paDbPurCalendarQueryFindAll.ServiceCode].rows !=
+          ''
+        ) {
+          if (page) {
+            //查询完返回指定的page页数
+            that.listQuery.pageIndex = page
+          }
+          /* that.pageTotal =
+            response.data[
+              paApis.paDbPurCalendarQueryFindAll.ServiceCode
+            ].records; */
+          that.list =
+            response.data[paApis.paDbPurCalendarQueryFindAll.ServiceCode].rows
+          that.listRecords = Number(
+            response.data[paApis.paDbPurCalendarQueryFindAll.ServiceCode]
+              .records
+          )
+          that.listLoading = false
+          //转换数据
+          for (let i in that.list) {
+            for (let j = 0; j < 31; j++) {
+              that.list[i][['date' + parseInt(j + 1)]] =
+                that.list[i][['date' + parseInt(j + 1)]] == '1' ? true : false
+            }
+          }
+        } else {
+          that.listLoading = false
+        }
+      })
+      // }
+    },
+    handleSizeChange (val) {
+      this.pageSize = val
+      this.fetchData()
+    },
+    handleCurrentChange (val) {
+      this.pageIndex = val
+      this.fetchData()
+    },
+    //跳转到日历组
+    jumpCalendarGroup () {
+      this.$router.push({
+        path: '/paModule/paOrderManage/calendarGroup'
+      })
+    },
+    //显示经销商编码弹框
+    openseComQueryChoDlr () {
+      //打开弹窗
+      this.$refs.seComQueryChoDlrMul.open()
+    },
+    getseComQueryChoDlrMul (data) {
+      this.ruleForm.dlrCode = data[0].dlrCode
+    },
+    getPartBrandCode (val) {
+      this.ruleForm.carBrandCode = val
+    }
+  }
+}
+</script>

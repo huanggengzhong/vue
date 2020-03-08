@@ -1,0 +1,325 @@
+/**
+* description: 系统通知场景定义
+* author: dinggf
+* createdDate: 2019-10-25
+*/
+<template>
+  <div class="app-container app-container-table">
+    <!-- <mix-button
+      v-if="bounce"
+      name="searchBtns"
+      :svFields="svFields"
+      :isShowMore=true
+      :formField="formField"
+      @toggle="changeToggleParam"
+    ></mix-button> -->
+    <one-table-template
+      ref="multipleTable"
+      :dynamicApiConfig="apiConfig"
+      :dynamicTableCols="tableCols"
+      :dynamicButtons="tableButtons"
+      :dynamicComponents="tableComponents"
+      :dynamicFormFields="formField"
+      :dynamicIsShowMoreBtn="false"
+      :dynamicIsShowSelect="false"
+    />
+    <edit
+      :dynamicEditRowData="editRowData"
+      :popupsVisible="editPopupsVisible"
+      :key="editPopupsKey"
+      :popupsState="editPopupsState"
+      @close="close"
+    ></edit>
+  </div>
+</template>
+<script>
+import { oneTableWithViewTemplateMixins } from '@/components/mixins/oneTableWithViewTemplateMixins';
+import { orgApis } from "@/api/graphQLApiList/org";
+import { requestGraphQL } from "@/api/commonRequest";
+import OneTableTemplate from "@/components/templates/oneTable";
+import { CacheConfig } from "@/cache/configCache/index";
+import Edit from "./edit";
+
+export default {
+  name: "mdsSysSceneSetting",
+  // 组件混入对象：{data[listQuery] methods[queryTable]}
+  mixins: [oneTableWithViewTemplateMixins],
+  components: {
+    OneTableTemplate,
+    Edit
+  },
+  // 阻塞路由预加载网格中组件的数据
+  beforeRouteEnter(to, from, next) {
+    CacheConfig.initData(to.path, function() {
+      next();
+    });
+  },
+  data() {
+    return {
+      // isMoreBtn: true,
+      svFields: '业务模块',
+      bounce: true,
+      // 网格查询API配置对象
+      apiConfig: orgApis.mdsSysSceneSettingQueryByPage,
+      sysSceneSettingObjProp: {
+        sceneCode: "",
+        sceneDesc: "",
+        sendType: "",
+        // sendTypeCode: "",
+        belongto: "",
+        // belongtoCode: "",
+        isEnable: "",
+        updateControlId: ""
+      },
+      // 动态组件-按钮
+      tableButtons: [
+        {
+          compKey: "btnKey1",
+          type: "",
+          size: "small",
+          clickEvent: () => this.queryTable(1),
+          text: this.$t("sys.button.query"),  //查询
+          name: 'search',
+          position: 'right',
+          fuzzySearch: true,
+          isMust: false
+        },
+        {
+          compKey: "btnKey2",
+          type: "",
+          size: "small",
+          clickEvent: () => this.add(),
+          text: this.$t("sys.button.add"),  //新增
+          name: 'add',
+          position: 'left'
+        },
+        {
+          compKey: "btnKey3",
+          type: "",
+          size: "small",
+          clickEvent: () => this.reset(),
+          text: this.$t("sys.button.reset"), //重置
+          name: 'reset',
+          position: 'right',
+          isMust: false
+        }
+      ],
+      // 动态组件-查询条件
+      tableComponents: CacheConfig.cacheData[this.$route.path] && CacheConfig.cacheData[this.$route.path].tableComponents && CacheConfig.cacheData[this.$route.path].tableComponents.length > 0 ? CacheConfig.cacheData[this.$route.path].tableComponents: [
+        // 显示组件
+        {
+          compKey: "compKey1",
+          labelName: this.$t("org.label.sceneCoding"),  //场景编码
+          codeField: "sceneCode",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true,
+        },
+        {
+          compKey: "compKey2",
+          labelName: this.$t("org.label.sceneName"),  //场景名称
+          codeField: "sceneDesc",
+          component: () => import("@/components/org/commonInput"),
+          type: "inputText",
+          isMust: true,
+        },
+        {
+          compKey: "compKey3",
+          labelName: this.$t("org.label.serviceModel"),  //业务模块
+          lookuptype: "DB0001",
+          codeField: "belongto",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true,
+          fuzzySearch: true
+        },
+        {
+          compKey: "compKey4",
+          labelName: this.$t("org.label.sendingType"),  //发送类型
+          lookuptype: "LX063",
+          codeField: "sendType",
+          component: () => import("@/components/org/LookupValue"),
+          type: "dropdownList",
+          isMust: true
+        },
+        {
+          compKey: "compKey5",
+          labelName: this.$t("org.label.isEnable"),  //是否启用
+          codeField: "isEnable",
+          component: () => import("@/components/org/isEnable/isEnable"),
+          type: "dropdownList",
+          isMust: true
+        },
+      ],
+      // 动态生成网格列
+      tableCols:  this.getCols(),
+      formField: {
+        sceneCode: "",
+        sceneDesc: "",
+        belongto: "",
+        sendType: "",
+        isEnable:''
+      },
+    };
+  },
+  methods: {
+    resetSysSceneSettingObjProp() {
+      this.sysSceneSettingObjProp = {
+        sceneCode: "",
+        sceneDesc: "",
+        sendType: "",
+        // sendTypeCode: "",
+        isEnable: ""
+      };
+    },
+    controlEnable(comType) {
+      var curIndex = comType;
+      const that = this.$refs.multipleTable;
+      if (curIndex === undefined || curIndex === null) {
+        var currentRow;
+        if (that.isMul === true) {
+          // 多选
+          var selectData = that.selection;
+          if (selectData.length > 0) {
+            currentRow = selectData[0];
+          }
+        } else {
+          // 单选
+          currentRow = that.currentRow;
+        }
+        if (currentRow) {
+          curIndex = currentRow.comType;
+        }
+      }
+      var row = that.list[curIndex];
+      if (curIndex === undefined || curIndex === null) {
+        if (row.isEnable == "1") {
+          this.$alert("请选择需要禁用的数据", "提示");
+          return;
+        } else if ((row.isEnable = "0")) {
+          this.$alert("请选择需要启用的数据", "提示");
+          return;
+        }
+      }
+      if (row.isEnable == "1") {
+        this.sysSceneSettingObjProp = {
+          sceneCode: row.sceneCode,
+          sceneDesc: row.sceneDesc,
+          sendType: row.sendType,
+          // belongtoCode: row.belongtoCode,
+          isEnable: "0",
+          updateControlId: row.updateControlId
+        };
+      } else if ((row.isEnable = "0")) {
+        this.sysSceneSettingObjProp = {
+          sceneCode: row.sceneCode,
+          sceneDesc: row.sceneDesc,
+          sendType: row.sendType,
+          belongto: row.belongto,
+          isEnable: "1",
+          updateControlId: row.updateControlId
+        };
+      }
+      this.save();
+    },
+    //保存
+    save() {
+      const that = this;
+
+      //通知场景保存
+      let queryObj = {
+        // 保存mutation
+        type: "mutation",
+        // api配置
+        apiConfig: orgApis.mdsSysSceneSettingMutationSave,
+        //条件/实体参数（变量），根据typeParam中的定义配置
+        variables: {
+          //当前中台使用的名称有dataInfo、info，具体查看API文档
+          dataInfo: that.sysSceneSettingObjProp
+        }
+      };
+      //转换了中台请求格式数据
+      var paramD = that.$getParams(queryObj);
+      // 调用中台API方法（可复用）
+      requestGraphQL(paramD).then(response => {
+        if (response.data[queryObj.apiConfig.ServiceCode].result === "1") {
+          that.listLoading = false;
+          if (that.sysSceneSettingObjProp.isEnable == "1") {
+            that.$message({
+              message: "启用成功",
+              type: "success",
+              duration: 2000
+            });
+          } else if (that.sysSceneSettingObjProp.isEnable == "0") {
+            that.$message({
+              message: "禁用成功",
+              type: "success",
+              duration: 2000
+            });
+          }
+        }
+      });
+    },
+    getCols() {
+      var cols = [
+        {
+          prop: "controlBtn",
+          label: this.$t("sys.content.operate"),//操作
+          codeField: "controlBtn",
+          width: 100,
+          align: "center",
+          isComponent: true,
+          comps: [
+            {
+              compKey: "propKey0",
+              align: "center",
+              labelName: this.$t("sys.button.edit"),//编辑
+              codeField: "editControlBtn",
+              clickEvent: this.edit,
+              component: () => import("@/components/org/linkButton")
+            },
+            {
+              compKey: "propKey2",
+              align: "center",
+              labelName: this.$t("org.label.prohibit"),//禁用
+              compareField: "isEnable",
+              compareValue: "1",
+              codeField: "disEnableControlBtn",
+              clickEvent: this.controlEnable,
+              component: () => import("@/components/org/linkButton")
+            },
+            {
+              compKey: "propKey3",
+              labelName: this.$t("org.label.enable"),//启用
+              compareField: "isEnable",
+              compareValue: "0",
+              codeField: "enableControlBtn",
+              clickEvent: this.controlEnable,
+              component: () => import("@/components/org/linkButton")
+            }
+          ]
+        }
+      ];
+      if (
+        CacheConfig.cacheData[this.$route.path] &&
+        CacheConfig.cacheData[this.$route.path].tableCols.length > 0
+      ) {
+        cols = cols.concat(CacheConfig.cacheData[this.$route.path].tableCols);
+      } else {
+        cols = cols.concat([
+          { prop: "sceneCode", label: this.$t("org.label.sceneCoding"), width: null, align: "center" },//场景编码
+          { prop: "sceneDesc", label: this.$t("org.label.sceneName"), width: null, align: "center" },//场景名称
+          { prop: "belongto", label: this.$t("org.label.serviceModel"), width: null, align: "center" },//业务模块
+          // { prop: "belongtoCode", label: this.$t("org.label.serviceModelC"), width: null, align: "center", hidden: true },//业务模块编码
+          { prop: "sendType", label: this.$t("org.label.sendingType"), width: null, align: "center" }, //发送类型
+          // { prop: "sendTypeCode", label: this.$t("org.label.sendingTypeC"), width: null, align: "center", hidden: true },//发送类型编码
+          { prop: "isEnable", label: this.$t("org.label.isEnable"), width: null, align: "center" }, //是否启用
+          { prop: "updateControlId", label: this.$t("org.label.concurrencyControl"), width: null, align: "center", hidden: true }//并发控制
+        ]);
+      }
+      return cols;
+    }
+  }
+};
+</script>
+

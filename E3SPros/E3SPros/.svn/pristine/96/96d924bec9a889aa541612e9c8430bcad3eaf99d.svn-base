@@ -1,0 +1,212 @@
+<template>
+  <el-dialog
+    title="入库单号查询"
+    :visible.sync="applyClaimDialogVisible"
+    :close-on-click-modal="false"
+    width="80%"
+    @close="close()"
+    :append-to-body="true"
+  >
+    <div class="filter-container filter-button" ref="searcheHeight">
+      <el-button  size="small" @click.native="fetchData()">查询</el-button>
+      <el-button  size="small" @click.native="chooseData()">选择</el-button>
+      <el-button  size="small" @click.native="resetData()">重置</el-button>
+    </div>
+    <div class="filter-container filter-params" ref="conHeight">
+        <el-row :gutter="26">
+            <el-col :span="22">
+                <el-row>
+                    <el-col :span="6">
+                        <label>备件品牌</label>
+                        <el-select
+                            v-model="applyClaimQueryParams.dataInfo.A7"
+                            size="small"
+                            placeholder="请选择"
+                            clearable
+                        >
+                        <el-option
+                            v-for="item in partsBrandOptions"
+                            :key="item.value"
+                            :label="item.label"
+                            :value="item.value"
+                        ></el-option>
+                        </el-select>
+                    </el-col>
+                    <el-col :span="6">
+                        <label>备件名称</label>
+                        <el-input v-model="applyClaimQueryParams.dataInfo.A8" clearable size="small" ></el-input>
+                    </el-col>
+                    <el-col :span="6">
+                        <label>入库单号</label>
+                        <el-input v-model="applyClaimQueryParams.dataInfo.A9" clearable size="small"></el-input>
+                    </el-col>
+                    <el-col :span="6">
+                        <label>供应商编码</label>
+                        <el-input v-model="applyClaimQueryParams.dataInfo.A10" clearable size="small" ></el-input>
+                    </el-col>
+                </el-row>
+            </el-col>    
+            <el-col :span="2">
+                <el-button icon="el-icon-plus" @click="changeToggleParam" class="moreParam">更多</el-button>
+            </el-col>
+            </el-row>
+            <el-row :gutter="26" v-show="toggleParam">
+                <el-col :span="22">
+                    <el-row>
+                        <el-col :span="6">
+                            <label>制单日期</label>
+                            <el-date-picker
+                                v-model="makeDate"
+                                type="daterange"
+                                range-separator="至"
+                                start-placeholder="开始日期"
+                                end-placeholder="结束日期"
+                                @change="getMakeDate($event)"
+                            ></el-date-picker>
+                        </el-col>  
+                    </el-row>
+                </el-col>   
+            </el-row>   
+    </div>
+ 
+    <mix-table
+        ref="applyClaimListTable"
+        :queryParams="applyClaimQueryParams"
+        :dynamicTableCols="applyClaimUnitCols"
+        :isPaging="true"
+    />   
+  </el-dialog>
+</template>
+
+
+<script>
+ import { the_Height } from "@/components/se/seMixins/makeHeightForTemplate"
+ import { paApis } from '@/api/graphQLApiList/pa'
+ import LookupValue from '@/components/org/LookupValue/index'
+ import lableName from '@/components/lableName'   
+ import mixTable from "@/components/basicComponent/mixTable"            
+
+ export default {
+  mixins: [the_Height],
+  components:{
+    LookupValue,
+    lableName,
+    mixTable
+  },
+
+   props: {
+    applyClaimDialogVisible: {
+      type: Boolean,
+      default: function() {
+        return false;
+      }
+    }
+  },
+
+  data(){
+    return{
+        count: false,
+        toggleParam: false,
+        makeDate:'',
+        partsBrandOptions:[
+            {value:1, label: 'V'},
+            {value:2, label: 'NV'}
+        ],
+        applyClaimUnitCols: [
+            { label: "入库单号", codeField: "A1"},
+            { label: "发票单号", codeField: "A2"},
+            { label: "备件号", codeField: "A3"},
+            { label: "备件名称", codeField: "A4"},
+            { label: "收货日期", codeField: "A5"},
+            { label: "备注", codeField: "A6"}
+        ],
+        applyClaimQueryParams: {
+            APIUrl: paApis.applyClaimQueryList.APIUrl,
+            InputType: paApis.applyClaimQueryList.InputType,
+            ServiceCode: paApis.applyClaimQueryList.ServiceCode,
+            dataInfo: {
+                A7: '',
+                A8: '',
+                A9: '',
+                A10: '',
+                A11: '',
+                A12: ''
+            },
+            apiQueryRow: [
+                'A1',
+                'A2',
+                'A3',
+                'A4',
+                'A5',
+                'A6'
+            ]
+      },
+      }
+    },
+
+  created(){
+  },
+
+  methods:{
+    //查询
+    fetchData(){
+        this.$refs.applyClaimListTable.queryList();
+    },
+    //选择
+    chooseData(){
+        var str = this.$refs.applyClaimListTable.currentRow;
+        if(str.length == 0){
+            this.$message({
+                message: "请先选择一行数据!",
+                type: "warning"
+              });
+        }else{
+            var entryId = true + " " + this.$refs.applyClaimListTable.currentRow[0].A1 + " " + 
+                          this.$refs.applyClaimListTable.currentRow[0].A2 + " " + false;
+            this.$emit('close',entryId);
+        }
+    },
+    //更多改变布局
+    changeToggleParam() {
+        if (!this.count) {
+            this.toggleParam = true;
+            this.count = true;
+        } else {
+            this.toggleParam = false;
+            this.count = false;
+        }
+    },
+    //关闭弹窗
+    close(){
+        var str = false + " " + false;
+        this.$emit('close',str);
+    },
+    //日期选择器分开日期
+    getMakeDate(e){   // e中已经获取到值
+        var year0 = e[0].getFullYear();
+        var month0 = e[0].getMonth() + 1;
+        var day0 = e[0].getDate();
+        var year1 = e[1].getFullYear();
+        var month1 = e[1].getMonth() + 1;
+        var day1 = e[1].getDate();
+        this.applyClaimQueryParams.dataInfo.A11 = year0+"-"+month0+"-"+day0;
+        this.applyClaimQueryParams.dataInfo.A12 = year1+"-"+month1+"-"+day1;
+    },
+    //表格自适应
+    makeHeight(mh) {
+        //协议单位 + 调拨销售单
+        var strAgreementPage = this.$refs.applyClaimListTable.$refs.paginationHeight.$el.offsetHeight;
+        var strAgreementResult = this.$refs.applyClaimListTable.$refs.resultTitleHeight.offsetHeight;
+        // 减去margin-top/bottom值
+        if (!this.$utils.isIE() || isResize) {
+            this.tableHeight = mh - this.tableMarginHeight - strAgreementPage - strAgreementResult - 7;
+            this.$refs.applyClaimListTable.tableHeight = this.tableHeight;
+        } else {
+            // IE浏览器需要减去额外高度
+            this.tableHeight = mh - this.tableMarginHeight - this.ieHeight - strAgreementPage - strAgreementResult - 7;
+            this.$refs.applyClaimListTable.tableHeight = this.tableHeight;
+        }  
+    }
+  }
+}
+</script>
